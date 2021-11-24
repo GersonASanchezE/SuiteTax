@@ -60,6 +60,7 @@ define([
 
             var transactionCountry = recordObj.getValue({ fieldId: 'custbody_lmry_subsidiary_country' });
             var transactionDate = recordObj.getText({ fieldId: "trandate" });
+            var tranDate = recordObj.getValue({ fieldId: "trandate" });
             var transactionEntity = recordObj.getValue({ fieldId: "entity" });
             var transactionDocument = recordObj.getValue({ fieldId: "custbody_lmry_document_type" });
             var transactionApprove = recordObj.getValue({ fieldId: "approvalstatus" });
@@ -474,7 +475,7 @@ define([
 
                 _createWhtTransaction(recordObj, transactionID, transactionType, transactionArray, STS_Json, exchageRate, licenses);
                 _createWhtJournal(recordObj, transactionID, journalArray, STS_Json, exchageRate, licenses);
-                _saveWhtResult(transactionID, transactionSubsidiary, transactionCountry, whtResult);
+                _saveWhtResult(transactionID, transactionSubsidiary, transactionCountry, tranDate, whtResult);
 
 
             } else {
@@ -586,6 +587,7 @@ define([
      *    - recordID: ID de la transacción
      *    - subsidiary: ID de la subsidiaria
      *    - countryID: ID del país
+     *    - tranDate: Fecha de la transaccion
      *    - whtResult: Arreglo de JSON con los detalles de las retenciones
      ***************************************************************************/
     function _saveWhtResult(recordID, subsidiary, countryID, whtResult) {
@@ -593,10 +595,10 @@ define([
         try {
 
             var taxResultSearch = search.create({
-                type: "customrecord_lmry_latamtax_tax_result",
+                type: "customrecord_lmry_ste_json_result",
                 columns: ["internalid"],
                 filters: [
-                    ["custrecord_lmry_tr_related_transaction", "IS", recordID]
+                    ["custrecord_lmry_ste_related_transaction", "IS", recordID]
                 ]
             }).run().getRange(0, 10);
 
@@ -605,12 +607,13 @@ define([
                 var taxResultID = taxResultSearch[0].getValue({ name: "internalid" });
 
                 record.submitFields({
-                    type: "customrecord_lmry_latamtax_tax_result",
+                    type: "customrecord_lmry_ste_json_result",
                     id: taxResultID,
                     values: {
-                        "custrecord_lmry_tr_subsidiary": subsidiary,
-                        "custrecord_lmry_tr_country": countryID,
-                        "custrecord_lmry_tr_wht_transaction": JSON.stringify(whtResult)
+                        "custrecord_lmry_ste_subsidiary": subsidiary,
+                        "custrecord_lmry_ste_subsidiary_country": countryID,
+                        "custrecord_lmry_ste_transaction_date": tranDate,
+                        "custrecord_lmry_ste_wht_transaction": JSON.stringify(whtResult)
                     },
                     options: {
                         enableSourcing: true,
@@ -622,23 +625,27 @@ define([
             } else {
 
                 var TR_Record = record.create({
-                    type: "customrecord_lmry_latamtax_tax_result",
+                    type: "customrecord_lmry_ste_json_result",
                     isDynamic: false
                 });
                 TR_Record.setValue({
-                    fieldId: "custrecord_lmry_tr_related_transaction",
+                    fieldId: "custrecord_lmry_ste_related_transaction",
                     value: recordID
                 });
                 TR_Record.setValue({
-                    fieldId: "custrecord_lmry_tr_subsidiary",
+                    fieldId: "custrecord_lmry_ste_subsidiary",
                     value: subsidiary
                 });
                 TR_Record.setValue({
-                    fieldId: "custrecord_lmry_tr_country",
+                    fieldId: "custrecord_lmry_ste_subsidiary_country",
                     value: countryID
                 });
                 TR_Record.setValue({
-                    fieldId: "custrecord_lmry_tr_wht_transaction",
+                    fieldId: "custrecord_lmry_ste_transaction_date",
+                    value: tranDate
+                });
+                TR_Record.setValue({
+                    fieldId: "custrecord_lmry_ste_wht_transaction",
                     value: JSON.stringify(whtResult)
                 });
 

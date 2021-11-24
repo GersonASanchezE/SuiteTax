@@ -13,10 +13,15 @@
  \= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = */
 
 define([
-    'N/log', 'N/record', 'N/search', 'N/runtime', 'N/ui/serverWidget',
+    'N/log',
+    'N/record',
+    'N/search',
+    'N/runtime',
+    'N/ui/serverWidget',
+    'N/format',
     './LMRY_libSendingEmailsLBRY_V2.0',
     './LMRY_Log_LBRY_V2.0'
-], function(log, record, search, runtime, serverWidget, Library_Mail, Library_Log) {
+], function(log, record, search, runtime, serverWidget, format, Library_Mail, Library_Log) {
 
     var LMRY_SCRIPT = 'LMRY - AR ST Purchase Tax Transaction V2.0';
     var LMRY_SCRIPT_NAME = 'LMRY_AR_ST_Purchase_Tax_Transaction_LBRY_V2.0.js';
@@ -89,6 +94,7 @@ define([
 
                     var transactionCountry = recordObj.getValue({ fieldId: 'custbody_lmry_subsidiary_country' });
                     var transactionDate = recordObj.getText({ fieldId: 'trandate' });
+                    var tranDate = recordObj.getValue({ fieldId: 'trandate' });
                     var transactionEntity = recordObj.getValue({ fieldId: 'entity' });
                     var transactionDocType = recordObj.getValue({ fieldId: 'custbody_lmry_document_type' });
 
@@ -522,7 +528,7 @@ define([
 
                     }
 
-                    saveTaxResult(transactionID, transactionSubsidiary, transactionCountry, taxResult);
+                    saveTaxResult(transactionID, transactionSubsidiary, transactionCountry, tranDate, taxResult);
 
                 } // FIN IF TAX DETAIL OVERRIDE
 
@@ -542,17 +548,22 @@ define([
      *    - recordID: ID de la transacción
      *    - subsidiary: ID de la subsidiaria
      *    - countryID: ID del país
+     *    - tranDate: Fecha de la transaccion
      *    - taxResult: Arreglo de JSON con los detalles de impuestos
      ***************************************************************************/
-    function saveTaxResult(recordID, subsidiary, countryID, taxResult) {
+    function saveTaxResult(recordID, subsidiary, countryID, tranDate, taxResult) {
 
         try {
 
+            // tranDate = tranDate.toISOString();
+            // tranDate = new Date(tranDate);
+            // tranDate = format.format({ value: tranDate, type: format.Type.DATE });
+
             var taxResultSearch = search.create({
-                type: "customrecord_lmry_latamtax_tax_result",
+                type: "customrecord_lmry_ste_json_result",
                 columns: ["internalid"],
                 filters: [
-                    ["custrecord_lmry_tr_related_transaction", "IS", recordID]
+                    ["custrecord_lmry_ste_related_transaction", "IS", recordID]
                 ]
             }).run().getRange(0, 10);
 
@@ -561,12 +572,13 @@ define([
                 var taxResultID = taxResultSearch[0].getValue({ name: "internalid" });
 
                 record.submitFields({
-                    type: "customrecord_lmry_latamtax_tax_result",
+                    type: "customrecord_lmry_ste_json_result",
                     id: taxResultID,
                     values: {
-                        "custrecord_lmry_tr_subsidiary": subsidiary,
-                        "custrecord_lmry_tr_country": countryID,
-                        "custrecord_lmry_tr_tax_transaction": JSON.stringify(taxResult)
+                        "custrecord_lmry_ste_subsidiary": subsidiary,
+                        "custrecord_lmry_ste_subsidiary_country": countryID,
+                        "custrecord_lmry_ste_transaction_date": tranDate,
+                        "custrecord_lmry_ste_tax_transaction": JSON.stringify(taxResult)
                     },
                     options: {
                         enableSourcing: false,
@@ -577,23 +589,27 @@ define([
             } else {
 
                 var TR_Record = record.create({
-                    type: "customrecord_lmry_latamtax_tax_result",
+                    type: "customrecord_lmry_ste_json_result",
                     isDynamic: false
                 });
                 TR_Record.setValue({
-                    fieldId: "custrecord_lmry_tr_related_transaction",
+                    fieldId: "custrecord_lmry_ste_related_transaction",
                     value: recordID
                 });
                 TR_Record.setValue({
-                    fieldId: "custrecord_lmry_tr_subsidiary",
+                    fieldId: "custrecord_lmry_ste_subsidiary",
                     value: subsidiary
                 });
                 TR_Record.setValue({
-                    fieldId: "custrecord_lmry_tr_country",
+                    fieldId: "custrecord_lmry_ste_subsidiary_country",
                     value: countryID
                 });
                 TR_Record.setValue({
-                    fieldId: "custrecord_lmry_tr_tax_transaction",
+                    fieldId: "custrecord_lmry_ste_transaction_date",
+                    value: tranDate
+                });
+                TR_Record.setValue({
+                    fieldId: "custrecord_lmry_ste_tax_transaction",
                     value: JSON.stringify(taxResult)
                 });
 
@@ -913,15 +929,15 @@ define([
      * DESPUES DE QUE ESTA HAYA SIDO ELIMINADA
      *    - recordObj: Transaccion
      ***************************************************************************/
-    function deleteTaxResult(recordObj) {
+    function deleteTaxResult(recordObjID) {
 
         try {
 
             var taxResultSeach = search.create({
-                type: "customrecord_lmry_latamtax_tax_result",
+                type: "customrecord_lmry_ste_json_result",
                 columns: ["internalid"],
                 filters: [
-                    ["custrecord_lmry_tr_related_transaction", "IS", recordObj]
+                    ["custrecord_lmry_ste_related_transaction", "IS", recordObjID]
                 ]
             }).run().getRange(0, 10);
 
@@ -929,7 +945,7 @@ define([
 
                 var taxResultID = taxResultSeach[0].getValue({ name: "internalid" });
                 record.delete({
-                    type: "customrecord_lmry_latamtax_tax_result",
+                    type: "customrecord_lmry_ste_json_result",
                     id: taxResultID
                 });
 

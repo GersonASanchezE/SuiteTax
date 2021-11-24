@@ -23,8 +23,7 @@ define(['./Latam_Library/LMRY_UniversalSetting_LBRY', './Latam_Library/LMRY_Hide
 './WTH_Library/LMRY_EC_BaseAmounts_TaxCode_LBRY', './Latam_Library/LMRY_BR_ValidateDuplicate_LBRY_V2.0',
 './Latam_Library/LMRY_CO_Duplicate_Credit_Memos_LBRY_V2.0', 'N/cache', './WTH_Library/LMRY_New_Country_WHT_Lines_LBRY',
 './Latam_Library/LMRY_MX_ST_Sales_Tax_Transaction_LBRY_V2.0','./Latam_Library/LMRY_PE_MapAndSaveFields_LBRY_v2.0',
-'./Latam_Library/LMRY_CO_ST_Sales_Tax_Transaction_LBRY_V2.0','./Latam_Library/LMRY_PY_ST_Sales_Tax_Transaction_LBRY_V2.0',
-'./Latam_Library/LMRY_CO_ST_Sales_Wht_Transaction_Lines_LBRY_V2.0'
+'./Latam_Library/LMRY_CO_ST_Sales_Tax_Transaction_LBRY_V2.0'
 ],
 
 function (library_Uni_Setting, library_hideview3, Library_BoletoBancario, Library_Mail, Library_Number,
@@ -32,7 +31,7 @@ function (library_Uni_Setting, library_hideview3, Library_BoletoBancario, Librar
     libraryGLImpact, libWHTLines, library_ExchRate, Library_Tax_WHT, currency, runtime, record, search, log, config, serverWidget,
     Library_RetencionesEcuador, Library_CopySublist, LibraryTransferIva, ST_Library_Transaction, ST_Library_Withholding,
     ST_Library_Transaction_CL, libraryEcBaseAmounts, Library_BRDup, Library_Duplicate, cache, libNewWHTLines,
-    MX_ST_TaxLibrary, PE_libMapTransactions, CO_ST_TaxLibrary , PY_ST_TaxLibrary, CO_ST_WhtLibrary_Lines) {
+    MX_ST_TaxLibrary, PE_libMapTransactions, CO_ST_TaxLibrary) {
 
     /**
      * Variable Universal del Registro personalizado
@@ -235,9 +234,6 @@ function (library_Uni_Setting, library_hideview3, Library_BoletoBancario, Librar
                         case "CO":
                           CO_ST_TaxLibrary.disableInvoicingIdentifier(scriptContext);
                           break;
-                        case "PY":
-                          PY_ST_TaxLibrary.disableInvoicingIdentifier(scriptContext);
-                          break;
                       }
                     }
 
@@ -252,14 +248,11 @@ function (library_Uni_Setting, library_hideview3, Library_BoletoBancario, Librar
                         case "CO":
                           CO_ST_TaxLibrary.deleteTaxDetailLines(RCD_OBJ);
                           break;
-                        case "PY":
-                          PY_ST_TaxLibrary.deleteTaxDetailLines(RCD_OBJ);
-                          break;
                       }
                     }
 
                     if (["copy", "create"].indexOf(scriptContext.type) != -1) {
-                      var createdFrom = recordObj.getValue({ fieldId: "createdfrom" });
+                      var createdFrom = RCD_OBJ.getValue({ fieldId: "createdfrom" });
                       if (createdFrom) {
                         switch (LMRY_Result[0]) {
                           case "CL":
@@ -270,9 +263,6 @@ function (library_Uni_Setting, library_hideview3, Library_BoletoBancario, Librar
                             break;
                           case "CO":
                             CO_ST_TaxLibrary.deleteTaxDetailLines(RCD_OBJ);
-                            break;
-                          case "PY":
-                            PY_ST_TaxLibrary.deleteTaxDetailLines(RCD_OBJ);
                             break;
                         }
                       }
@@ -925,12 +915,10 @@ function (library_Uni_Setting, library_hideview3, Library_BoletoBancario, Librar
             }
 
             // Nueva logica de Country WHT Lines
-            if (ST_FEATURE == false || ST_FEATURE == "F") {
-                if(LMRY_Result[0] == 'CO'){
-                  libNewWHTLines.beforeSubmitTransaction(scriptContext, licenses);
-                }else{
-                  libWHTLines.beforeSubmitTransaction(scriptContext, licenses);
-                }
+            if(LMRY_Result[0] == 'CO'){
+              libNewWHTLines.beforeSubmitTransaction(scriptContext, licenses);
+            }else{
+              libWHTLines.beforeSubmitTransaction(scriptContext, licenses);
             }
 
             // Nueva logica de Colombia
@@ -960,12 +948,6 @@ function (library_Uni_Setting, library_hideview3, Library_BoletoBancario, Librar
                             break;
                         case "CO":
                             CO_ST_TaxLibrary.deleteTaxResult(LMRY_Intern);
-                            if (Library_Mail.getAuthorization(340, licenses) == true) {
-                                CO_ST_WhtLibrary_Lines.deleteRelatedRecords(RCD.id, RCD.type);
-                            }
-                            break;
-                        case "PY":
-                            PY_ST_TaxLibrary.deleteTaxResult(LMRY_Intern);
                             break;
                     }
                 }
@@ -1236,19 +1218,8 @@ function (library_Uni_Setting, library_hideview3, Library_BoletoBancario, Librar
                             break;
 
                         case "CO":
-                            if (Library_Mail.getAuthorization(645, licenses) == true) {
+                            if (libraryMail.getAuthorization(645, licenses) == true) {
                                 CO_ST_TaxLibrary.setTaxTransaction(ST_Context);
-                                ST_RecordObj.save({ ignoreMandatoryFields: true, disableTriggers: true, enableSourcing: true });
-                            }
-                            if (Library_Mail.getAuthorization(340, licenses) == true) {
-                                ST_RecordObj = scriptContext.newRecord;
-                                CO_ST_WhtLibrary_Lines.setWHTLineTransaction(ST_RecordObj, scriptContext, licenses);
-                            }
-                            break;
-
-                        case "PY":
-                            if (Library_Mail.getAuthorization(715, licenses) == true) {
-                                PY_ST_TaxLibrary.setTaxTransaction(ST_Context);
                                 ST_RecordObj.save({
                                     ignoreMandatoryFields: true,
                                     disableTriggers: true,
