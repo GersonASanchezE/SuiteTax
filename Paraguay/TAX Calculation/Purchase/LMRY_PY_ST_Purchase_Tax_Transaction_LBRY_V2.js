@@ -5,10 +5,10 @@
 /* = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =\
 ||   This script for customer center (Time)                     ||
 ||                                                              ||
-||  File Name: LMRY_CO_ST_Purchase_Tax_Transaction_LBRY_V2.0.js	||
+||  File Name: LMRY_PY_ST_Purchase_Tax_Transaction_LBRY_V2.0.js	||
 ||                                                              ||
 ||  Version Date         Author        Remarks                  ||
-||  2.0     OCT 18 2021  LatamReady    Use Script 2.0           ||
+||  2.0     NOV 12 2021  LatamReady    Use Script 2.0           ||
  \= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = */
 
 define([
@@ -28,8 +28,8 @@ define([
   Library_Mail,
   Library_Log
 ) {
-  var LMRY_SCRIPT = "LMRY - CO ST Purchase Tax Transaction V2.0";
-  var LMRY_SCRIPT_NAME = "LMRY_CO_ST_Purchase_Tax_Transaction_LBRY_V2.0.js";
+  var LMRY_SCRIPT = "LMRY - PY ST Purchase Tax Transaction V2.0";
+  var LMRY_SCRIPT_NAME = "LMRY_PY_ST_Purchase_Tax_Transaction_LBRY_V2.0.js";
 
   // FEATURES
   var FEATURE_SUBSIDIARY = false;

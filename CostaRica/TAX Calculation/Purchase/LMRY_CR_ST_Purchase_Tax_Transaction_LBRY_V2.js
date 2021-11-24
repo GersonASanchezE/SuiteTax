@@ -5,10 +5,10 @@
 /* = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =\
 ||   This script for customer center (Time)                     ||
 ||                                                              ||
-||  File Name: LMRY_PA_ST_Purchase_Tax_Transaction_LBRY_V2.0.js	||
+||  File Name: LMRY_CR_ST_Purchase_Tax_Transaction_LBRY_V2.0.js	||
 ||                                                              ||
 ||  Version Date         Author        Remarks                  ||
-||  2.0     OCT 21 2021  LatamReady    Use Script 2.0           ||
+||  2.0     NOV 02 2021  LatamReady    Use Script 2.0           ||
  \= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = */
 
 define([
@@ -28,8 +28,8 @@ define([
   Library_Mail,
   Library_Log
 ) {
-  var LMRY_SCRIPT = "LMRY - PA ST Purchase Tax Transaction V2.0";
-  var LMRY_SCRIPT_NAME = "LMRY_PA_ST_Purchase_Tax_Transaction_LBRY_V2.0.js";
+  var LMRY_SCRIPT = "LMRY - CR ST Purchase Tax Transaction V2.0";
+  var LMRY_SCRIPT_NAME = "LMRY_CR_ST_Purchase_Tax_Transaction_LBRY_V2.0.js";
 
   // FEATURES
   var FEATURE_SUBSIDIARY = false;
@@ -115,6 +115,9 @@ define([
           });
           // Capturar la fecha
           var transactionDate = recordObj.getText({ fieldId: "trandate" });
+          var transactionDateValue = recordObj.getValue({
+            fieldId: "trandate",
+          });
           // Capturar el customer
           var transactionEntity = recordObj.getValue({ fieldId: "entity" });
           // Capturar el tipo de documento
@@ -164,6 +167,7 @@ define([
             log.debug("resultsTaxes", resultsTaxes);
             _saveTaxResult(
               transactionID,
+              transactionDateValue,
               transactionSubsidiary,
               transactionCountry,
               resultsTaxes
@@ -596,14 +600,14 @@ define([
             var NT_taxTypeID = NT_SearchResult[i].getValue({
               name: "custrecord_lmry_ntax_taxtype",
             });
-            var NT_STE_taxMemo = NT_SearchResult[i].getValue({
-              name: "custrecord_lmry_ntax_memo",
-            });
             var NT_STE_taxType = NT_SearchResult[i].getText({
               name: "custrecord_lmry_nt_ste_tax_type",
             });
             var NT_STE_taxTypeID = NT_SearchResult[i].getValue({
               name: "custrecord_lmry_nt_ste_tax_type",
+            });
+            var NT_STE_taxMemo = NT_SearchResult[i].getValue({
+              name: "custrecord_lmry_ntax_memo",
             });
             var NT_STE_taxCode = NT_SearchResult[i].getText({
               name: "custrecord_lmry_nt_ste_tax_code",
@@ -1382,13 +1386,32 @@ define([
    *    - countryID: ID del país                                             *
    *    - taxResult: Arreglo de JSON con los detalles de impuestos           *
    ***************************************************************************/
-  function _saveTaxResult(recordID, subsidiary, countryID, taxResult) {
+  function _saveTaxResult(
+    recordID,
+    tranDate,
+    subsidiary,
+    countryID,
+    taxResult
+  ) {
     try {
+      // Parsed date
+      /*  tranDate = tranDate.toISOString();
+      tranDate = new Date(tranDate);
+      tranDate = format.format({ value: tranDate, type: format.Type.DATE }); */
+      // end parsed date
       var taxResultSearch = search
         .create({
-          type: "customrecord_lmry_latamtax_tax_result",
+          // Actual
+          type: "customrecord_lmry_ste_json_result",
+          // Antiguo
+          // type: "customrecord_lmry_latamtax_tax_result",
           columns: ["internalid"],
-          filters: [["custrecord_lmry_tr_related_transaction", "IS", recordID]],
+          filters: [
+            // Actual
+            ["custrecord_lmry_ste_related_transaction", "IS", recordID],
+            // Antiguo
+            // ["custrecord_lmry_tr_related_transaction", "IS", recordID]
+          ],
         })
         .run()
         .getRange(0, 10);
@@ -1397,12 +1420,26 @@ define([
         var taxResultID = taxResultSearch[0].getValue({ name: "internalid" });
 
         record.submitFields({
-          type: "customrecord_lmry_latamtax_tax_result",
+          // Actual
+          type: "customrecord_lmry_ste_json_result",
+          // Antiguo
+          // type: "customrecord_lmry_latamtax_tax_result",
           id: taxResultID,
           values: {
-            custrecord_lmry_tr_subsidiary: subsidiary,
-            custrecord_lmry_tr_country: countryID,
-            custrecord_lmry_tr_tax_transaction: JSON.stringify(taxResult),
+            // Actual
+            custrecord_lmry_ste_subsidiary: subsidiary,
+            // Antiguo
+            // custrecord_lmry_tr_subsidiary: subsidiary,
+            // Actual
+            custrecord_lmry_ste_subsidiary_country: countryID,
+            // Antiguo
+            // custrecord_lmry_tr_country: countryID,
+            // Actual
+            custrecord_lmry_ste_tax_transaction: JSON.stringify(taxResult),
+            // Antiguo
+            // custrecord_lmry_tr_tax_transaction: JSON.stringify(taxResult),
+            // Nuevo
+            custrecord_lmry_ste_transaction_date: tranDate,
           },
           options: {
             enableSourcing: false,
@@ -1411,24 +1448,43 @@ define([
         });
       } else {
         var TR_Record = record.create({
-          type: "customrecord_lmry_latamtax_tax_result",
+          // Actual
+          type: "customrecord_lmry_ste_json_result",
+          // Antiguo
+          // type: "customrecord_lmry_latamtax_tax_result",
           isDynamic: false,
         });
         TR_Record.setValue({
-          fieldId: "custrecord_lmry_tr_related_transaction",
+          // Actual
+          fieldId: "custrecord_lmry_ste_related_transaction",
+          // Anterior value
+          // fieldId: "custrecord_lmry_tr_related_transaction",
           value: recordID,
         });
         TR_Record.setValue({
-          fieldId: "custrecord_lmry_tr_subsidiary",
+          // Actual
+          fieldId: "custrecord_lmry_ste_subsidiary",
+          // Anterior value
+          // fieldId: "custrecord_lmry_tr_subsidiary",
           value: subsidiary,
         });
         TR_Record.setValue({
-          fieldId: "custrecord_lmry_tr_country",
+          // Actual
+          fieldId: "custrecord_lmry_ste_subsidiary_country",
+          // Anterior value
+          // fieldId: "custrecord_lmry_tr_country",
           value: countryID,
         });
+        // Nuevo
         TR_Record.setValue({
-          fieldId: "custrecord_lmry_tr_tax_transaction",
-          // Parsear a String el objeto literal
+          fieldId: "custrecord_lmry_ste_transaction_date",
+          value: tranDate,
+        });
+        TR_Record.setValue({
+          // Actual
+          fieldId: "custrecord_lmry_ste_tax_transaction",
+          // Anterior value
+          // fieldId: "custrecord_lmry_tr_tax_transaction",
           value: JSON.stringify(taxResult),
         });
 
@@ -1601,14 +1657,14 @@ define([
 
         var subsidiaryCurrency = subsiadiarySearch.currency[0].value;
         log.debug({
-          title:"ExChangeRate",
+          title: "ExChangeRate",
           details: {
             transactionExchangeRate: transactionExchangeRate,
             subsidiaryCurrency: subsidiaryCurrency,
             STS_JSON: STS_JSON,
             currency: STS_JSON.currency,
-          }
-        })
+          },
+        });
         if (
           subsidiaryCurrency !== STS_JSON.currency &&
           STS_JSON.currency !== "" &&
@@ -1664,10 +1720,16 @@ define([
     try {
       var taxResultSeach = search
         .create({
-          type: "customrecord_lmry_latamtax_tax_result",
+          // Actual
+          type: "customrecord_lmry_ste_json_result",
+          // Antiguo
+          // type: "customrecord_lmry_latamtax_tax_result",
           columns: ["internalid"],
           filters: [
-            ["custrecord_lmry_tr_related_transaction", "IS", recordObj],
+            // Actual
+            ["custrecord_lmry_ste_related_transaction", "IS", recordObj],
+            // Anterior
+            // ["custrecord_lmry_tr_related_transaction", "IS", recordObj],
           ],
         })
         .run()
@@ -1676,7 +1738,10 @@ define([
       if (taxResultSeach != null && taxResultSeach.length > 0) {
         var taxResultID = taxResultSeach[0].getValue({ name: "internalid" });
         record.delete({
-          type: "customrecord_lmry_latamtax_tax_result",
+          // Actual
+          type: "customrecord_lmry_ste_json_result",
+          // Antiguo
+          // type: "customrecord_lmry_latamtax_tax_result",
           id: taxResultID,
         });
       }
