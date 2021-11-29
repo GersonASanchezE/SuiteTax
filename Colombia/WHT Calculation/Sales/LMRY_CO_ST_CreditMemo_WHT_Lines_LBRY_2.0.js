@@ -590,7 +590,7 @@ define([
      *    - tranDate: Fecha de la transaccion
      *    - whtResult: Arreglo de JSON con los detalles de las retenciones
      ***************************************************************************/
-    function _saveWhtResult(recordID, subsidiary, countryID, whtResult) {
+    function _saveWhtResult(recordID, subsidiary, countryID, tranDate, whtResult) {
 
         try {
 

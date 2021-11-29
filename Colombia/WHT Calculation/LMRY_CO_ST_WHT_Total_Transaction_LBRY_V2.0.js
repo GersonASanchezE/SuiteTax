@@ -6,7 +6,7 @@
 /* = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =\
 ||   This script for customer center (Time)                     ||
 ||                                                              ||
-||  File Name: LMRY_ST_CO_WHT_Total_Transaction_LBRY_V2.0.js	  ||
+||  File Name: LMRY_ST_CO_WHT_Total_Transaction_LBRY_V2.0.js	||
 ||                                                              ||
 ||  Version Date         Author        Remarks                  ||
 ||  2.0     Jun 25 2021  LatamReady    Use Script 2.0           ||
