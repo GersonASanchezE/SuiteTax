@@ -40,6 +40,12 @@ define([
             var transactionID = recordObj.id;
             var transactionType = recordObj.type;
 
+            recordObj = record.load({
+                type: transactionType,
+                id: transactionID,
+                isDynamic: false
+            });
+
             if (type == "edit") {
                 deleteRelatedRecords(transactionID, transactionType);
             }
@@ -152,7 +158,7 @@ define([
                                     }
 
                                     var baseAmount = 0;
-                                    switch (NT_amountTo) {
+                                    switch (CC_amountTo) {
                                         case "1":
                                             baseAmount = recordObj.getSublistValue({ sublistId: "item", fieldId: "grossamt", line: j });
                                             break;
@@ -216,7 +222,7 @@ define([
                                         lc_whtamount: parseFloat(itemWhtAmountoByCC * exchageRate)
                                     });
 
-                                    if ( NT_generatedTransactionID == "5" ) {
+                                    if ( CC_generatedTransactionID == "5" ) {
 
                                         var auxTransJson = {
                                             subtype: {
@@ -444,16 +450,16 @@ define([
 
                     for (var whtdetail in journalArray) {
                         switch (journalArray[whtdetail].subtype.value) {
-                            case "18":
+                            case "82":
                                 reteIVA += journalArray[whtdetail].whtamount;
                                 break;
-                            case "19":
+                            case "83":
                                 reteICA += journalArray[whtdetail].whtamount;
                                 break;
-                            case "20":
+                            case "84":
                                 reteCREE += journalArray[whtdetail].whtamount;
                                 break;
-                            case "21":
+                            case "85":
                                 reteFTE += journalArray[whtdetail].whtamount;
                                 break;
                         }
