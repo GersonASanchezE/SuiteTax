@@ -536,7 +536,7 @@ define([
                 });
             }
 
-            // BUSQUEDA DE JOURNALA ENTRY RELACIONADOS
+            // BUSQUEDA DE JOURNAL ENTRY RELACIONADOS
             var JE_Search = search.create({
                 type: search.Type.JOURNAL_ENTRY,
                 columns: ["internalid"],
