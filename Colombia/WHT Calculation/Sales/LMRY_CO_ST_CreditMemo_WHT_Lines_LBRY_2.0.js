@@ -227,6 +227,7 @@ define([
                                             text: CC_subType,
                                             value: CC_subTypeID
                                         },
+                                        appliestoitem: CC_appliesToItem,
                                         taxitem: CC_taxItem,
                                         taxcode: CC_taxCode,
                                         department: CC_DepartmentID,
@@ -244,6 +245,7 @@ define([
                                             text: CC_subType,
                                             value: CC_subTypeID
                                         },
+                                        appliestoitem: CC_appliesToItem,
                                         debitaccount: CC_debitAccountID,
                                         creditaccount: CC_creditAccountID,
                                         department: CC_DepartmentID,
@@ -263,166 +265,189 @@ define([
 
                     } // Fin for CC
 
-                } else { // Fin if CC_SearchResult
+                } // Fin if CC_SearchResult
 
-                    if (NT_SearchResult != null && NT_SearchResult.length > 0) {
+                if (NT_SearchResult != null && NT_SearchResult.length > 0) {
 
-                        for (var i = 0; i < NT_SearchResult.length; i++) {
+                    for (var i = 0; i < NT_SearchResult.length; i++) {
 
-                            var NT_internalID = NT_SearchResult[i].getValue({ name: "internalid" });
-                            var NT_generatedTransaction = NT_SearchResult[i].getText({ name: "custrecord_lmry_ntax_gen_transaction" });
-                            var NT_generatedTransactionID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_gen_transaction" });
-                            var NT_whtDescription = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_description" });
-                            var NT_taxType = NT_SearchResult[i].getText({ name: "custrecord_lmry_ntax_taxtype" });
-                            var NT_taxTypeID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_taxtype" });
-                            var NT_type = NT_SearchResult[i].getText({ name: "custrecord_lmry_ntax_subtype" });
-                            var NT_typeID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_subtype" });
-                            var NT_subType = NT_SearchResult[i].getText({ name: "custrecord_lmry_ntax_sub_type" });
-                            var NT_subTypeID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_sub_type" });
-                            var NT_appliesToItem = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_applies_to_item" });
-                            var NT_taxRate = NT_SearchResult[i].getValue({ name: "custrecord_lmry_co_ntax_taxrate" });
-                            var NT_amountTo = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_amount" });
-                            var NT_taxItem = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_taxitem" });
-                            var NT_taxCode = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_taxcode" });
-                            var NT_Department = NT_SearchResult[i].getText({ name: "custrecord_lmry_ntax_department" });
-                            var NT_DepartmentID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_department" });
-                            var NT_Class = NT_SearchResult[i].getText({ name: "custrecord_lmry_ntax_class" });
-                            var NT_ClassID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_class" });
-                            var NT_Location = NT_SearchResult[i].getText({ name: "custrecord_lmry_ntax_location" });
-                            var NT_LocationID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_location" });
-                            var NT_debitAccount = NT_SearchResult[i].getText({ name: "custrecord_lmry_ntax_debit_account" });
-                            var NT_debitAccountID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_debit_account" });
-                            var NT_creditAccount = NT_SearchResult[i].getText({ name: "custrecord_lmry_ntax_credit_account" });
-                            var NT_creditAccountID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_credit_account" });
+                        var NT_internalID = NT_SearchResult[i].getValue({ name: "internalid" });
+                        var NT_generatedTransaction = NT_SearchResult[i].getText({ name: "custrecord_lmry_ntax_gen_transaction" });
+                        var NT_generatedTransactionID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_gen_transaction" });
+                        var NT_whtDescription = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_description" });
+                        var NT_taxType = NT_SearchResult[i].getText({ name: "custrecord_lmry_ntax_taxtype" });
+                        var NT_taxTypeID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_taxtype" });
+                        var NT_type = NT_SearchResult[i].getText({ name: "custrecord_lmry_ntax_subtype" });
+                        var NT_typeID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_subtype" });
+                        var NT_subType = NT_SearchResult[i].getText({ name: "custrecord_lmry_ntax_sub_type" });
+                        var NT_subTypeID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_sub_type" });
+                        var NT_appliesToItem = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_applies_to_item" });
+                        var NT_taxRate = NT_SearchResult[i].getValue({ name: "custrecord_lmry_co_ntax_taxrate" });
+                        var NT_amountTo = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_amount" });
+                        var NT_taxItem = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_taxitem" });
+                        var NT_taxCode = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_taxcode" });
+                        var NT_Department = NT_SearchResult[i].getText({ name: "custrecord_lmry_ntax_department" });
+                        var NT_DepartmentID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_department" });
+                        var NT_Class = NT_SearchResult[i].getText({ name: "custrecord_lmry_ntax_class" });
+                        var NT_ClassID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_class" });
+                        var NT_Location = NT_SearchResult[i].getText({ name: "custrecord_lmry_ntax_location" });
+                        var NT_LocationID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_location" });
+                        var NT_debitAccount = NT_SearchResult[i].getText({ name: "custrecord_lmry_ntax_debit_account" });
+                        var NT_debitAccountID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_debit_account" });
+                        var NT_creditAccount = NT_SearchResult[i].getText({ name: "custrecord_lmry_ntax_credit_account" });
+                        var NT_creditAccountID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_credit_account" });
 
-                            if (itemLineCount != null && itemLineCount > 0) {
+                        if (itemLineCount != null && itemLineCount > 0) {
 
-                                for (var j = 0; j < itemLineCount; j++) {
+                            for (var j = 0; j < itemLineCount; j++) {
 
-                                    var item = recordObj.getSublistText({ sublistId: "item", fieldId: "item", line: j });
-                                    var itemID = recordObj.getSublistValue({ sublistId: "item", fieldId: "item", line: j });
-                                    var itemUniqueKey = recordObj.getSublistValue({ sublistId: "item", fieldId: "lineuniquekey", line: j });
-                                    var itemApplyWht = recordObj.getSublistValue({ sublistId: "item", fieldId: "custcol_lmry_apply_wht_tax", line: j });
+                                var item = recordObj.getSublistText({ sublistId: "item", fieldId: "item", line: j });
+                                var itemID = recordObj.getSublistValue({ sublistId: "item", fieldId: "item", line: j });
+                                var itemUniqueKey = recordObj.getSublistValue({ sublistId: "item", fieldId: "lineuniquekey", line: j });
+                                var itemApplyWht = recordObj.getSublistValue({ sublistId: "item", fieldId: "custcol_lmry_apply_wht_tax", line: j });
 
-                                    if (itemID != NT_appliesToItem) {
+                                if (itemID != NT_appliesToItem) {
+                                    continue;
+                                }
+
+                                if (!itemApplyWht) {
+                                    continue;
+                                }
+
+                                if (Library_Mail.getAuthorization(349, licenses) == true) {
+                                    var avoidNT = false;
+                                    for (var whtdetail in transactionArray) {
+                                        if ((transactionArray[whtdetail].subtype.value == NT_subTypeID) && (transactionArray[whtdetail].appliestoitem == NT_appliesToItem)) {
+                                            avoidNT = true;
+                                            break;
+                                        }
+                                    }
+                                    if (avoidNT) {
                                         continue;
                                     }
 
-                                    if (!itemApplyWht) {
+                                    for (var whtdetail in journalArray) {
+                                        if ((journalArray[whtdetail].subtype.value == NT_subTypeID) && (journalArray[whtdetail].appliestoitem == NT_appliesToItem)) {
+                                            avoidNT = true;
+                                            break;
+                                        }
+                                    }
+                                    if (avoidNT) {
                                         continue;
                                     }
+                                }
 
-                                    var baseAmount = 0;
-                                    switch (NT_amountTo) {
-                                        case "1":
-                                            baseAmount = recordObj.getSublistValue({ sublistId: "item", fieldId: "grossamt", line: j });
-                                            break;
-                                        case "2":
-                                            baseAmount = recordObj.getSublistValue({ sublistId: "item", fieldId: "taxamount", line: j });
-                                            break;
-                                        case "3":
-                                            baseAmount = recordObj.getSublistValue({ sublistId: "item", fieldId: "amount", line: j });
-                                            break;
-                                    }
+                                var baseAmount = 0;
+                                switch (NT_amountTo) {
+                                    case "1":
+                                        baseAmount = recordObj.getSublistValue({ sublistId: "item", fieldId: "grossamt", line: j });
+                                        break;
+                                    case "2":
+                                        baseAmount = recordObj.getSublistValue({ sublistId: "item", fieldId: "taxamount", line: j });
+                                        break;
+                                    case "3":
+                                        baseAmount = recordObj.getSublistValue({ sublistId: "item", fieldId: "amount", line: j });
+                                        break;
+                                }
 
-                                    var itemWhtAmountoByNT = parseFloat(baseAmount) * parseFloat(NT_taxRate / 100);
+                                var itemWhtAmountoByNT = parseFloat(baseAmount) * parseFloat(NT_taxRate / 100);
 
-                                    whtResult.push({
-                                        taxtype: {
-                                            text: NT_taxType,
-                                            value: NT_taxTypeID
-                                        },
+                                whtResult.push({
+                                    taxtype: {
+                                        text: NT_taxType,
+                                        value: NT_taxTypeID
+                                    },
+                                    subtype: {
+                                        text: NT_subType,
+                                        value: NT_subTypeID
+                                    },
+                                    lineUniqueKey: itemUniqueKey,
+                                    baseamount: parseFloat(baseAmount),
+                                    whtamount: Math.round(itemWhtAmountoByNT * 100) / 100,
+                                    whtrate: NT_taxRate + "%",
+                                    contributoryClass: "",
+                                    nationalTax: NT_internalID,
+                                    debitaccount: {
+                                        text: NT_debitAccount,
+                                        value: NT_debitAccountID
+                                    },
+                                    creditaccount: {
+                                        text: NT_creditAccount,
+                                        value: NT_creditAccountID
+                                    },
+                                    generatedtransaction: {
+                                        text: NT_generatedTransaction,
+                                        value: NT_generatedTransactionID
+                                    },
+                                    department: {
+                                        text: NT_Department,
+                                        value: NT_DepartmentID
+                                    },
+                                    class: {
+                                        text: NT_Class,
+                                        value: NT_ClassID
+                                    },
+                                    location: {
+                                        text: NT_Location,
+                                        value: NT_LocationID
+                                    },
+                                    item: {
+                                        text: item,
+                                        value: itemID
+                                    },
+                                    expenseacc: {},
+                                    position: j,
+                                    description: NT_whtDescription,
+                                    lc_baseamount: parseFloat(baseAmount * exchageRate),
+                                    lc_whtamount: parseFloat(itemWhtAmountoByNT * exchageRate)
+                                });
+
+                                if ( NT_generatedTransactionID == "5" ) {
+
+                                    var auxTransJson = {
                                         subtype: {
                                             text: NT_subType,
                                             value: NT_subTypeID
                                         },
-                                        lineUniqueKey: itemUniqueKey,
-                                        baseamount: parseFloat(baseAmount),
+                                        appliestoitem: NT_appliesToItem,
+                                        taxitem: NT_taxItem,
+                                        taxcode: NT_taxCode,
+                                        department: NT_DepartmentID,
+                                        class: NT_ClassID,
+                                        location: NT_LocationID,
                                         whtamount: Math.round(itemWhtAmountoByNT * 100) / 100,
-                                        whtrate: NT_taxRate + "%",
-                                        contributoryClass: "",
-                                        nationalTax: NT_internalID,
-                                        debitaccount: {
-                                            text: NT_debitAccount,
-                                            value: NT_debitAccountID
+                                        description: NT_whtDescription
+                                    };
+                                    transactionArray.push(auxTransJson);
+
+                                } else if (NT_generatedTransactionID == "1") {
+
+                                    var auxJounarlJson = {
+                                        subtype: {
+                                            text: NT_subType,
+                                            value: NT_subTypeID
                                         },
-                                        creditaccount: {
-                                            text: NT_creditAccount,
-                                            value: NT_creditAccountID
-                                        },
-                                        generatedtransaction: {
-                                            text: NT_generatedTransaction,
-                                            value: NT_generatedTransactionID
-                                        },
-                                        department: {
-                                            text: NT_Department,
-                                            value: NT_DepartmentID
-                                        },
-                                        class: {
-                                            text: NT_Class,
-                                            value: NT_ClassID
-                                        },
-                                        location: {
-                                            text: NT_Location,
-                                            value: NT_LocationID
-                                        },
-                                        item: {
-                                            text: item,
-                                            value: itemID
-                                        },
-                                        expenseacc: {},
-                                        position: j,
-                                        description: NT_whtDescription,
-                                        lc_baseamount: parseFloat(baseAmount * exchageRate),
-                                        lc_whtamount: parseFloat(itemWhtAmountoByNT * exchageRate)
-                                    });
+                                        appliestoitem: NT_appliesToItemm,
+                                        debitaccount: NT_debitAccountID,
+                                        creditaccount: NT_creditAccountID,
+                                        department: NT_DepartmentID,
+                                        class: NT_ClassID,
+                                        location: NT_LocationID,
+                                        whtamount: Math.round(itemWhtAmountoByNT * 100) / 100,
+                                        description: NT_whtDescription
+                                    };
 
-                                    if ( NT_generatedTransactionID == "5" ) {
+                                    journalArray.push(auxJounarlJson);
 
-                                        var auxTransJson = {
-                                            subtype: {
-                                                text: NT_subType,
-                                                value: NT_subTypeID
-                                            },
-                                            taxitem: NT_taxItem,
-                                            taxcode: NT_taxCode,
-                                            department: NT_DepartmentID,
-                                            class: NT_ClassID,
-                                            location: NT_LocationID,
-                                            whtamount: Math.round(itemWhtAmountoByNT * 100) / 100,
-                                            description: NT_whtDescription
-                                        };
-                                        transactionArray.push(auxTransJson);
+                                }
 
-                                    } else if (NT_generatedTransactionID == "1") {
+                            } // Fin for itemLineCount
 
-                                        var auxJounarlJson = {
-                                            subtype: {
-                                                text: NT_subType,
-                                                value: NT_subTypeID
-                                            },
-                                            debitaccount: NT_debitAccountID,
-                                            creditaccount: NT_creditAccountID,
-                                            department: NT_DepartmentID,
-                                            class: NT_ClassID,
-                                            location: NT_LocationID,
-                                            whtamount: Math.round(itemWhtAmountoByNT * 100) / 100,
-                                            description: NT_whtDescription
-                                        };
+                        } // Fin if itemLineCount
 
-                                        journalArray.push(auxJounarlJson);
+                    } // Fin for NT_SearchResult
 
-                                    }
-
-                                } // Fin for itemLineCount
-
-                            } // Fin if itemLineCount
-
-                        } // Fin for NT_SearchResult
-
-                    } // Fin if NT_SearchResult
-
-                }
+                } // Fin if NT_SearchResult
 
                 var reteIVA = 0;
                 var reteICA = 0;
