@@ -7,7 +7,7 @@
 ||  2.0     Feb 05 2020  LatamReady    Bundle 37714             ||
  \= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = */
 /**
- * @NApiVersion 2.x
+ * @NApiVersion 2.0
  * @NScriptType Suitelet
  * @NModuleScope Public
  */
@@ -28,67 +28,95 @@ define(['N/search', 'N/runtime', 'N/redirect', 'N/ui/serverWidget', 'N/log', 'N/
                 var subsi_OW = runtime.isFeatureInEffect({ feature: "SUBSIDIARIES" });
                 var state = false;
 
-                var Language = runtime.getCurrentScript().getParameter({name: 'LANGUAGE'});
+                var Language = runtime.getCurrentScript().getParameter({ name: 'LANGUAGE' });
                 Language = Language.substring(0, 2);
 
-                // Nombres de campos
-                var LblForm = 'LatamTax Purchase';
-                var LblMsg1 = 'NOTICE: Currently the license for this module is expired, please contact the commercial team of LatamReady';
-                var LblMsg2 = 'You can also contact us through';
-                var LblMsg3 = 'Important: Access is not allowed';
-                var Alert = 'Important: This process will take depending on the number of bills to be exchanged';
-                var LblGroup = 'Primary Information';
-                var LblTittleMsg = 'Message';
-                var LblState = 'State';
-                var LblText = 'Text';
-                var LblResult = 'Results';
-                var LblSub = 'Subsidiary';
-                var LblCur = 'Currency';
-                var LblPeriod = 'Period';
-                var LblTrans ='Transaction';
-                var LblApply = 'Apply';
-                var LblInternalID = 'Internal ID';
-                var LblEmail ='Email';
-                var LblDate = 'Date';
-                var LblExRate = 'Exchange Rate';
-                var LblPreview = 'Preview';
-                var BtnFilter = 'Filter';
-                var BtnBack = 'Back';
-                var BtnSave = 'Save';
-                var HTMLClick = 'Click Here';
+                switch (Language) {
+                    case 'es':
+                        //Mensajes de alerta
+                        var LblForm = 'LatamTax Compras';
+                        var LblMsg1 = 'AVISO: Actualmente la licencia para este módulo está vencida, por favor contacte al equipo comercial de LatamReady';
+                        var LblMsg2 = 'También puedes contactar con nosotros a través de';
+                        var LblMsg3 = 'Importane: El acceso no está permitido';
+                        var Alert = 'Importante: Este proceso tardará en función de la cantidad de bills';
+                        var LblGroup = 'Información Primaria';
+                        var LblTittleMsg = 'Mensaje';
+                        var LblState = 'Estado';
+                        var LblText = 'Texto';
+                        var LblResult = 'Resultados';
+                        var LblSub = 'Subsidiaria';
+                        var LblCur = 'Moneda';
+                        var LblPeriod = 'Periodo';
+                        var LblTrans = 'Transacción';
+                        var LblApply = 'Aplicar';
+                        var LblInternalID = 'ID Interno';
+                        var LblEmail = 'Correo';
+                        var LblDate = 'Fecha';
+                        var LblExRate = 'Tipo de Cambio';
+                        var LblPreview = 'Avance';
+                        var BtnFilter = 'Filtrar';
+                        var BtnBack = 'Atrás';
+                        var BtnSave = 'Guardar';
+                        var HTMLClick = 'Presionar Aquí';
+                        var LblType = 'Tipo';
+                        break;
 
-                //Traducción de campos automática
-                if(Language!= 'en'){
-                  var cadena = LblForm + ' . ' + LblMsg1 + ' . ' + LblMsg2 + ' . ' + LblMsg3 + ' . ' + Alert + ' . ' + LblGroup + ' . ' + LblTittleMsg + ' . ' + LblSub + ' . ' + LblCur + ' . ' + LblPeriod + ' . ' + LblTrans + ' . ' + LblInternalID + ' . ' + LblApply + ' . ' + LblEmail + ' . ' + LblDate + ' . ' + LblExRate + ' . ' + LblPreview + ' . ' + BtnFilter + ' . ' + BtnBack + ' . ' + BtnSave + ' . ' + LblResult + ' . ' + LblState + ' . ' + LblText + ' . ' + HTMLClick ;
-                  var cadena1 = LibraryMail.traductorText(cadena,Language,'en');
+                    case 'pt':
+                        //Mensajes de alerta
+                        var LblForm = 'LatamTax Compras';
+                        var LblMsg1 = 'AVISO: Atualmente a licença para este módulo expirou, entre em contato com a equipe comercial da LatamReady';
+                        var LblMsg2 = 'Você também pode nos contatar através de';
+                        var LblMsg3 = 'Importante: o acesso não é permitido';
+                        var Alert = 'Importante: Este processo demorará dependendo do número de notas a serem trocadas';
+                        var LblGroup = 'Informação Primária';
+                        var LblTittleMsg = 'Message';
+                        var LblState = 'Mensagem';
+                        var LblText = 'Texto';
+                        var LblResult = 'Resultados';
+                        var LblSub = 'Subsidiária';
+                        var LblCur = 'Moeda';
+                        var LblPeriod = 'Período';
+                        var LblTrans = 'Transação';
+                        var LblApply = 'Aplicar';
+                        var LblInternalID = 'ID Interno';
+                        var LblEmail = 'E-mail';
+                        var LblDate = 'Data';
+                        var LblExRate = 'Taxa de câmbio';
+                        var LblPreview = 'Antevisão';
+                        var BtnFilter = 'Filtro';
+                        var BtnBack = 'Voltar';
+                        var BtnSave = 'Salve';
+                        var HTMLClick = 'Clique aqui';
+                        var LblType = 'Tipo';
+                        break;
 
-                  if(cadena1){
-                    cadena1 = cadena1.split('.');
-                    LblForm = cadena1[0];
-                    LblMsg1 = cadena1[1];
-                    LblMsg2 = cadena1[2];
-                    LblMsg3 = cadena1[3];
-                    Alert = cadena1[4];
-                    LblGroup = cadena1[5];
-                    LblTittleMsg = cadena1[6];
-                    LblSub = cadena1[7];
-                    LblCur = cadena1[8];
-                    LblPeriod = cadena1[9];
-                    LblTrans = cadena1[10];
-                    LblInternalID = cadena1[11];
-                    LblApply = cadena1[12];
-                    LblEmail = cadena1[13];
-                    LblDate = cadena1[14];
-                    LblExRate = cadena1[15];
-                    LblPreview = cadena1[16];
-                    BtnFilter = cadena1[17];
-                    BtnBack = cadena1[18];
-                    BtnSave = cadena1[19];
-                    LblResult = cadena1[20];
-                    LblState = cadena1[21];
-                    LblText = cadena1[22];
-                    HTMLClick = cadena1[23];
-                  }
+                    default:
+                        //Mensajes de alerta
+                        var LblForm = 'LatamTax Purchase';
+                        var LblMsg1 = 'NOTICE: Currently the license for this module is expired, please contact the commercial team of LatamReady';
+                        var LblMsg2 = 'You can also contact us through';
+                        var LblMsg3 = 'Important: Access is not allowed';
+                        var Alert = 'Important: This process will take depending on the number of bills to be exchanged';
+                        var LblGroup = 'Primary Information';
+                        var LblTittleMsg = 'Message';
+                        var LblState = 'Status';
+                        var LblText = 'Text';
+                        var LblResult = 'Results';
+                        var LblSub = 'Subsidiary';
+                        var LblCur = 'Currency';
+                        var LblPeriod = 'Period';
+                        var LblTrans = 'Transaction';
+                        var LblApply = 'Apply';
+                        var LblInternalID = 'Internal ID';
+                        var LblEmail = 'Email';
+                        var LblDate = 'Date';
+                        var LblExRate = 'Exchange Rate';
+                        var LblPreview = 'Preview';
+                        var BtnFilter = 'Filter';
+                        var BtnBack = 'Back';
+                        var BtnSave = 'Save';
+                        var HTMLClick = 'Click Here';
+                        var LblType = 'Type';
                 }
 
                 if (scriptContext.request.method == 'GET') {
@@ -98,21 +126,19 @@ define(['N/search', 'N/runtime', 'N/redirect', 'N/ui/serverWidget', 'N/log', 'N/
                     var Rd_PerId = scriptContext.request.parameters.custparam_period;
                     ///var Rd_Concat = scriptContext.request.parameters.custparam_concat;
 
-                    var subsi_OW = runtime.isFeatureInEffect({
-                        feature: "SUBSIDIARIES"
-                    });
+                    var subsi_OW = runtime.isFeatureInEffect({ feature: "SUBSIDIARIES" });
 
                     allLicenses = LibraryMail.getAllLicenses();
                     subsidiaries = getSubsidiaries();
 
-                    for(var i = 0; i < subsidiaries.length; i++){
-                        if(allLicenses[subsidiaries[i].value] != null && allLicenses[subsidiaries[i].value] != ''){
+                    for (var i = 0; i < subsidiaries.length; i++) {
+                        if (allLicenses[subsidiaries[i].value] != null && allLicenses[subsidiaries[i].value] != '') {
                             licenses = allLicenses[subsidiaries[i].value];
-                        } else{
+                        } else {
                             licenses = [];
                         }
-                        var enableFeature = LibraryMail.getAuthorization(527, licenses);
-                        if(enableFeature == true){
+                        var enableFeature = LibraryMail.getAuthorization(527, licenses) || LibraryMail.getAuthorization(670, licenses);
+                        if (enableFeature == true) {
                             subsidiaries[i].active = true;
                             anysubsidiary = true;
                         }
@@ -120,7 +146,7 @@ define(['N/search', 'N/runtime', 'N/redirect', 'N/ui/serverWidget', 'N/log', 'N/
 
 
                     if (!anysubsidiary) {
-                        var form = serverWidget.createForm({title: LblForm});
+                        var form = serverWidget.createForm({ title: LblForm });
 
                         // Mensaje para el cliente
                         var myInlineHtml = form.addField({
@@ -141,7 +167,7 @@ define(['N/search', 'N/runtime', 'N/redirect', 'N/ui/serverWidget', 'N/log', 'N/
                             "<tr>" +
                             "<td class='text'>" +
                             "<div style=\"color: gray; font-size: 12pt; margin-top: 10px; padding: 5px; border-top: 1pt solid silver\">" +
-                            LblMsg1+'. </br>'+ LblMsg2 +'www.Latamready.com' +
+                            LblMsg1 + '. </br>' + LblMsg2 + 'www.Latamready.com' +
                             "</div>" +
                             "</td>" +
                             "</tr>" +
@@ -157,7 +183,7 @@ define(['N/search', 'N/runtime', 'N/redirect', 'N/ui/serverWidget', 'N/log', 'N/
                     }
 
                     //Formulario
-                    var form = serverWidget.createForm({title: LblForm});
+                    var form = serverWidget.createForm({ title: LblForm });
                     form.addFieldGroup({
                         id: 'group_pi',
                         label: LblGroup
@@ -177,7 +203,7 @@ define(['N/search', 'N/runtime', 'N/redirect', 'N/ui/serverWidget', 'N/log', 'N/
                         });
                         // Llenado de listbox
                         for (var i = 0; i < subsidiaries.length; i++) {
-                            if(subsidiaries[i].active){
+                            if (subsidiaries[i].active) {
                                 var subID = subsidiaries[i].value;
                                 var subNM = subsidiaries[i].text;
                                 p_subsi.addSelectOption({
@@ -239,8 +265,8 @@ define(['N/search', 'N/runtime', 'N/redirect', 'N/ui/serverWidget', 'N/log', 'N/
                         filters: [['isadjust', 'is', 'F'], 'AND', ['isquarter', 'is', 'F'], 'AND', ['isinactive', 'is', 'F'], "AND", ['isyear', 'is', 'F']],
                         columns:
                             [
-                                search.createColumn({ name: "internalid", summary: "GROUP", sort: search.Sort.DESC, label: "Internal ID"}),
-                                search.createColumn({ name: "periodname", summary: "GROUP", label: "Name"})
+                                search.createColumn({ name: "internalid", summary: "GROUP", sort: search.Sort.DESC, label: "Internal ID" }),
+                                search.createColumn({ name: "periodname", summary: "GROUP", label: "Name" })
                             ]
                     });
                     var resul_period = search_period.run();
@@ -313,7 +339,7 @@ define(['N/search', 'N/runtime', 'N/redirect', 'N/ui/serverWidget', 'N/log', 'N/
 
                     SubTabla.addField({ id: 'id_appl', label: LblApply, type: serverWidget.FieldType.CHECKBOX });
                     SubTabla.addField({ id: 'id_int', label: LblInternalID, type: serverWidget.FieldType.TEXT });
-                    SubTabla.addField({ id: 'id_type', label: LblInternalID, type: serverWidget.FieldType.TEXT });
+                    SubTabla.addField({ id: 'id_type', label: LblType, type: serverWidget.FieldType.TEXT });
                     SubTabla.addField({ id: 'id_tran', label: LblTrans, type: serverWidget.FieldType.TEXT });
                     SubTabla.addField({ id: 'id_date', label: LblDate, type: serverWidget.FieldType.DATE });
                     SubTabla.addField({ id: 'id_curn', label: LblCur, type: serverWidget.FieldType.TEXT });
@@ -324,137 +350,181 @@ define(['N/search', 'N/runtime', 'N/redirect', 'N/ui/serverWidget', 'N/log', 'N/
                         (Rd_PerId != null && Rd_PerId != '') &&
                         (Rd_CurrenId != null && Rd_CurrenId != '')) {
 
+                        var filtros = [];
+                        var auxfiltro = [];
+                        var filterTypes = ["PurchOrd"];
+                        if (LibraryMail.getAuthorization(629, allLicenses[Rd_SubId])) {
+                            filterTypes.push("ItemShip");
+                        }
+                        if (!LibraryMail.getAuthorization(608, allLicenses[Rd_SubId])) {
+                            filterTypes.push("VendCred");
+                        }
+                        auxfiltro.push([["type", "anyof", ["VendBill", "CardChrg", "CardRfnd"]], 'AND', ["voided", "is", "F"]], 'OR');
+                        auxfiltro.push(["type", "anyof", filterTypes]);
+
+                        filtros.push(['mainline', 'is', ['T']], 'AND');
+                        filtros.push(auxfiltro, 'AND');
+                        filtros.push(['subsidiary', 'anyof', [Rd_SubId]], 'AND');
+                        filtros.push(['currency', 'anyof', [Rd_CurrenId]], 'AND');
+                        filtros.push(['postingperiod', 'anyof', [Rd_PerId]], 'AND');
+                        filtros.push(['custbody_lmry_scheduled_process', 'is', ['F']], 'AND');
+
+                        //Transacciones de retencion: 18-09-2021
+                        filtros.push(['memo', 'doesnotcontain', 'latam'], 'AND');
+                        //Bills de multa e interes: 27-10.2021
+                        filtros.push(['custbody_lmry_reference_transaction', 'anyof', '@NONE@'], 'AND');
+                        //
+
+                        filtros.push(["formulatext: CASE WHEN (UPPER({type.id})=UPPER('VendBill') or UPPER({type.id})=UPPER('CardChrg') or UPPER({type.id})=UPPER('CardRfnd')) and {custbody_lmry_subsidiary_country.id}=30 and {custrecord_lmry_br_related_transaction.custrecord_lmry_br_block_taxes.id}= 1 THEN 1 ELSE 0 END", "is", "0"]);
+
+                        log.debug('filtros', JSON.stringify(filtros));
+
                         var invoiceSearchObj = search.create({
                             type: "transaction",
-                            filters: [
-                                ['mainline','is', ['T']],'AND',
-                                [
-                                    [
-                                        ["type", "anyof", "VendBill"], "AND",
-                                        ["voided", "is", "F"]
-                                    ], "OR",
-                                    ["type", "anyof", "VendCred", "PurchOrd"]
-                                ],'AND',
-                                ['subsidiary','anyof', [Rd_SubId]],'AND',
-                                ['currency','anyof', [Rd_CurrenId]],'AND',
-                                ['postingperiod','anyof', [Rd_PerId]],'AND',
-                                ['custbody_lmry_scheduled_process','is', ['F']],'AND',
-                                ["formulatext: CASE WHEN UPPER({type.id})=UPPER('VendBill') and {custbody_lmry_subsidiary_country.id}=30 and {custrecord_lmry_br_related_transaction.custrecord_lmry_br_block_taxes.id}= 1 THEN 1 ELSE 0 END","is","0"]
-
-                            ],
+                            filters: filtros,
                             columns: ["internalid", "tranid", "transactionnumber", "trandate",
                                 "currency", "exchangerate", "type"]
                         });
 
-                        var invoiceSearchResult = invoiceSearchObj.run().getRange(0, 1000);
+                        invoiceSearchObj = invoiceSearchObj.run();
 
-                        if (invoiceSearchResult != '' && invoiceSearchResult != null) {
-                            for (var i = 0; i < invoiceSearchResult.length; i++) {
+                        //var invoiceSearchResult = invoiceSearchObj.getRange(0, 1000);
 
-                                var internalId = '' + invoiceSearchResult[i].getValue({
-                                    name: 'internalid'
-                                });
-                                var tranId = '' + invoiceSearchResult[i].getValue({
-                                    name: 'tranid'
-                                });
-                                var type = '' + invoiceSearchResult[i].getValue({
-                                    name: 'type'
-                                });
-                                var transactionNumber = '' + invoiceSearchResult[i].getValue({
-                                    name: 'transactionnumber'
-                                });
-                                var tranDate = invoiceSearchResult[i].getValue({
-                                    name: 'trandate'
-                                });
-                                var currency = invoiceSearchResult[i].getText({
-                                    name: 'currency'
-                                });
-                                var exchangeRate = invoiceSearchResult[i].getValue({
-                                    name: 'exchangerate'
-                                });
+                        var bandera = true;
+                        var contador = 0;
+                        var c = 0;
+                        var invoiceSearchResult = [];
 
-                                var typeTran = '';
-                                if (type != '') {
-                                    SubTabla.setSublistValue({
-                                        id: 'id_type',
-                                        line: i,
-                                        value: type
+                        while (bandera) {
+
+                            invoiceSearchResult = invoiceSearchObj.getRange({ start: contador, end: contador + 900 });
+
+                            if (invoiceSearchResult != '' && invoiceSearchResult != null) {
+                                for (var i = 0; i < invoiceSearchResult.length; i++) {
+
+                                    var internalId = '' + invoiceSearchResult[i].getValue({
+                                        name: 'internalid'
+                                    });
+                                    var tranId = '' + invoiceSearchResult[i].getValue({
+                                        name: 'tranid'
+                                    });
+                                    var type = '' + invoiceSearchResult[i].getValue({
+                                        name: 'type'
+                                    });
+                                    var transactionNumber = '' + invoiceSearchResult[i].getValue({
+                                        name: 'transactionnumber'
+                                    });
+                                    var tranDate = invoiceSearchResult[i].getValue({
+                                        name: 'trandate'
+                                    });
+                                    var currency = invoiceSearchResult[i].getText({
+                                        name: 'currency'
+                                    });
+                                    var exchangeRate = invoiceSearchResult[i].getValue({
+                                        name: 'exchangerate'
                                     });
 
-                                    switch (type) {
-                                        case 'VendBill':
-                                            typeTran = 'vendorbill';
-                                            break;
-                                        case 'VendCred':
-                                            typeTran = 'vendorcredit';
-                                            break;
-                                        case 'PurchOrd':
-                                            typeTran = 'purchaseorder';
-                                            break;
-                                    }
-                                }
-                                if (internalId != '') {
-                                    var url_detalle = url.resolveRecord({
-                                        recordType: typeTran,
-                                        recordId: parseInt(internalId)
-                                    });
-                                    SubTabla.setSublistValue({
-                                        id: 'id_int',
-                                        line: i,
-                                        value: '<a href="' + url_detalle + '" target="_blank">' + internalId + '</a>'
-                                    });
-
-                                    var urlRedi = url.resolveScript({
-                                        scriptId: 'customscript_lmry_br_latamtax_pre_stlt',
-                                        deploymentId: 'customdeploy_lmry_br_latamtax_pre_stlt',
-                                        returnExternalUrl: false
-                                    });
-                                    urlRedi += '&internalid=' + internalId + '&typetran=' + typeTran;
-                                    SubTabla.setSublistValue({
-                                        id: 'id_pre',
-                                        line: i,
-                                        value: '<a href="' + urlRedi + '" target="_blank">' + HTMLClick + '</a>'
-                                    });
-                                }
-
-                                if (tranId != '') {
-                                    SubTabla.setSublistValue({
-                                        id: 'id_tran',
-                                        line: i,
-                                        value: tranId
-                                    });
-                                } else {
-                                    if (transactionNumber != '') {
+                                    var typeTran = '';
+                                    if (type != '') {
                                         SubTabla.setSublistValue({
-                                            id: 'id_tran',
-                                            line: i,
-                                            value: transactionNumber
+                                            id: 'id_type',
+                                            line: c,
+                                            value: type
+                                        });
+
+                                        switch (type) {
+                                            case 'VendBill':
+                                                typeTran = 'vendorbill';
+                                                break;
+                                            case 'VendCred':
+                                                typeTran = 'vendorcredit';
+                                                break;
+                                            case 'PurchOrd':
+                                                typeTran = 'purchaseorder';
+                                                break;
+                                            case 'ItemShip':
+                                                typeTran = 'itemfulfillment';
+                                                break;
+                                            case 'CardChrg':
+                                                typeTran = 'creditcardcharge';
+                                                break;
+                                            case 'CardRfnd':
+                                                typeTran = 'creditcardrefund';
+                                                break;
+                                        }
+                                    }
+                                    if (internalId != '') {
+                                        var url_detalle = url.resolveRecord({
+                                            recordType: typeTran,
+                                            recordId: parseInt(internalId)
+                                        });
+                                        SubTabla.setSublistValue({
+                                            id: 'id_int',
+                                            line: c,
+                                            value: '<a href="' + url_detalle + '" target="_blank">' + internalId + '</a>'
+                                        });
+
+                                        var urlRedi = url.resolveScript({
+                                            scriptId: 'customscript_lmry_br_latamtax_pre_stlt',
+                                            deploymentId: 'customdeploy_lmry_br_latamtax_pre_stlt',
+                                            returnExternalUrl: false
+                                        });
+                                        urlRedi += '&internalid=' + internalId + '&typetran=' + typeTran;
+                                        SubTabla.setSublistValue({
+                                            id: 'id_pre',
+                                            line: c,
+                                            value: '<a href="' + urlRedi + '" target="_blank">' + HTMLClick + '</a>'
                                         });
                                     }
-                                }
-                                if (tranDate != '') {
-                                    SubTabla.setSublistValue({
-                                        id: 'id_date',
-                                        line: i,
-                                        value: tranDate
-                                    });
-                                }
-                                if (currency != '') {
-                                    SubTabla.setSublistValue({
-                                        id: 'id_curn',
-                                        line: i,
-                                        value: currency
-                                    });
-                                }
-                                if (exchangeRate != '') {
-                                    SubTabla.setSublistValue({
-                                        id: 'id_exch',
-                                        line: i,
-                                        value: exchangeRate
-                                    });
+
+                                    if (tranId != '') {
+                                        SubTabla.setSublistValue({
+                                            id: 'id_tran',
+                                            line: c,
+                                            value: tranId
+                                        });
+                                    } else {
+                                        if (transactionNumber != '') {
+                                            SubTabla.setSublistValue({
+                                                id: 'id_tran',
+                                                line: c,
+                                                value: transactionNumber
+                                            });
+                                        }
+                                    }
+                                    if (tranDate != '') {
+                                        SubTabla.setSublistValue({
+                                            id: 'id_date',
+                                            line: c,
+                                            value: tranDate
+                                        });
+                                    }
+                                    if (currency != '') {
+                                        SubTabla.setSublistValue({
+                                            id: 'id_curn',
+                                            line: c,
+                                            value: currency
+                                        });
+                                    }
+                                    if (exchangeRate != '') {
+                                        SubTabla.setSublistValue({
+                                            id: 'id_exch',
+                                            line: c,
+                                            value: exchangeRate
+                                        });
+                                    }
+                                    c++;
                                 }
                             }
-                        }
+
+                            if (invoiceSearchResult.length == 900) {
+                                contador = contador + 900;
+                            } else {
+                                bandera = false;
+                            }
+
+                        } // END While
+
                     }
 
                     if (state == false) {
@@ -529,7 +599,7 @@ define(['N/search', 'N/runtime', 'N/redirect', 'N/ui/serverWidget', 'N/log', 'N/
                                 transactions.push(id_inv);
                             }
                         }
-                        log.error('transactions', transactions.join('|'));
+                        log.debug('transactions', transactions.join('|'));
 
                         var usuario = runtime.getCurrentUser().id;
 

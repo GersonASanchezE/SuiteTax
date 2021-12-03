@@ -92,48 +92,53 @@ define(['N/log', 'N/search', 'N/runtime', 'N/record', 'N/ui/message','./LMRY_lib
         var CC_Subsidiary = recordObj.getValue({ fieldId: "custrecord_lmry_ar_ccl_subsidiary" });
         var CC_Entity = recordObj.getValue({ fieldId: "custrecord_lmry_ar_ccl_entity" });
         var CC_GeneratedTransaction = recordObj.getValue({ fieldId: "custrecord_lmry_ccl_gen_transaction" });
+        var CC_Country = recordObj.getValue({ fieldId: "custrecord_lmry_ccl_subsidiary_country" });
 
-        if (CC_GeneratedTransaction != 1 && CC_GeneratedTransaction != 5) {
+        if (CC_Country != 30) {
 
-            var CC_Search = search.create({
-              type: "customrecord_lmry_ar_contrib_class",
-              columns: [ "internalid" ],
-              filters: [
-                  [ "custrecord_lmry_ar_ccl_entity", "anyof", CC_Entity ],
-                  "AND",
-                  [ "custrecord_lmry_ar_ccl_subsidiary", "anyof", CC_Subsidiary ],
-                  "AND",
-                  [ "custrecord_lmry_ccl_gen_transaction", "anyof", CC_GeneratedTransaction ],
-                  "AND",
-                  [ "custrecord_lmry_cc_invoice_identifier", "anyof", CC_InvoicingIdentifier ]
-              ]
-            });
-            var CC_SearchResult = CC_Search.run().getRange(0, 10);
+            if (CC_GeneratedTransaction != 1 && CC_GeneratedTransaction != 5) {
 
-            if( CC_SearchResult != null && CC_SearchResult.length > 0 ) {
+                var CC_Search = search.create({
+                  type: "customrecord_lmry_ar_contrib_class",
+                  columns: [ "internalid" ],
+                  filters: [
+                      [ "custrecord_lmry_ar_ccl_entity", "anyof", CC_Entity ],
+                      "AND",
+                      [ "custrecord_lmry_ar_ccl_subsidiary", "anyof", CC_Subsidiary ],
+                      "AND",
+                      [ "custrecord_lmry_ccl_gen_transaction", "anyof", CC_GeneratedTransaction ],
+                      "AND",
+                      [ "custrecord_lmry_cc_invoice_identifier", "anyof", CC_InvoicingIdentifier ]
+                  ]
+                });
+                var CC_SearchResult = CC_Search.run().getRange(0, 10);
 
-              var MESSAGE = {
-                "es": {
-                  title: "Registro Duplicado",
-                  message: 'Ya existe un Contributory Class configurado con el mismo \"Latam - Invoicing Identifier\"'
-                },
-                "en": {
-                  title: "Duplicated Record",
-                  message: 'There is already a Contributory Class configured with the same \"Latam - Invoicing Identifier\"'
-                },
-                "po": {
-                  title: "Registro Duplicado",
-                  message: 'Já existe um Contributory Class configurado com o mesmo \"Latam - Invoicing Identifier\"'
+                if( CC_SearchResult != null && CC_SearchResult.length > 0 ) {
+
+                  var MESSAGE = {
+                    "es": {
+                      title: "Registro Duplicado",
+                      message: 'Ya existe un Contributory Class configurado con el mismo \"Latam - Invoicing Identifier\"'
+                    },
+                    "en": {
+                      title: "Duplicated Record",
+                      message: 'There is already a Contributory Class configured with the same \"Latam - Invoicing Identifier\"'
+                    },
+                    "po": {
+                      title: "Registro Duplicado",
+                      message: 'Já existe um Contributory Class configurado com o mesmo \"Latam - Invoicing Identifier\"'
+                    }
+                  };
+
+                  message.create({
+                    title: MESSAGE[language].title,
+                    message: MESSAGE[language].message,
+                    type: message.Type.ERROR
+                  }).show({ duration: 5000 });
+
+                  return false;
+
                 }
-              };
-
-              message.create({
-                title: MESSAGE[language].title,
-                message: MESSAGE[language].message,
-                type: message.Type.ERROR
-              }).show({ duration: 5000 });
-
-              return false;
 
             }
 
@@ -157,46 +162,51 @@ define(['N/log', 'N/search', 'N/runtime', 'N/record', 'N/ui/message','./LMRY_lib
         var NT_InvoicingIdentifier = recordObj.getValue({ fieldId: "custrecord_lmry_nt_invoicing_identifier" });
         var NT_Subsidiary = recordObj.getValue({ fieldId: "custrecord_lmry_ntax_subsidiary" });
         var NT_GeneratedTransaction = recordObj.getValue({ fieldId: "custrecord_lmry_ntax_gen_transaction" });
+        var NT_Country = recordObj.getValue({ fieldId: "custrecord_lmry_ntax_subsidiary_country" });
 
-        if (NT_GeneratedTransaction != 1 && NT_GeneratedTransaction != 5) {
+        if (NT_Country != 30) {
 
-            var NT_Search = search.create({
-              type: "customrecord_lmry_national_taxes",
-              columns: [ "internalid" ],
-              filters: [
-                  [ "custrecord_lmry_ntax_subsidiary", "anyof", NT_Subsidiary ],
-                  "AND",
-                  [ "custrecord_lmry_ntax_gen_transaction", "anyof", NT_GeneratedTransaction ],
-                  "AND",
-                  [ "custrecord_lmry_nt_invoicing_identifier", "anyof", NT_InvoicingIdentifier ]
-              ]
-            });
-            var NT_SearchResult = NT_Search.run().getRange(0, 10);
+            if (NT_GeneratedTransaction != 1 && NT_GeneratedTransaction != 5) {
 
-            if( NT_SearchResult != null && NT_SearchResult.length > 0 ) {
+                var NT_Search = search.create({
+                  type: "customrecord_lmry_national_taxes",
+                  columns: [ "internalid" ],
+                  filters: [
+                      [ "custrecord_lmry_ntax_subsidiary", "anyof", NT_Subsidiary ],
+                      "AND",
+                      [ "custrecord_lmry_ntax_gen_transaction", "anyof", NT_GeneratedTransaction ],
+                      "AND",
+                      [ "custrecord_lmry_nt_invoicing_identifier", "anyof", NT_InvoicingIdentifier ]
+                  ]
+                });
+                var NT_SearchResult = NT_Search.run().getRange(0, 10);
 
-              var MESSAGE = {
-                "es": {
-                  title: "Registro Duplicado",
-                  message: 'Ya existe un National Tax configurado con el mismo \"Latam - Invoicing Identifier\"'
-                },
-                "en": {
-                  title: "Duplicated Record",
-                  message: 'There is already a National Tax configured with the same \"Latam - Invoicing Identifier\"'
-                },
-                "po": {
-                  title: "Registro Duplicado",
-                  message: 'Já existe um National Tax configurado com o mesmo \"Latam - Invoicing Identifier\"'
+                if( NT_SearchResult != null && NT_SearchResult.length > 0 ) {
+
+                  var MESSAGE = {
+                    "es": {
+                      title: "Registro Duplicado",
+                      message: 'Ya existe un National Tax configurado con el mismo \"Latam - Invoicing Identifier\"'
+                    },
+                    "en": {
+                      title: "Duplicated Record",
+                      message: 'There is already a National Tax configured with the same \"Latam - Invoicing Identifier\"'
+                    },
+                    "po": {
+                      title: "Registro Duplicado",
+                      message: 'Já existe um National Tax configurado com o mesmo \"Latam - Invoicing Identifier\"'
+                    }
+                  };
+
+                  message.create({
+                    title: MESSAGE[language].title,
+                    message: MESSAGE[language].message,
+                    type: message.Type.ERROR
+                  }).show({ duration: 5000 });
+
+                  return false;
+
                 }
-              };
-
-              message.create({
-                title: MESSAGE[language].title,
-                message: MESSAGE[language].message,
-                type: message.Type.ERROR
-              }).show({ duration: 5000 });
-
-              return false;
 
             }
 
