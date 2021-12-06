@@ -1,5 +1,5 @@
 /* = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =\
-||   This script for customer center (Time)                     ||
+||   This script for Transaction Vendor Bill                    ||
 ||                                                              ||
 ||  File Name: LMRY_VendorBillURET_V2.0.js                      ||
 ||                                                              ||
@@ -13,23 +13,24 @@
  */
 
 define(['N/record', 'N/runtime', 'N/search', 'N/log', 'N/config', 'N/https', 'N/url', 'N/ui/serverWidget',
-        './Latam_Library/LMRY_libSendingEmailsLBRY_V2.0', './Latam_Library/LMRY_libWhtValidationLBRY_V2.0',
-        './Latam_Library/LMRY_libDIOTLBRY_V2.0', './WTH_Library/LMRY_TAX_TransactionLBRY_V2.0',
-        './WTH_Library/LMRY_ST_Tax_TransactionLBRY_V2.0', './Latam_Library/LMRY_GLImpact_LBRY_V2.0',
-        './Latam_Library/LMRY_HideViewLBRY_V2.0', './Latam_Library/LMRY_HideView3LBRY_V2.0',
-        './WTH_Library/LMRY_Country_WHT_Lines_LBRY_V2.0', './Latam_Library/LMRY_ExchangeRate_LBRY_V2.0',
-        './WTH_Library/LMRY_RetencionesEcuador_LBRY', './WTH_Library/LMRY_GT_Withholding_Line_LBRY_V2.0',
-        './WTH_Library/LMRY_BR_GLImpact_Popup_LBRY', './WTH_Library/LMRY_TransferIva_LBRY',
-        "./Latam_Library/LMRY_CL_ST_Transaction_Purchases_LBRY_V2.0", './WTH_Library/LMRY_EC_BaseAmounts_TaxCode_LBRY',
-        './Latam_Library/LMRY_CO_ST_Purchase_Tax_Transaction_LBRY_V2.0', './Latam_Library/LMRY_MX_ST_Purchase_Tax_Transaction_LBRY_V2.0',
-        './Latam_Library/LMRY_MX_ST_DIOT_LBRY_V2.0', './Latam_Library/LMRY_AR_ST_Purchase_Tax_Transaction_LBRY_V2.0',
-        './Latam_Library/LMRY_AR_ST_WHT_TransactionFields_LBRY_V2.0'
-    ],
+    './Latam_Library/LMRY_libSendingEmailsLBRY_V2.0', './Latam_Library/LMRY_libWhtValidationLBRY_V2.0',
+    './Latam_Library/LMRY_libDIOTLBRY_V2.0', './WTH_Library/LMRY_TAX_TransactionLBRY_V2.0',
+    './WTH_Library/LMRY_ST_Tax_TransactionLBRY_V2.0', './Latam_Library/LMRY_GLImpact_LBRY_V2.0',
+    './Latam_Library/LMRY_HideViewLBRY_V2.0', './Latam_Library/LMRY_HideView3LBRY_V2.0',
+    './WTH_Library/LMRY_Country_WHT_Lines_LBRY_V2.0', './Latam_Library/LMRY_ExchangeRate_LBRY_V2.0',
+    './WTH_Library/LMRY_RetencionesEcuador_LBRY', './WTH_Library/LMRY_GT_Withholding_Line_LBRY_V2.0', './WTH_Library/LMRY_BR_GLImpact_Popup_LBRY',
+    './WTH_Library/LMRY_TransferIva_LBRY', './Latam_Library/LMRY_MX_ST_Purchase_Tax_Transaction_LBRY_V2.0',
+    './Latam_Library/LMRY_MX_ST_DIOT_LBRY_V2.0', "./Latam_Library/LMRY_CL_ST_Transaction_Purchases_LBRY_V2.0",
+    './WTH_Library/LMRY_EC_BaseAmounts_TaxCode_LBRY', './Latam_Library/LMRY_BR_ValidateDuplicate_LBRY_V2.0',
+    './WTH_Library/LMRY_New_Country_WHT_Lines_LBRY', './Latam_Library/LMRY_CO_ST_Purchase_Tax_Transaction_LBRY_V2.0',
+    './Latam_Library/LMRY_CO_ST_Bill_WHT_Lines_LBRY_V2.0', './Latam_Library/LMRY_SV_ST_Purchase_Tax_Transaction_LBRY_V2.0',
+    './Latam_Library/LMRY_BR_ST_Purchase_Tax_Transaction_LBRY_V2.0'
+],
 
-    function(record, runtime, search, log, config, https, url, serverWidget, library, library1, libraryDIOT, Library_WHT_Transaction, ST_Library_Transaction,
+    function (record, runtime, search, log, config, https, url, serverWidget, library, library1, libraryDIOT, Library_WHT_Transaction, ST_Library_Transaction,
         libraryGLImpact, Library_HideView, library_hideview3, libWHTLines, library_ExchRate, Library_RetencionesEcuador, Library_WHT_GT, library_GLImpact_Popup,
-        LibraryTransferIva, library_CL_Purchases, libraryEcBaseAmounts,
-        CO_ST_TaxLibrary, MX_ST_TaxLibrary, MX_ST_DIOT_Library, AR_ST_TaxLibrary, AR_ST_WhtLibrary) {
+        LibraryTransferIva, MX_ST_TaxLibrary, MX_ST_DIOT_Library, library_CL_Purchases, libraryEcBaseAmounts, Library_BRDup, libraryNewWHTLines,
+        CO_ST_TaxLibrary, CO_ST_WhtLibrary, SV_ST_TaxLibrary, BR_ST_TaxLibrary) {
 
         var scriptObj = runtime.getCurrentScript();
         var type = '';
@@ -134,6 +135,7 @@ define(['N/record', 'N/runtime', 'N/search', 'N/log', 'N/config', 'N/https', 'N/
                         });
                     }
 
+                    // Form Hide and View
                     if (form != '' && form != null) {
                         var hide_transaction = library.getHideView(country, 2, licenses);
                         var hide_sublist = library.getHideView(country, 5, licenses);
@@ -160,7 +162,7 @@ define(['N/record', 'N/runtime', 'N/search', 'N/log', 'N/config', 'N/https', 'N/
                                 library_hideview3.PxHideColumn(form, '', recordObj.type);
                             }
                         }
-                    }
+                    } // Form Hide and View
                 }
 
                 /* * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -173,19 +175,60 @@ define(['N/record', 'N/runtime', 'N/search', 'N/log', 'N/config', 'N/https', 'N/
                     // Valida que tenga acceso
                     var LMRY_Result = ValidateAccessVB(subsidiary);
 
+                    // LatamTax - SuiteTax
                     if (ST_FEATURE == true || ST_FEATURE == 'T') {
-                        if (['create', 'edit', 'copy'].indexOf(context.type) != -1) {
+
+                        if (['create', 'edit', 'copy'].indexOf(type) != -1) {
                             switch (LMRY_Result[0]) {
                                 case "MX":
                                     MX_ST_TaxLibrary.disableInvoicingIdentifier(context);
                                     break;
-                                case "AR":
-                                    AR_ST_TaxLibrary.disableInvoicingIdentifier(context);
+                                case "CO":
+                                    CO_ST_TaxLibrary.disableInvoicingIdentifier(context);
+                                    break;
+                                case "SV":
+                                    SV_ST_TaxLibrary.disableInvoicingIdentifier(context);
                                     break;
                             }
-
                         }
-                    }
+
+                        if (["copy", "xcopy"].indexOf(type) != -1) {
+                            switch (LMRY_Result[0]) {
+                                case "CL":
+                                    library_CL_Purchases.cleanLinesforCopy(recordObj, licenses);
+                                    break;
+                                case "MX":
+                                    MX_ST_TaxLibrary.deleteTaxDetailLines(recordObj);
+                                    break;
+                                case "CO":
+                                    CO_ST_TaxLibrary.deleteTaxDetailLines(recordObj);
+                                    break;
+                                case "SV":
+                                    SV_ST_TaxLibrary.deleteTaxDetailLines(recordObj);
+                                    break;
+                            }
+                        }
+
+                        if (["create", "copy"].indexOf(type) != -1) {
+                            var createdFrom = recordObj.getValue({ fieldId: 'createdfrom' });
+                            if (createdFrom) {
+                                switch (LMRY_Result[0]) {
+                                    case "CL":
+                                        library_CL_Purchases.cleanLinesforCopy(recordObj, licenses);
+                                        break;
+                                    case "MX":
+                                        MX_ST_TaxLibrary.deleteTaxDetailLines(recordObj);
+                                        break;
+                                    case "CO":
+                                        CO_ST_TaxLibrary.deleteTaxDetailLines(recordObj);
+                                        break;
+                                    case "SV":
+                                        SV_ST_TaxLibrary.deleteTaxDetailLines(recordObj);
+                                        break;
+                                }
+                            }
+                        }
+                    } // LatamTax - SuiteTax
 
                     // Solo para Mexico
                     if (LMRY_Result[0] == 'MX' && LMRY_Result[3] == true) {
@@ -204,7 +247,7 @@ define(['N/record', 'N/runtime', 'N/search', 'N/log', 'N/config', 'N/https', 'N/
 
                     // Solo localizacion CO
                     if (LMRY_Result[0] == 'CO') {
-                        if (library.getAuthorization(340, licenses)) {
+                        if (library.getAuthorization(340, licenses) || library.getAuthorization(720, licenses)) {
                             var formObj = context.form;
                             var reteica = formObj.getField('custbody_lmry_co_reteica');
                             var reteiva = formObj.getField('custbody_lmry_co_reteiva');
@@ -224,6 +267,94 @@ define(['N/record', 'N/runtime', 'N/search', 'N/log', 'N/config', 'N/https', 'N/
                             });
                         }
                     } // Fin Solo localizacion CO
+
+                    /* **************************************************************
+                     * Muestra campos adicionales por el campo Latam - Report Type
+                     *  - custbody_lmry_numero_er lista => LatamReady - Número ER
+                     *  - custbody_lmry_numero_cc lista => LatamReady - Número CC
+                     *  - custbody_lmry_numero_sr lista => LatamReady - Número SR
+                     * implementado el 2021.10.20
+                     * ************************************************************ */
+                    // Solo localizacion CL
+                    log.debug('LMRY_Result', LMRY_Result);
+                    if (LMRY_Result[0] == 'CL') {
+                        // Solo cuando es View
+                        if (context.type == 'view') {
+                            var Country = LMRY_Result[1];
+                            var filparent = recordObj.getValue('custbody_lmry_type_report');
+                            log.debug('filparent', filparent);
+                            if (filparent != '' && filparent != null) {
+                                /* Se realiza una busqueda para ver que campos se ocultan */
+                                var filters = new Array();
+                                filters[0] = search.createFilter({
+                                    name: 'isinactive',
+                                    operator: search.Operator.IS,
+                                    values: 'F'
+                                });
+                                filters[1] = search.createFilter({
+                                    name: 'custrecord_lmry_section',
+                                    operator: search.Operator.ANYOF,
+                                    values: [2]
+                                });
+                                filters[2] = search.createFilter({
+                                    name: 'custrecord_lmry_parent_er',
+                                    operator: search.Operator.ANYOF,
+                                    values: [filparent]
+                                });
+                                var columns = new Array();
+                                columns[0] = search.createColumn({ name: 'name' });
+                                columns[1] = search.createColumn({ name: 'custrecord_lmry_country' });
+                                // LatamReady - Setup Fields View
+                                var hidefields = search.create({
+                                    type: 'customrecord_lmry_fields',
+                                    columns: columns,
+                                    filters: filters
+                                });
+                                hidefields = hidefields.run().getRange(0, 1000);
+                                log.debug('hidefields.length', 'antes');
+                                if (hidefields != null && hidefields != '') {
+                                    var formObj = context.form;
+                                    log.debug('hidefields.length', hidefields.length);
+                                    for (var i = 0; i < hidefields.length; i++) {
+                                        var namefield = hidefields[i].getValue('name');
+                                        var counfield = hidefields[i].getText('custrecord_lmry_country');
+                                        counfield = library.DeleteChar(counfield);
+                                        log.debug('namefield', namefield);
+                                        // Valida Paises
+                                        if (counfield == Country) {
+                                            log.debug('namefield', namefield);
+                                            // Latam - Número CC
+                                            if (namefield != 'custbody_lmry_numero_cc') {
+                                                var DisplayField = formObj.getField('custbody_lmry_numero_cc');
+                                                DisplayField.updateDisplayType({ displayType: serverWidget.FieldDisplayType.HIDDEN });
+                                            }
+                                            // Latam - Número ER
+                                            if (namefield != 'custbody_lmry_numero_er') {
+                                                var DisplayField = formObj.getField('custbody_lmry_numero_er');
+                                                DisplayField.updateDisplayType({ displayType: serverWidget.FieldDisplayType.HIDDEN });
+                                            }
+                                            // Latam - Número SR
+                                            if (namefield != 'custbody_lmry_numero_sr') {
+                                                var DisplayField = formObj.getField('custbody_lmry_numero_sr');
+                                                DisplayField.updateDisplayType({ displayType: serverWidget.FieldDisplayType.HIDDEN });
+                                            }
+                                            break;
+                                        } // Valida Paises
+                                    }
+                                }
+                            } // Latam - Report Type
+                        } else {
+                            // Latam - Número CC
+                            var numerecc = recordObj.getField('custbody_lmry_numero_cc');
+                            numerecc.isDisplay = true;
+                            // Latam - Número ER
+                            var numereer = recordObj.getField('custbody_lmry_numero_er');
+                            numereer.isDisplay = true;
+                            // Latam - Número SR
+                            var numeresr = recordObj.getField('custbody_lmry_numero_sr');
+                            numeresr.isDisplay = true;
+                        } // Solo cuando es View
+                    } // Solo localizacion CL
 
                     // Solo en el evento View
                     if (type == 'view') {
@@ -302,78 +433,65 @@ define(['N/record', 'N/runtime', 'N/search', 'N/log', 'N/config', 'N/https', 'N/
                                 fieldId: 'custbody_lmry_document_type'
                             });
 
-                            /* Valida que no sea Nulo */
-                            if (docufisc == '' || docufisc == null) {
-                                return true;
-                            }
-
                             // Latam - CO Tipo Documento Equivalente - Preferencias Generales de Empresa
                             var tipodocu = scriptObj.getParameter({
                                 name: 'custscript_lmry_co_tipo_fiscal_de'
                             });
 
-                            /* Valida que no sea Nulo */
-                            if (tipodocu == '' || tipodocu == null) {
-                                return true;
-                            }
+                            if (docufisc && tipodocu) {
 
-                            form.clientScriptModulePath = './Latam_Library/LMRY_GLImpact_CLNT_V2.0.js';
+                                form.clientScriptModulePath = './Latam_Library/LMRY_GLImpact_CLNT_V2.0.js';
 
-                            /* Solo si los dos campos son iguales muestra el boton */
-                            if (docufisc == tipodocu) {
-                                form.addButton({
-                                    id: 'custpage_Add_Button',
-                                    label: 'Imprimir DE',
-                                    functionName: 'onclick_event()'
-                                });
+                                /* Solo si los dos campos son iguales muestra el boton */
+                                if (docufisc == tipodocu) {
+                                    form.addButton({
+                                        id: 'custpage_Add_Button',
+                                        label: 'Imprimir DE',
+                                        functionName: 'onclick_event()'
+                                    });
+                                }
 
                             }
-                        }
+
+                        } // Solo para Colombia
 
                         // Solo para Peru
                         if (LMRY_Result[0] == 'PE' && LMRY_Result[2] == true && LMRY_Result[3] == true) {
                             // busca valor conforme nombre del campo
-                            var value = recordObj.getValue({
-                                fieldId: 'custbody_lmry_transaction_type_doc'
-                            });
+                            var value = recordObj.getValue({ fieldId: 'custbody_lmry_transaction_type_doc' });
+                            if (value !== '' && value !== null) {
+                                /* Se realiza una busqueda para ver que campos se ocultan */
+                                // Filtros
+                                var filters = new Array();
+                                filters[0] = search.createFilter({
+                                    name: 'custrecord_lmry_id_transaction',
+                                    operator: search.Operator.IS,
+                                    values: value
+                                });
 
-                            /* Valida que no sea Nulo */
-                            if (value == '' || value == null) {
-                                return true;
-                            }
+                                // Realiza un busqueda para mostrar los campos
+                                var hidefieldsSearch = search.create({
+                                    type: 'customrecord_lmry_transaction_fields',
+                                    columns: ['custrecord_lmry_id_fields'],
+                                    filters: filters
+                                });
 
-                            /* Se realiza una busqueda para ver que campos se ocultan */
-                            // Filtros
-                            var filters = new Array();
-                            filters[0] = search.createFilter({
-                                name: 'custrecord_lmry_id_transaction',
-                                operator: search.Operator.IS,
-                                values: value
-                            });
-
-
-                            // Realiza un busqueda para mostrar los campos
-                            var hidefieldsSearch = search.create({
-                                type: 'customrecord_lmry_transaction_fields',
-                                columns: ['custrecord_lmry_id_fields'],
-                                filters: filters
-                            });
-
-                            var hidefields = hidefieldsSearch.run().getRange(0, 1000);
-
-                            if (hidefields != null && hidefields != '') {
-                                for (var i = 0; i < hidefields.length; i++) {
-                                    var namefield = hidefields[i].getText('custrecord_lmry_id_fields');
-                                    if (namefield != '' && namefield != null) {
-                                        var Field = recordObj.getField({
-                                            fieldId: namefield
-                                        });
-                                        if (Field != null && Field != '') {
-                                            Field.isDisplay = true;
-                                        }
+                                var hidefields = hidefieldsSearch.run().getRange(0, 1000);
+                                if (hidefields != null && hidefields != '') {
+                                    for (var i = 0; i < hidefields.length; i++) {
+                                        // Campos a mostrar
+                                        var namefield = hidefields[i].getText('custrecord_lmry_id_fields');
+                                        if (namefield != '' && namefield != null) {
+                                            var Field = recordObj.getField({ fieldId: namefield });
+                                            if (Field != null && Field != '') {
+                                                Field.isDisplay = true;
+                                            }
+                                        } // Campos a mostrar
                                     }
-                                }
-                            } // Realiza un busqueda para mostrar los campos
+                                } // Realiza un busqueda para mostrar los campos
+
+                            } // busca valor conforme nombre del campo
+
                         } // Solo para Peru
 
                     } // Fin Solo en el evento View
@@ -445,7 +563,7 @@ define(['N/record', 'N/runtime', 'N/search', 'N/log', 'N/config', 'N/https', 'N/
                             });
 
                             // CustCol - Valida si el JSON esta lleno
-                            if (typeof(pop_columna) == 'object') {
+                            if (typeof (pop_columna) == 'object') {
                                 // CustCol - Valida si el JSON esta lleno
                                 if (JSON.stringify(pop_columna) != '{}') {
                                     pop_columna.updateDisplayType({
@@ -461,7 +579,7 @@ define(['N/record', 'N/runtime', 'N/search', 'N/log', 'N/config', 'N/https', 'N/
                             });
 
                             // CustCol - Valida si el JSON esta lleno
-                            if (typeof(pop_columna) == 'object') {
+                            if (typeof (pop_columna) == 'object') {
                                 // CustCol - Valida si el JSON esta lleno
                                 if (JSON.stringify(pop_columna) != '{}') {
                                     pop_columna.updateDisplayType({
@@ -511,13 +629,13 @@ define(['N/record', 'N/runtime', 'N/search', 'N/log', 'N/config', 'N/https', 'N/
                                     id: 'custcol_lmry_br_json'
                                 });
                                 // Valida si es Objeto
-                                if (typeof(json_columna) == 'object') {
+                                if (typeof (json_columna) == 'object') {
                                     // CustCol - Valida si el JSON esta lleno
                                     if (JSON.stringify(json_columna) != '{}') {
                                         // Limpia la columna JSON
                                         for (var i = 0; i < recordObj.getLineCount({
-                                                sublistId: 'item'
-                                            }); i++) {
+                                            sublistId: 'item'
+                                        }); i++) {
                                             recordObj.setSublistValue({
                                                 sublistId: 'item',
                                                 fieldId: 'custcol_lmry_br_json',
@@ -534,13 +652,13 @@ define(['N/record', 'N/runtime', 'N/search', 'N/log', 'N/config', 'N/https', 'N/
                                     id: 'custcol_lmry_br_json'
                                 });
                                 // Valida si es Objeto
-                                if (typeof(json_columna) == 'object') {
+                                if (typeof (json_columna) == 'object') {
                                     // CustCol - Valida si el JSON esta lleno
                                     if (JSON.stringify(json_columna) != '{}') {
                                         // Limpia la columna JSON
                                         for (var i = 0; i < recordObj.getLineCount({
-                                                sublistId: 'expense'
-                                            }); i++) {
+                                            sublistId: 'expense'
+                                        }); i++) {
                                             recordObj.setSublistValue({
                                                 sublistId: 'expense',
                                                 fieldId: 'custcol_lmry_br_json',
@@ -582,83 +700,6 @@ define(['N/record', 'N/runtime', 'N/search', 'N/log', 'N/config', 'N/https', 'N/
                         }
                     }
 
-                    // Nueva logica Chile
-                    if (LMRY_Result[0] == 'CL') {
-                        if (type == 'copy' || type == 'xcopy') {
-                            if ((ST_FEATURE) && (ST_FEATURE === true || ST_FEATURE === 'T')) {
-                                library_CL_Purchases.cleanLinesforCopy(recordObj, licenses);
-                            }
-
-                        }
-
-                        if (type == 'create' || type == 'copy') {
-                            var createdFrom = recordObj.getValue({
-                                fieldId: 'createdfrom',
-                            });
-
-                            if (createdFrom) {
-                                if ((ST_FEATURE) && (ST_FEATURE === true || ST_FEATURE === 'T')) {
-                                    library_CL_Purchases.cleanLinesforCopy(recordObj, licenses);
-                                }
-
-                            }
-                        }
-                    }
-
-                    // SuiteTax Colombia
-                    if (LMRY_Result[0] == "CO") {
-                        if (type == "copy" || type == "xcopy") {
-                            if (ST_FEATURE == true || ST_FEATURE == "T") {
-                                CO_ST_TaxLibrary.deleteTaxDetailLines(recordObj);
-                            }
-                        }
-
-                        if (type == "create" || type == "copy") {
-                            var createdFrom = recordObj.getValue({ fieldId: "createdfrom" });
-                            if (createdFrom) {
-                                if (ST_FEATURE == true || ST_FEATURE == "T") {
-                                    CO_ST_TaxLibrary.deleteTaxDetailLines(recordObj);
-                                }
-                            }
-                        }
-                    }
-
-                    // SuiteTax Mexico
-                    if (LMRY_Result[0] == "MX") {
-                        if (type == "copy" || type == "xcopy") {
-                            if (ST_FEATURE == true || ST_FEATURE == "T") {
-                                MX_ST_TaxLibrary.deleteTaxDetailLines(recordObj);
-                            }
-                        }
-
-                        if (type == "create" || type == "copy") {
-                            var createdFrom = recordObj.getValue({ fieldId: "createdfrom" });
-                            if (createdFrom) {
-                                if (ST_FEATURE == true || ST_FEATURE == "T") {
-                                    MX_ST_TaxLibrary.deleteTaxDetailLines(recordObj);
-                                }
-                            }
-                        }
-                    }
-
-                    // SuiteTax Argentina
-                    if (LMRY_Result[0] == "AR") {
-                        if (type == "copy" || type == "xcopy") {
-                            if (ST_FEATURE == true || ST_FEATURE == "T") {
-                                AR_ST_TaxLibrary.deleteTaxDetailLines(recordObj);
-                            }
-                        }
-
-                        if (type == "create" || type == "copy") {
-                            var createdFrom = recordObj.getValue({ fieldId: "createdfrom" });
-                            if (createdFrom) {
-                                if (ST_FEATURE == true || ST_FEATURE == "T") {
-                                    AR_ST_TaxLibrary.deleteTaxDetailLines(recordObj);
-                                }
-                            }
-                        }
-                    }
-
                     //SETEO DEL CUSTBODY LATAMREADY - BR TRANSACTION TYPE PARA FILTRAR LA COLUMNA CFOP
                     if (LMRY_Result[0] == 'BR' && LMRY_Result[2] == true && (type == 'create' || type == 'edit' || type == 'copy')) {
                         var transactionType = recordObj.getValue('custbody_lmry_br_transaction_type');
@@ -688,6 +729,16 @@ define(['N/record', 'N/runtime', 'N/search', 'N/log', 'N/config', 'N/https', 'N/
                         }
                     }
 
+                    if (ST_FEATURE == false || ST_FEATURE == "F") {
+
+                        //BOTON MAP REDUCE RETENCION CO
+                        if (LMRY_Result[0] == 'CO' && library.getAuthorization(340, licenses) && type == 'view') {
+
+                            libraryNewWHTLines.beforeLoad(recordObj, form, context, 'vendor');
+
+                        } // Fin Boton CO Lineas
+
+                    }
 
                 } // Fin if (type != 'print' && type != 'email')
 
@@ -762,7 +813,16 @@ define(['N/record', 'N/runtime', 'N/search', 'N/log', 'N/config', 'N/https', 'N/
                 }
 
                 //Nueva logica Country WHT Lineas
-                libWHTLines.beforeSubmitTransaction(context, licenses);
+                if (ST_FEATURE == false || ST_FEATURE == "F") {
+
+                    if (LMRY_Result[0] == 'CO') {
+                        libraryNewWHTLines.beforeSubmitTransaction(context, licenses);
+                    } else {
+                        libWHTLines.beforeSubmitTransaction(context, licenses);
+                    }
+
+                }
+
 
                 // Nueva logica Retenciones Guatemala
                 Library_WHT_GT.beforeSubmitTransaction(context, licenses);
@@ -880,6 +940,20 @@ define(['N/record', 'N/runtime', 'N/search', 'N/log', 'N/config', 'N/https', 'N/
                                     band = false;
                                 }
 
+                                var TaxCalObj = search.create({
+                                    type: 'customrecord_lmry_br_transaction',
+                                    columns: ['internalid'],
+                                    filters: [
+                                        ['custrecord_lmry_total_item', 'is', 'Tax Calculator'], 'AND',
+                                        ['custrecord_lmry_br_transaction', 'is', LMRY_Intern]
+                                    ]
+                                });
+                                TaxCalObj = TaxCalObj.run().getRange(0, 1);
+
+                                if (TaxCalObj != null && TaxCalObj != '') {
+                                    band = false;
+                                }
+
                                 if (band) {
                                     Library_WHT_Transaction.deleteTaxResults(recordObj);
                                 }
@@ -891,36 +965,24 @@ define(['N/record', 'N/runtime', 'N/search', 'N/log', 'N/config', 'N/https', 'N/
                     }
                 }
 
-                if (LMRY_Result[0] == 'CL') {
-                    //Elimina el registro de la transaccion del record TaxResult
-                    if (type == "delete") {
-                        library_CL_Purchases.deleteTaxResult(LMRY_Intern);
-                    }
-                }
-
-                // SuiteTax Colombia
-                if (LMRY_Result[0] == "CO") {
-                    if (type == "delete") {
-                        if (ST_FEATURE == true || ST_FEATURE == "T") {
-                            CO_ST_TaxLibrary.deleteTaxResult(LMRY_Intern);
-                        }
-                    }
-                }
-
-                // SuiteTax Mexico
-                if (LMRY_Result[0] == "MX") {
-                    if (type == "delete") {
-                        if (ST_FEATURE == true || ST_FEATURE == "T") {
-                            MX_ST_TaxLibrary.deleteTaxResult(LMRY_Intern);
-                        }
-                    }
-                }
-
-                // SuiteTax Argentina
-                if (LMRY_Result[0] == "AR") {
-                    if (type == "delete") {
-                        if (ST_FEATURE == true || ST_FEATURE == "T") {
-                            AR_ST_TaxLibrary.deleteTaxResult(LMRY_Intern);
+                if (type == "delete") {
+                    if (ST_FEATURE == true || ST_FEATURE == "T") {
+                        switch (LMRY_Result[0]) {
+                            case "CL":
+                                library_CL_Purchases.deleteTaxResult(LMRY_Intern);
+                                break;
+                            case "MX":
+                                MX_ST_TaxLibrary.deleteTaxResult(LMRY_Intern);
+                                break;
+                            case "CO":
+                                CO_ST_TaxLibrary.deleteTaxResult(LMRY_Intern);
+                            	if (library.getAuthorization(340, licenses) == true) {
+                                    CO_ST_WhtLibrary.deleteRelatedRecords(LMRY_Intern, "vendorbill");
+                                }
+                            	break;
+                            case "SV":
+                                SV_ST_TaxLibrary.deleteTaxResult(LMRY_Intern);
+                                break;
                         }
                     }
                 }
@@ -929,6 +991,12 @@ define(['N/record', 'N/runtime', 'N/search', 'N/log', 'N/config', 'N/https', 'N/
                 var eventsEC = ['create', 'copy', 'edit'];
                 if (LMRY_Result[0] == 'EC' && library.getAuthorization(42, licenses) && eventsEC.indexOf(type) != -1) {
                     libraryEcBaseAmounts.setBaseAmounts(recordObj, '1');
+                }
+
+                if (LMRY_Result[0] == "CO") {
+                    if (library.getAuthorization(720, licenses) == true && context.type == 'edit') {
+                        recordObj.setValue('custbody_lmry_scheduled_process', false);
+                    }
                 }
 
 
@@ -1034,26 +1102,46 @@ define(['N/record', 'N/runtime', 'N/search', 'N/log', 'N/config', 'N/https', 'N/
                             }
                         });
                     }
-                    libWHTLines.afterSubmitTransaction(context, type, LMRY_Intern, transactionType, licenses);
+
+                    if (ST_FEATURE == false || ST_FEATURE == "F") {
+
+                        if (LMRY_Result[0] == 'CO') {
+
+                            var flagEntity = libraryNewWHTLines.searchEntity(recordObj.getValue('entity'), 'vendor');
+
+                            if (!flagEntity) {
+                                libraryNewWHTLines.newAfterSubmitTransaction(context, type, LMRY_Intern, transactionType, licenses, false);
+                            }
+
+                        } else {
+                            libWHTLines.afterSubmitTransaction(context, type, LMRY_Intern, transactionType, licenses);
+                        }
+                    }
+
                 }
 
                 // Se ejecuta si es diferente de eliminar
                 if (type != 'delete') {
                     // Actualiza los campos
                     var LMRY_countr = library.Get_Country_STLT(subsidiary);
-                    /******************************
+                    /***********************************
                      * Solo para localizacion :
                      *  - Peruana = PE
                      *  - Brasil = BR
-                     *****************************/
+                     *  - Guatemala = GU       22/09/21
+                     ***********************************/
                     if (LMRY_countr[0] == 'PE' ||
-                        LMRY_countr[0] == 'BR') {
+                        LMRY_countr[0] == 'BR' ||
+                        LMRY_countr[0] == 'GT') {
                         // Validacion de Features & Country
                         swFeature = false;
                         if (LMRY_countr[0] == 'PE' && library.getAuthorization(136, licenses)) {
                             swFeature = true;
                         }
                         if (LMRY_countr[0] == 'BR' && library.getAuthorization(140, licenses)) {
+                            swFeature = true;
+                        }
+                        if (LMRY_countr[0] == 'GT' && library.getAuthorization(133, licenses)) {
                             swFeature = true;
                         }
 
@@ -1134,106 +1222,77 @@ define(['N/record', 'N/runtime', 'N/search', 'N/log', 'N/config', 'N/https', 'N/
                         LibraryTransferIva.generateMXTransField(context);
                     }
 
-                    //Nueva logica para Chile
-                    if (LMRY_Result[0] == 'CL') {
-                        // var recordCL = recordObj;
-                        var recordCL = record.load({
-                            type: "vendorbill",
-                            id: recordObj.id
-                        });
-                        if (library.getAuthorization(627, licenses) == true) {
-                            var context = {
-                                type: context.type,
-                                newRecord: recordCL
-                            };
-                            if ((ST_FEATURE) && (ST_FEATURE === true || ST_FEATURE === 'T')) {
-                                library_CL_Purchases.afterSubmitTransaction(context, licenses);
-                                recordCL.save({
-                                    ignoreMandatoryFields: true,
-                                    disableTriggers: true,
-                                    enableSourcing: true
-                                });
-                            }
-                        }
-                    }
+                    // LatamTax - SuiteTax
+                    if (ST_FEATURE == true || ST_FEATURE == "T") {
 
-                    // SuiteTax Colombia
-                    if (LMRY_Result[0] == "CO") {
-                        var recordCO = record.load({
+                        var ST_RecordObj = record.load({
                             type: "vendorbill",
                             id: recordObj.id
                         });
 
-                        if (library.getAuthorization(643, licenses) == true) {
-                            var contextCO = {
-                                type: context.type,
-                                newRecord: recordCO
-                            };
+                        var ST_Context = {
+                            type: context.type,
+                            newRecord: ST_RecordObj
+                        };
 
-                            if (ST_FEATURE == true || ST_FEATURE == "T") {
-                                CO_ST_TaxLibrary.setTaxTransaction(contextCO);
-                                recordCO.save({
-                                    ignoreMandatoryFields: true,
-                                    disableTriggers: true,
-                                    enableSourcing: true
-                                });
-                            }
+                        switch (LMRY_Result[0]) {
+
+                            case "BR":
+
+
+                            case "CL":
+                                if (library.getAuthorization(627, licenses) == true) {
+                                    library_CL_Purchases.afterSubmitTransaction(ST_Context, licenses);
+                                    ST_RecordObj.save({
+                                        ignoreMandatoryFields: true,
+                                        disableTriggers: true,
+                                        enableSourcing: true
+                                    });
+                                }
+                                break;
+
+                            case "MX":
+                                if (library.getAuthorization(671, licenses) == true) {
+                                    MX_ST_TaxLibrary.setTaxTransaction(ST_Context);
+                                    ST_RecordObj.save({
+                                        ignoreMandatoryFields: true,
+                                        disableTriggers: true,
+                                        enableSourcing: true
+                                    });
+                                }
+                                break;
+
+                            case "CO":
+                                if (library.getAuthorization(643, licenses) == true) {
+                                    CO_ST_TaxLibrary.setTaxTransaction(ST_Context);
+                                    ST_RecordObj.save({ ignoreMandatoryFields: true, disableTriggers: true, enableSourcing: true });
+                                }
+                                if (library.getAuthorization(340, licenses) == true) {
+                                    ST_RecordObj = context.newRecord;
+                                    CO_ST_WhtLibrary.setWHTTransaction(ST_RecordObj, context, licenses);
+                                }
+                                break;
+
+                            case "SV":
+                                if (library.getAuthorization(724, licenses) == true) {
+                                    SV_ST_TaxLibrary.setTaxTransaction(ST_Context);
+                                    ST_RecordObj.save({
+                                        ignoreMandatoryFields: true,
+                                        disableTriggers: true,
+                                        enableSourcing: true
+                                    });
+                                }
+                                break;
+
+
                         }
+
                     }
 
-                    if (LMRY_Result[0] == "MX") {
-                        var recordMX = record.load({
-                            type: 'vendorbill',
-                            id: recordObj.id
-                        });
+                }
 
-                        if (library.getAuthorization(671, licenses) == true) {
-                            var contextMX = {
-                                type: context.type,
-                                newRecord: recordMX
-                            };
-
-                            if (ST_FEATURE == true || ST_FEATURE == "T") {
-                                MX_ST_TaxLibrary.setTaxTransaction(contextMX);
-                                recordMX.save({
-                                    ignoreMandatoryFields: true,
-                                    disableTriggers: true,
-                                    enableSourcing: true
-                                });
-                            }
-                        }
-                    }
-
-                    // SuiteTax Argentina
-                    if (LMRY_Result[0] == "AR") {
-                        var recordAR = record.load({
-                            type: 'vendorbill',
-                            id: recordObj.id
-                        });
-                        // Calculo de Impuestos
-                        if (library.getAuthorization(678, licenses) == true) {
-                            var contextAR = {
-                                type: context.type,
-                                newRecord: recordAR
-                            };
-
-                            if (ST_FEATURE == true || ST_FEATURE == "T") {
-                                AR_ST_TaxLibrary.setTaxTransaction(contextAR);
-                                recordAR.save({
-                                    ignoreMandatoryFields: true,
-                                    disableTriggers: true,
-                                    enableSourcing: true
-                                });
-                            }
-                        }
-                        // Transaction Fields AR
-                        if (library.getAuthorization(138, licenses) == true) {
-                            if (ST_FEATURE == true || ST_FEATURE == "T") {
-                                AR_ST_WhtLibrary.setTransactionFields(context, recordAR);
-                            }
-                        }
-                    }
-
+                if (type == 'create' && LMRY_Result[0] == 'BR') {
+                    Library_BRDup.assignPreprinted(recordObj, licenses);
                 }
 
                 if (type == 'create' || type == 'edit') {
@@ -1252,13 +1311,12 @@ define(['N/record', 'N/runtime', 'N/search', 'N/log', 'N/config', 'N/https', 'N/
                                 });
                             }
                             // para carga de la DIOT
-                            if (ST_FEATURE == true || ST_FEATURE == "T") {
-                                MX_ST_DIOT_Library.CalculoDIOT(recordObj)
+                            if (ST_FEATURE === true || ST_FEATURE === "T") {
+                                MX_ST_DIOT_Library.CalculoDIOT(recordObj);
                             } else {
                                 libraryDIOT.CalculoDIOT(recordObj);
                             }
                         }
-
                         if (library.getAuthorization(20, licenses) == true) {
                             // Libera transaccion
                             //27-01-21: Se renombro el campo y se usa para los anticipos BR
@@ -1560,9 +1618,7 @@ define(['N/record', 'N/runtime', 'N/search', 'N/log', 'N/config', 'N/https', 'N/
                      ***********************************/
                     if (LMRY_Result[0] == 'AR') {
                         if (library.getAuthorization(138, licenses)) {
-                            if (ST_FEATURE == false || ST_FEATURE == "F") {
-                                GroupLine(context, LMRY_Intern);
-                            }
+                            GroupLine(context, LMRY_Intern);
                         }
                     } // Solo AR - SUM TAX CODE GROUP
                 } // Solo Crear o Editar
@@ -1585,7 +1641,8 @@ define(['N/record', 'N/runtime', 'N/search', 'N/log', 'N/config', 'N/https', 'N/
                             type: "journalentry",
                             filters: [
                                 ["custbody_lmry_reference_transaction", "is", LMRY_Intern],
-                                "AND", ["mainline", "is", "T"]
+                                "AND",
+                                ["mainline", "is", "T"]
                             ],
                             columns: ['internalid']
                         });
@@ -1611,7 +1668,8 @@ define(['N/record', 'N/runtime', 'N/search', 'N/log', 'N/config', 'N/https', 'N/
                         type: "customrecord_lmry_pe_transaction_fields",
                         filters: [
                             ["custrecord_lmry_pe_transaction_related", "is", LMRY_Intern],
-                            "AND", ["isinactive", "is", "F"]
+                            "AND",
+                            ["isinactive", "is", "F"]
                         ],
                         columns: ['internalid']
                     });
@@ -1639,7 +1697,8 @@ define(['N/record', 'N/runtime', 'N/search', 'N/log', 'N/config', 'N/https', 'N/
                             type: "customrecord_lmry_setup_tax_subsidiary",
                             filters: [
                                 ["custrecord_lmry_setuptax_subsidiary", "is", subsidiary],
-                                "AND", ["isinactive", "is", "F"]
+                                "AND",
+                                ["isinactive", "is", "F"]
                             ],
                             columns: ['custrecord_lmry_setuptax_pe_igv_account', 'custrecord_lmry_setuptax_currency', 'custrecord_lmry_setuptax_pe_igv_percent', 'custrecord_lmry_setuptax_pe_igv_acc_orig']
                         });
@@ -2265,26 +2324,26 @@ define(['N/record', 'N/runtime', 'N/search', 'N/log', 'N/config', 'N/https', 'N/
                         RCD_TRANS.setSublistValue('item', 'custcol_lmry_br_taxc_rsp', i, '');
 
                         if (RCD_TRANS.getSublistField({
-                                sublistId: 'item',
-                                fieldId: 'custcol_lmry_br_freight_val',
-                                line: i
-                            })) {
+                            sublistId: 'item',
+                            fieldId: 'custcol_lmry_br_freight_val',
+                            line: i
+                        })) {
                             RCD_TRANS.setSublistValue('item', 'custcol_lmry_br_freight_val', i, '');
                         }
 
                         if (RCD_TRANS.getSublistField({
-                                sublistId: 'item',
-                                fieldId: 'custcol_lmry_br_insurance_val',
-                                line: i
-                            })) {
+                            sublistId: 'item',
+                            fieldId: 'custcol_lmry_br_insurance_val',
+                            line: i
+                        })) {
                             RCD_TRANS.setSublistValue('item', 'custcol_lmry_br_insurance_val', i, '');
                         }
 
                         if (RCD_TRANS.getSublistField({
-                                sublistId: 'item',
-                                fieldId: 'custcol_lmry_br_expens_val',
-                                line: i
-                            })) {
+                            sublistId: 'item',
+                            fieldId: 'custcol_lmry_br_expens_val',
+                            line: i
+                        })) {
                             RCD_TRANS.setSublistValue('item', 'custcol_lmry_br_expens_val', i, '');
                         }
 

@@ -230,6 +230,7 @@ define([
                                                 value: CC_subTypeID
                                             },
                                             appliestoitem: CC_appliesToItem,
+                                            itemuniquekey: itemUniqueKey,
                                             taxitem: CC_taxItem,
                                             taxcode: CC_taxCode,
                                             department: CC_DepartmentID,
@@ -248,6 +249,7 @@ define([
                                                 value: CC_subTypeID
                                             },
                                             appliestoitem: CC_appliesToItem,
+                                            itemuniquekey: itemUniqueKey,
                                             debitaccount: CC_debitAccountID,
                                             creditaccount: CC_creditAccountID,
                                             department: CC_DepartmentID,
@@ -319,7 +321,9 @@ define([
                                     if (Library_Mail.getAuthorization(349, licenses) == true) {
                                         var avoidNT = false;
                                         for (var whtdetail in transactionArray) {
-                                            if ((transactionArray[whtdetail].subtype.value == NT_subTypeID) && (transactionArray[whtdetail].appliestoitem == NT_appliesToItem)) {
+                                            if ((transactionArray[whtdetail].subtype.value == NT_subTypeID) &&
+                                                (transactionArray[whtdetail].appliestoitem == NT_appliesToItem) &&
+                                                (transactionArray[whtdetail].itemuniquekey) == itemUniqueKey) {
                                                 avoidNT = true;
                                                 break;
                                             }
@@ -329,7 +333,9 @@ define([
                                         }
 
                                         for (var whtdetail in journalArray) {
-                                            if ((journalArray[whtdetail].subtype.value == NT_subTypeID) && (journalArray[whtdetail].appliestoitem == NT_appliesToItem)) {
+                                            if ((journalArray[whtdetail].subtype.value == NT_subTypeID) &&
+                                                (journalArray[whtdetail].appliestoitem == NT_appliesToItem) &&
+                                                (journalArray[whtdetail].itemuniquekey) == itemUniqueKey) {
                                                 avoidNT = true;
                                                 break;
                                             }
@@ -412,6 +418,7 @@ define([
                                                 value: NT_subTypeID
                                             },
                                             appliestoitem: NT_appliesToItem,
+                                            itemuniquekey: itemUniqueKey,
                                             taxitem: NT_taxItem,
                                             taxcode: NT_taxCode,
                                             department: NT_DepartmentID,
@@ -430,6 +437,7 @@ define([
                                                 value: NT_subTypeID
                                             },
                                             appliestoitem: NT_appliesToItem,
+                                            itemuniquekey: itemUniqueKey,
                                             debitaccount: NT_debitAccountID,
                                             creditaccount: NT_creditAccountID,
                                             department: NT_DepartmentID,
