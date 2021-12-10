@@ -20,13 +20,15 @@ define([
     'N/suiteAppInfo',
     './LMRY_Log_LBRY_V2.0.js',
     './LMRY_libSendingEmailsLBRY_V2.0'
-], function (log, record, search, runtime, suiteAppInfo, Library_Log, Lirabry_Mail) {
+], function (log, record, search, runtime, suiteAppInfo, Library_Log, Library_Mail) {
 
     var LMRY_Script = "LMRY BR ST Purchase Tax Transaction LBRY V2.0";
     var LMRY_script_Name = "LMRY_BR_ST_Purchase_Tax_Transaction_LBRY_V2.0.js";
 
     var FEATURE_SUBSIDIARY = false;
     var FEATURE_MULTIBOOK = false;
+
+    var FEATURE_CUSTOMSEGMENTS = false;
 
     var FEATURE_DEPARTMENT = false;
     var FEATURE_CLASS = false;
@@ -35,6 +37,10 @@ define([
     var MANDATORY_DEPARTMENT = false;
     var MANDATORY_CLASS = false;
     var MANDATORY_LOCATION = false;
+
+    var APPROVAL_JOURNAL = false;
+
+    var NS_FA_ACTIVE = false;
 
     /***************************************************************************
      *  Función donde se hará el proceso de LatamTax Purchase el cual realiza
@@ -58,8 +64,17 @@ define([
                 var taxDetailOverride = recordObj.getValue({ fieldId: "taxdetailsoverride" });
                 if (taxDetailOverride == true || taxDetailOverride == "T") {
 
+                    var transactionSubsidiary = "";
+                    if (FEATURE_SUBSIDIARY == true) {
+                        transactionSubsidiary = recordObj.getValue({ fieldId: "subsidiary" });
+                    } else {
+                        transactionSubsidiary = recordObj.getValue({ fieldId: "custbody_lmry_subsidiary_country" });
+                    }
+
                     FEATURE_SUBSIDIARY = runtime.isFeatureInEffect({ feature: "SUBSIDIARIES" });
                     FEATURE_MULTIBOOK = runtime.isFeatureInEffect({ feature: "MULTIBOOK" });
+
+                    FEATURE_CUSTOMSEGMENTS = runtime.isFeatureInEffect({ feature: "CUSTOMSEGMENTS" });
 
                     FEATURE_DEPARTMENT = runtime.isFeatureInEffect({ feature: "DEPARTMENTS" });
                     FEATURE_CLASS = runtime.isFeatureInEffect({ feature: "CLASSES" });
@@ -68,6 +83,10 @@ define([
                     MANDATORY_DEPARTMENT = runtime.getCurrentUser().getPreference({ name: "DEPTMANDATORY" });
                     MANDATORY_CLASS = runtime.getCurrentUser().getPreference({ name: "CLASSMANDATORY" });
                     MANDATORY_LOCATION = runtime.getCurrentUser().getPreference({ name: "LOCMANDATORY" });
+
+                    APPROVAL_JOURNAL = runtime.getCurrentScript().getParameter({ name: "CUSTOMAPPROVALJOURNAL" });
+
+                    NS_FA_ACTIVE = _fixedAssetBundleActive(transactionSubsidiary);
 
                     var filtroTransactionType = "";
                     switch (transactionType) {
@@ -93,25 +112,302 @@ define([
                             return true;
                     }
 
-                    var transactionSubsidiary = "";
-                    if (FEATURE_SUBSIDIARY == true) {
-                        transactionSubsidiary = recordObj.getValue({ fieldId: "subsidiary" });
-                    } else {
-                        transactionSubsidiary = recordObj.getValue({ fieldId: "custbody_lmry_subsidiary_country" });
+                    var transactionVoided = recordObj.getValue({ fieldId: "voided" });
+                    if (transactionVoided == true || transactionVoided == "T") {
+                        return true;
                     }
+                    var transactionCountry = recordObj.getText({ fieldId: "custbody_lmry_subsidiary_country" });
+                    var transactionCountryID = recordObj.getValue({ fieldId: "custbody_lmry_subsidiary_country" });
+                    var applyWHT = recordObj.getValue({ fieldId: "custbody_lmry_apply_wht_code" });
+                    var transactionProvince = recordObj.getValue({ fieldId: "custbody_lmry_province" });
+                    var transactionCity = recordObj.getValue({ fieldId: "custbody_lmry_city" });
+                    var transactionDistrict = recordObj.getValue({ fieldId: "custbody_lmry_district" });
+                    var transactionEntity = recordObj.getValue({ fieldId: "entity" });
 
                     var STS_JSON = _getSetupTaxSubsidiary(transactionSubsidiary);
                     var exchangeRate = _getExchangeRate(recordObj, STS_JSON);
+                    var arrayDifalSubType = _getListOfDifalSubType();
+                    var provinceRateJSON = _getJsonOfProviceRate();
+                    var brTransactionFieldsJSON = _getBRTransactionFields(transactionID);
                     var CC_SearchResult = _getContributoryClasses(recordObj, filtroTransactionType, transactionSubsidiary);
                     var NT_SearchResult = _getNationalTaxes(recordObj, filtroTransactionType, transactionSubsidiary);
+
+                    var hasProvince = false;
+                    var hasProvOrigen = transactionProvince ? transactionProvince : brTransactionFieldsJSON.province;
+                    if (hasProvOrigen && STS_JSON.br_province) {
+                        hasProvince = true;
+                    }
+
+                    var matchDifal = false;
+                    if ((STS_JSON.br_difal_obs) && (STS_JSON.br_difal_obs == brTransactionFieldsJSON.fiscalobs)) {
+                        matchDifal = true;
+                    }
+
+                    var MVARecords = {};
+                    var TaxesToSubstitutionTax = {};
+                    var SubstitutionTaxes = {};
+                    var TaxNotIncluded = {};
+
+                    if (Number(STS_JSON) == 4 && transactionType != "itemfulfillment") {
+                        MVARecords = _getMVARecords(transactionSubsidiary);
+                    }
+
+                    var itemLineCount = recordObj.getLineCount({ sublistId: "item" });
+                    var expenseLineCount = recordObj.getLineCount({ sublistId: "expense" });
+
+                    var taxResult = [];
+                    if (CC_SearchResult != null && CC_SearchResult.length > 0) {
+
+                        for (var i = 0; i < CC_SearchResult.length; i++) {
+
+                            var CC_InternalID = CC_SearchResult[i].getValue({ name: "internalid" });
+                            var CC_GeneratedTransaction = CC_SearchResult[i].getText({ name: "custrecord_lmry_ccl_gen_transaction" });
+                            var CC_GeneratedTransactionID = CC_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_gen_transaction" });
+                            var CC_Description = CC_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_description" });
+                            var CC_TaxType = CC_SearchResult[i].getText({ name: "custrecord_lmry_ccl_taxtype" });
+                            var CC_TaxTypeID = CC_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_taxtype" });
+                            var CC_SubType = CC_SearchResult[i].getText({ name: "custrecord_lmry_sub_type" });
+                            var CC_SubTypeID = CC_SearchResult[i].getValue({ name: "custrecord_lmry_sub_type" });
+                            var CC_TaxByLocation = CC_SearchResult[i].getValue({ join: "custrecord_lmry_sub_type", name: "custrecord_lmry_tax_by_location" });
+                            var CC_ImportTax = CC_SearchResult[i].getValue({ join: "custrecord_lmry_sub_type", name: "custrecord_lmry_br_is_import_tax" });
+                            var CC_TaxNotIncluded = CC_SearchResult[i].getValue({ join: "custrecord_lmry_sub_type", name: "custrecord_lmry_is_tax_not_included" });
+                            var CC_STE_TaxType = CC_SearchResult[i].getText({ name: "custrecord_lmry_cc_ste_tax_type" });
+                            var CC_STE_TaxTypeID = CC_SearchResult[i].getValue({ name: "custrecord_lmry_cc_ste_tax_type" });
+                            var CC_STE_TaxCode = CC_SearchResult[i].getText({ name: "custrecord_lmry_cc_ste_tax_code" });
+                            var CC_STE_TaxCodeID = CC_SearchResult[i].getValue({ name: "custrecord_lmry_cc_ste_tax_code" });
+                            var CC_TaxRule = CC_SearchResult[i].getText({ name: "custrecord_lmry_ccl_tax_rule" });
+                            var CC_TaxRuleID = CC_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_tax_rule" });
+                            var CC_TaxRate = CC_SearchResult[i].getValue({ name: "custrecord_lmry_ar_ccl_taxrate" });
+                            var CC_AmountTo = CC_SearchResult[i].getValue({ name: "custrecord_lmry_amount" });
+                            var CC_AdditionalRatio = CC_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_addratio" });
+                            var CC_MinAmount = CC_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_minamount" }) || 0.00;
+                            var CC_MaxAmount = CC_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_maxamount" }) || 0.00;
+                            var CC_BaseRetention = CC_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_set_baseretention" });
+                            var CC_IsExempt = CC_SearchResult[i].getValue({ name: "custrecord_lmry_ar_ccl_isexempt" });
+                            var CC_BaseAmount = CC_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_base_amount" });
+                            var CC_NotTaxableMin = CC_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_not_taxable_minimum" });
+                            var CC_GlImpact = CC_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_gl_impact" });
+                            var CC_IsReduction = CC_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_is_reduction" });
+                            var CC_IsSubstitutionTax = CC_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_is_substitution" });
+                            var CC_TaxItem = CC_SearchResult[i].getValue({ name: "custrecord_lmry_ar_ccl_taxitem" });
+                            var CC_TaxCode = CC_SearchResult[i].getValue({ name: "custrecord_lmry_ar_ccl_taxcode" });
+                            var CC_Department = CC_SearchResult[i].getText({ name: "custrecord_lmry_ar_ccl_department" });
+                            var CC_DepartmentID = CC_SearchResult[i].getValue({ name: "custrecord_lmry_ar_ccl_department" });
+                            var CC_Class = CC_SearchResult[i].getText({ name: "custrecord_lmry_ar_ccl_class" });
+                            var CC_ClassID = CC_SearchResult[i].getValue({ name: "custrecord_lmry_ar_ccl_class" });
+                            var CC_Location = CC_SearchResult[i].getText({ name: "custrecord_lmry_ar_ccl_location" });
+                            var CC_LocationID = CC_SearchResult[i].getValue({ name: "custrecord_lmry_ar_ccl_location" });
+                            var CC_CreditAccount = CC_SearchResult[i].getText({ name: "custrecord_lmry_br_ccl_account2" });
+                            var CC_CreditAccountID = CC_SearchResult[i].getValue({ name: "custrecord_lmry_br_ccl_account2" });
+                            var CC_DebitAccount = CC_SearchResult[i].getText({ name: "custrecord_lmry_br_ccl_account1" });
+                            var CC_DebitAccountID = CC_SearchResult[i].getValue({ name: "custrecord_lmry_br_ccl_account1" });
+                            var CC_TelecomunicationTax = CC_SearchResult[i].getValue({ name: "custrecord_lmry_br_exclusive" });
+                            var CC_BR_Receita = CC_SearchResult[i].getValue({ name: "custrecord_lmry_br_receita" });
+                            var CC_BR_TaxSituation = CC_SearchResult[i].getValue({ name: "custrecord_lmry_br_taxsituation" });
+                            var CC_BR_Revenue = CC_SearchResult[i].getValue({ name: "custrecord_lmry_br_nature_revenue" });
+                            var CC_BR_RegimenCatalog = CC_SearchResult[i].getValue({ name: "custrecord_lmry_br_ccl_regimen_catalog" });
+                            var CC_TaxDifal = CC_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_difal" }) || 0.00;
+                            var CC_ApplyReport = CC_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_br_apply_report" });
+                            var CC_BR_TaxRateFA = CC_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_fa_tax_rate" }) || 0.00;
+                            var CC_ReductionRatio = CC_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_reduction_ratio" }) || 1;
+
+                            CC_TaxRate = parseFloat(CC_TaxRate);
+                            CC_TaxDifal = parseFloat(CC_TaxDifal);
+                            CC_BR_TaxRateFA = parseFloat(CC_BR_TaxRateFA);
+
+                            if (Number(STS_JSON.taxflow) != 4) {
+                                CC_ReductionRatio = 1;
+                            }
+                            // CONVERSION DE LOS MONTON DEL CC_SearchResult A MONEDA DE LA TRANSACCION
+                            if (CC_MinAmount == null || CC_MinAmount == "") {
+                                CC_MinAmount = 0;
+                            }
+                            CC_MinAmount = parseFloat(parseFloat(CC_MinAmount) / exchangeRate);
+
+                            if (CC_MaxAmount == null || CC_MaxAmount == "") {
+                                CC_MaxAmount = 0;
+                            }
+                            CC_MaxAmount = parseFloat(parseFloat(CC_MaxAmount) / exchangeRate);
+
+                            if (CC_BaseRetention == null || CC_BaseRetention == "") {
+                                CC_BaseRetention = 0;
+                            }
+                            CC_BaseRetention = parseFloat(parseFloat(CC_BaseRetention) / exchangeRate);
+
+                            if (CC_NotTaxableMin == null || CC_NotTaxableMin == "") {
+                                CC_NotTaxableMin = 0;
+                            }
+                            CC_NotTaxableMin = parseFloat(parseFloat(CC_NotTaxableMin) / exchangeRate);
+
+                            if (CC_AdditionalRatio == null || CC_AdditionalRatio == "") {
+                                CC_AdditionalRatio = 1;
+                            }
+
+                            if (CC_GlImpact && transactionType != "itemfulfillment") {
+                                if ((CC_CreditAccountID == null || CC_CreditAccountID == "") || (CC_DebitAccountID == null || CC_DebitAccountID == "")) {
+                                    continue;
+                                }
+                            }
+
+                            if ((applyWHT == true || applyWHT == "T") && (CC_TaxByLocation == true || CC_TaxByLocation == "T")) {
+                                continue;
+                            }
+
+                            if ((CC_ImportTax == true || CC_ImportTax == "T") && (transactionType != "itemfulfillment")) {
+
+                                // Solo aplica para el flujo 3
+                                if (Number(STS_JSON.taxflow) != 4) {
+                                    continue;
+                                }
+
+                                // Se verifica si extranjero
+                                var Entity_Country = search.lookupFields({
+                                    type: "vendor",
+                                    id: transactionEntity,
+                                    columns: [ "custentity_lmry_country.custrecord_lmry_mx_country" ]
+                                }).custentity_lmry_country.custrecord_lmry_mx_country;
+
+                                if (!Entity_Country || !Entity_Country.length || Number(Entity_Country[0].value) == 30) {
+                                    continue;
+                                }
+
+                            }
+
+                            if (CC_TaxRule == null || CC_TaxRule == "") {
+                                continue;
+                            }
+
+                            // Calculo de impuestos por líneas de item
+                            if (itemLineCount != null && itemLineCount != "") {
+
+                                for (var j = 0; j < itemLineCount; i++) {
+
+                                    var itemName = recordObj.getSublistText({ sublistId: "item", fieldId: "item", line: j });
+                                    var itemID = recordObj.getSublistValue({ sublistId: "item", fieldId: "item", line: j });
+                                    var lineUniqueKey = recordObj.getSublistValue({ sublistId: "item", fieldId: "lineuniquekey", line: j });
+                                    var itemDetailReference = recordObj.getSublistValue({ sublistId: 'item', fieldId: 'taxdetailsreference', line: j });
+                                    var itemTaxRule = recordObj.getSublistValue({ sublistId: "item", fieldId: "custcol_lmry_br_tax_rule", line: j });
+                                    var itemRegimen = recordObj.getSublistValue({ sublistId: "item", fieldId: "custcol_lmry_br_regimen", line: j });
+                                    var itemMcnCode = recordObj.getSublistValue({ sublistId: "item", fieldId: "custcol_lmry_br_tran_mcn", line: j });
+                                    var itemIsTax = recordObj.getSublistValue({ sublistId: "item", fieldId: "custcol_lmry_ar_item_tributo", line: j });
+
+                                    var retencion = 0;
+                                    var baseAmount = 0;
+                                    var compareAmount = 0;
+
+                                    if (itemIsTax == true || itemIsTax == "T") {
+                                        continue;
+                                    }
+
+                                    var itemFixedAsset = "";
+                                    if (NS_FA_ACTIVE == true || NS_FA_ACTIVE == "T") {
+                                        var itemFixedAssetField = recordObj.getSublistField({ sublistId: "item", fieldId: "custcol_far_trn_relatedasset", line: j });
+                                        if (itemFixedAssetField) {
+                                            itemFixedAsset = recordObj.getSublistValue({ sublistId: "item", fieldId: "custcol_far_trn_relatedasset", line: j }) || "";
+                                        }
+                                    } else {
+                                        itemFixedAsset = recordObj.getSublistValue({ sublistId: "item", fieldId: "custcol_lmry_br_fixed_assets", line: j }) || "";
+                                    }
+
+                                    var itemTaxSituation = 0;
+                                    switch (CC_SubTypeID) {
+                                        case "10": // PIS
+                                            itemTaxSituation = recordObj.getSublistValue({ sublistId: "item", fieldId: "custcol_lmry_br_cst_pis", line: j });
+                                            break;
+                                        case "11": // COFINS
+                                            itemTaxSituation = recordObj.getSublistValue({ sublistId: "item", fieldId: "custcol_lmry_br_cst_cofins", line: j });
+                                            break;
+                                        case "24": // ICMS
+                                            itemTaxSituation = recordObj.getSublistValue({ sublistId: "item", fieldId: "custcol_lmry_br_cst_icms", line: j });
+                                            break;
+                                        case "36": // IPI
+                                            itemTaxSituation = recordObj.getSublistValue({ sublistId: "item", fieldId: "custcol_lmry_br_cst_ipi", line: j });
+                                            break;
+                                    }
+
+                                    if (CC_TaxRule != itemTaxRule) {
+                                        continue;
+                                    }
+
+                                    if (itemRegimen == null || itemRegimen == "" || itemRegimen == 0) {
+                                        itemRegimen = CC_BR_RegimenCatalog;
+                                    }
+
+                                    if (itemTaxSituation == null || itemTaxSituation == "" || itemTaxSituation == 0) {
+                                        itemTaxSituation = CC_BR_TaxSituation;
+                                    }
+
+                                    if (Number(STS_JSON.taxflow) == 4 && transactionType != "itemfulfillment") {
+                                        if (CC_IsSubstitutionTax == true || CC_IsSubstitutionTax == "T") {
+
+                                        }
+                                    }
+
+                                } // Fin for itemLineCount
+
+                            } // Fin if itemLineCount
+
+                        }
+
+                    } else { // Fin IF CC_SearchResult
+
+                        if (NT_SearchResult != null && NT_SearchResult.length > 0) {
+
+
+
+                        } // Fin IF NT_SearchResult
+
+                    }
 
                 }
 
             }
 
         } catch (e) {
-            Lirabry_Mail.sendemail('[ afterSubmit - setTaxTransaction ]: ' + e, LMRY_Script);
+            Library_Mail.sendemail('[ afterSubmit - setTaxTransaction ]: ' + e, LMRY_Script);
             Library_Log.doLog({ title: '[ afterSubmit - setTaxTransaction ]', message: e, relatedScript: LMRY_script_Name });
+        }
+
+    }
+
+    function _getMVARecords(transactionSubsidiary) {
+
+        try {
+
+            MVA_Columns = [
+                search.createColumn({ name: "internalid", label: "Internal ID" }),
+                search.createColumn({ name: "custrecord_lmry_br_mva_rate", label: "Latam - MVA AJUSTE" }),
+                search.createColumn({ name: "custrecord_lmry_br_mva_ncm", label: "Latam - NCM CODE" }),
+                search.createColumn({ name: "custrecord_lmry_br_mva_subtype", label: "Latam - IMPUESTO PROPIO" }),
+                search.createColumn({ name: "custrecord_lmry_br_mva_taxrate", label: "LATAM - PORCENTAJE IMPUESTO PROPIO" }),
+                search.createColumn({ name: "custrecord_lmry_br_mva_subtype_substi", label: "LATAM - IMPUESTO SUSTITUCIÓN" }),
+                search.createColumn({ name: "custrecord_lmry_br_mva_taxrate_substi", label: "LATAM - PORCENTAJE IMPUESTO SUSTITUCIÓN" })
+            ];
+
+            var MVA_Filters = [
+                search.createFilter({ name: "isinactive", operator: "IS", values: [ "F" ] })
+            ];
+
+            if (FEATURE_SUBSIDIARY == true || FEATURE_SUBSIDIARY == "T") {
+                MVA_Filters.push(search.createFilter({ name: "custrecord_lmry_br_mva_subsidiary", operator: "ANYOF", values: transactionSubsidiary }));
+            }
+
+            var MVA_Search = search.create({
+                type: "customrecord_lmry_br_mva",
+                columns: MVA_Columns,
+                filters: MVA_Filters
+            }).run().getRange(0, 1000);
+
+            var mvaRecords = {};
+            if (MVA_Search != null && MVA_Search.length > 0) {
+                for (var i = 0; i < MVA_Search.length; i++) {
+                    
+                }
+            }
+
+        } catch (e) {
+            Library_Mail.sendemail('[ _getMVARecords ]: ' + e, LMRY_Script);
+            Library_Log.doLog({ title: '[ _getMVARecords ]', message: e, relatedScript: LMRY_script_Name });
         }
 
     }
@@ -120,7 +416,7 @@ define([
 
         try {
 
-            var transactionDate = recordObj.getText({ fieldId: "tandate" });
+            var transactionDate = recordObj.getText({ fieldId: "trandate" });
             var transactionDocType = recordObj.getValue({ fieldId: "custbody_lmry_document_type" });
             var transactionProvince = recordObj.getValue({ fieldId: "custbody_lmry_province" });
             var transactionCity = recordObj.getValue({ fieldId: "custbody_lmry_city" });
@@ -202,7 +498,7 @@ define([
                 districts.push(transactionDistrict);
             }
 
-            NT_Filters.push([
+            NT_Filters.push("AND", [
                 [
                     [ "custrecord_lmry_ntax_sub_type.custrecord_lmry_tax_by_location", "IS", "F" ]
                 ],
@@ -220,11 +516,11 @@ define([
                 columns: NT_Columns,
                 filters: NT_Filters
             }).run().getRange(0, 1000);
-
+            log.debug('[ NT_Search ]', NT_Search);
             return NT_Search;
 
         } catch (e) {
-            Lirabry_Mail.sendemail('[ _getNationalTaxes ]: ' + e, LMRY_Script);
+            Library_Mail.sendemail('[ _getNationalTaxes ]: ' + e, LMRY_Script);
             Library_Log.doLog({ title: '[ _getNationalTaxes ]', message: e, relatedScript: LMRY_script_Name });
         }
 
@@ -241,7 +537,7 @@ define([
 
         try {
 
-            var transactionDate = recordObj.getText({ fieldId: "tandate" });
+            var transactionDate = recordObj.getText({ fieldId: "trandate" });
             var transactionEntity = recordObj.getValue({ fieldId: "entity" });
             var transactionDocType = recordObj.getValue({ fieldId: "custbody_lmry_document_type" });
             var transactionProvince = recordObj.getValue({ fieldId: "custbody_lmry_province" });
@@ -325,7 +621,7 @@ define([
                 districts.push(transactionDistrict);
             }
 
-            CC_Filters.push([
+            CC_Filters.push("AND", [
                 [
                     [ "custrecord_lmry_sub_type.custrecord_lmry_tax_by_location", "IS", "F" ]
                 ],
@@ -343,12 +639,117 @@ define([
                 columns: CC_Columns,
                 filters: CC_Filters
             }).run().getRange(0, 1000);
-
+            log.debug('[ CC_Search ]', CC_Search);
             return CC_Search;
 
         } catch (e) {
-            Lirabry_Mail.sendemail('[ _getContributoryClasses ]: ' + e, LMRY_Script);
+            Library_Mail.sendemail('[ _getContributoryClasses ]: ' + e, LMRY_Script);
             Library_Log.doLog({ title: '[ _getContributoryClasses ]', message: e, relatedScript: LMRY_script_Name });
+        }
+
+    }
+
+    /***************************************************************************
+     *  Función que hace un búsqueda en el Record "LatamReady - BR Transaction Fields"
+     *  y retornar un JSON con datos del record
+     ***************************************************************************/
+    function _getBRTransactionFields(transactionID) {
+
+        try {
+
+            var brTransactionFieldsJSON = {};
+            var BR_TF_Search = search.create({      // TF: Transaction Fields
+                type: "customrecord_lmry_br_transaction_fields",
+                columns: [ "custrecord_lmry_br_province_transaction", "custrecord_lmry_br_fiscal_observations" ],
+                filters: [
+                    [ "isinactive", "IS", "F" ], "AND",
+                    [ "custrecord_lmry_br_related_transaction", "IS", transactionID ]
+                ]
+            }).run().getRange(0, 1000);
+
+            if (BR_TF_Search != null || BR_TF_Search.length > 0) {
+                for (var i = 0; i < BR_TF_Search.length; i++) {
+                    var BR_TF_Province = BR_TF_Search[i].getValue({ name: "custrecord_lmry_br_province_transaction" });
+                    var BR_TF_FiscalObservation = BR_TF_Search[i].getValue({ name: "custrecord_lmry_br_fiscal_observations" });
+                    brTransactionFieldsJSON["province"] = BR_TF_Province;
+                    brTransactionFieldsJSON["fiscalobs"] = BR_TF_FiscalObservation;
+                }
+            }
+            log.debug('[ brTransactionFieldsJSON ]', brTransactionFieldsJSON);
+            return brTransactionFieldsJSON;
+
+        } catch (e) {
+            Library_Mail.sendemail('[ _getBRTransactionFields ]: ' + e, LMRY_Script);
+            Library_Log.doLog({ title: '[ _getBRTransactionFields ]', message: e, relatedScript: LMRY_script_Name });
+        }
+
+    }
+
+    /***************************************************************************
+     *  Función que hace un búsqueda en el Record "LatamReady - BR Province Difal Rate"
+     *  y retornar un JSON con datos del record
+     ***************************************************************************/
+    function _getJsonOfProviceRate() {
+
+        try {
+
+            var provinceRateJSON = {};
+            var BR_PDR_Search = search.create({         // PDR: Province Difal Rate
+                type: "customrecord_lmry_br_province_difal_rate",
+                columns: [ "custrecord_lmry_br_difal_province", "custrecord_lmry_br_difal_percentage" ],
+                filters: [
+                    [ "isinactive", "IS", "F" ]
+                ]
+            }).run().getRange(0, 1000);
+
+            if (BR_PDR_Search != null || BR_PDR_Search.length > 0) {
+                for (var i = 0; i < BR_PDR_Search.length; i++) {
+                    var BR_PDR_Province = BR_PDR_Search[i].getValue({ name: "custrecord_lmry_br_difal_province" });
+                    var BR_PDR_Rate = BR_PDR_Search[i].getValue({ name: "custrecord_lmry_br_difal_percentage" });
+                    provinceRateJSON[BR_PDR_Province] = parseFloat(BR_PDR_Rate);
+                }
+            }
+            log.debug('[ provinceRateJSON ]', provinceRateJSON);
+            return provinceRateJSON;
+
+        } catch (e) {
+            Library_Mail.sendemail('[ _getJsonOfProviceRate ]: ' + e, LMRY_Script);
+            Library_Log.doLog({ title: '[ _getJsonOfProviceRate ]', message: e, relatedScript: LMRY_script_Name });
+        }
+
+    }
+
+    /***************************************************************************
+     *  Función que hace un búsqueda en el Record "LatamReady - Setup WHT Sub Type"
+     *  y retornar un arreglo de IDs con los registros que sean de Brasil y que
+     *  el campo "Latam - BR DIFAL APPLIED?" esté marcado
+     ***************************************************************************/
+    function _getListOfDifalSubType() {
+
+        try {
+
+            var listOfDifal = [];
+            var SubType_Search = search.create({
+                type: "customrecord_lmry_ar_wht_type",
+                columns: [ "internalid" ],
+                filters: [
+                    [ "isinactive", "IS", "F" ], "AND",
+                    [ "custrecord_lmry_withholding_country", "IS", "30" ], "AND",
+                    [ "custrecord_lmry_difal_applied", "IS", "T" ]
+                ]
+            }).run().getRange(0, 1000);
+
+            if (SubType_Search != null && SubType_Search.length > 0 ) {
+                for (var i = 0; i < SubType_Search.length; i++) {
+                    listOfDifal.push(SubType_Search[i].getValue({ name: "internalid" }));
+                }
+            }
+            log.debug('[ listOfDifal ]', listOfDifal);
+            return listOfDifal;
+
+        } catch (e) {
+            Library_Mail.sendemail('[ _getListOfDifalSubType ]: ' + e, LMRY_Script);
+            Library_Log.doLog({ title: '[ _getListOfDifalSubType ]', message: e, relatedScript: LMRY_script_Name });
         }
 
     }
@@ -431,7 +832,7 @@ define([
             return exchangeRate;
 
         } catch (e) {
-            Lirabry_Mail.sendemail('[ _getExchangeRate ]: ' + e, LMRY_Script);
+            Library_Mail.sendemail('[ _getExchangeRate ]: ' + e, LMRY_Script);
             Library_Log.doLog({ title: '[ _getExchangeRate ]', message: e, relatedScript: LMRY_script_Name });
         }
 
@@ -503,10 +904,46 @@ define([
             return STS_JSON;
 
         } catch (e) {
-            Lirabry_Mail.sendemail('[ _getSetupTaxSubsidiary ]: ' + e, LMRY_Script);
+            Library_Mail.sendemail('[ _getSetupTaxSubsidiary ]: ' + e, LMRY_Script);
             Library_Log.doLog({ title: '[ _getSetupTaxSubsidiary ]', message: e, relatedScript: LMRY_script_Name });
         }
 
     }
+
+    /***************************************************************************
+     *  Función donde valida si el bundle de Fixed Asset está instalado en la
+     *  instancia.
+     *  Parámetros:
+     *      - transactionSubsidiary: Subsidiaria de la transacción
+     *      - licenses: Features activos por configuración de subsidiaria
+     ***************************************************************************/
+    function _fixedAssetBundleActive(transactionSubsidiary, licenses) {
+
+        try {
+
+            var nsAssetsActive = false;
+            if (!licenses) {
+                licenses = Library_Mail.getLicenses(transactionSubsidiary) || [];
+            }
+
+            if (!Library_Mail.getAuthorization(663, licenses)) {
+                var bundleID = runtime.getCurrentScript().getParameter({ name: "custscript_lmry_fixed_asset_bundled_id" });
+                if (bundleID) {
+                    nsAssetsActive = suiteAppInfo.isBundleInstalled({ bundleId: bundleID });
+                }
+            }
+            log.debug('[ nsAssetsActive ]', nsAssetsActive);
+            return (nsAssetsActive == true || nsAssetsActive == "T");
+
+        } catch (e) {
+            Library_Mail.sendemail('[ _fixedAssetBundleActive ]: ' + e, LMRY_Script);
+            Library_Log.doLog({ title: '[ _fixedAssetBundleActive ]', message: e, relatedScript: LMRY_script_Name });
+        }
+
+    }
+
+    return {
+        setTaxTransaction: setTaxTransaction
+    };
 
 });

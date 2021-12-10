@@ -1238,27 +1238,23 @@ define(['N/record', 'N/runtime', 'N/search', 'N/log', 'N/config', 'N/https', 'N/
                         switch (LMRY_Result[0]) {
 
                             case "BR":
-
+                                if (library.getAuthorization(290, licenses) == true) {
+                                    BR_ST_TaxLibrary.setTaxTransaction(ST_Context);
+                                    ST_RecordObj.save({ ignoreMandatoryFields: true, disableTriggers: true, enableSourcing: true });
+                                }
+                                break;
 
                             case "CL":
                                 if (library.getAuthorization(627, licenses) == true) {
                                     library_CL_Purchases.afterSubmitTransaction(ST_Context, licenses);
-                                    ST_RecordObj.save({
-                                        ignoreMandatoryFields: true,
-                                        disableTriggers: true,
-                                        enableSourcing: true
-                                    });
+                                    ST_RecordObj.save({ ignoreMandatoryFields: true, disableTriggers: true, enableSourcing: true });
                                 }
                                 break;
 
                             case "MX":
                                 if (library.getAuthorization(671, licenses) == true) {
                                     MX_ST_TaxLibrary.setTaxTransaction(ST_Context);
-                                    ST_RecordObj.save({
-                                        ignoreMandatoryFields: true,
-                                        disableTriggers: true,
-                                        enableSourcing: true
-                                    });
+                                    ST_RecordObj.save({ ignoreMandatoryFields: true, disableTriggers: true, enableSourcing: true });
                                 }
                                 break;
 
@@ -1276,11 +1272,7 @@ define(['N/record', 'N/runtime', 'N/search', 'N/log', 'N/config', 'N/https', 'N/
                             case "SV":
                                 if (library.getAuthorization(724, licenses) == true) {
                                     SV_ST_TaxLibrary.setTaxTransaction(ST_Context);
-                                    ST_RecordObj.save({
-                                        ignoreMandatoryFields: true,
-                                        disableTriggers: true,
-                                        enableSourcing: true
-                                    });
+                                    ST_RecordObj.save({ ignoreMandatoryFields: true, disableTriggers: true, enableSourcing: true });
                                 }
                                 break;
 

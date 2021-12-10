@@ -228,7 +228,7 @@ define([
                                             value: CC_subTypeID
                                         },
                                         appliestoitem: CC_appliesToItem,
-                                        lineUniqueKey: itemUniqueKey,
+                                        itemuniquekey: itemUniqueKey,
                                         taxitem: CC_taxItem,
                                         taxcode: CC_taxCode,
                                         department: CC_DepartmentID,
@@ -247,7 +247,7 @@ define([
                                             value: CC_subTypeID
                                         },
                                         appliestoitem: CC_appliesToItem,
-                                        lineUniqueKey: itemUniqueKey,
+                                        itemuniquekey: itemUniqueKey,
                                         debitaccount: CC_debitAccountID,
                                         creditaccount: CC_creditAccountID,
                                         department: CC_DepartmentID,
@@ -416,7 +416,7 @@ define([
                                             value: NT_subTypeID
                                         },
                                         appliestoitem: NT_appliesToItem,
-                                        lineUniqueKey: itemUniqueKey,
+                                        itemuniquekey: itemUniqueKey,
                                         taxitem: NT_taxItem,
                                         taxcode: NT_taxCode,
                                         department: NT_DepartmentID,
@@ -434,8 +434,8 @@ define([
                                             text: NT_subType,
                                             value: NT_subTypeID
                                         },
-                                        appliestoitem: NT_appliesToItemm,
-                                        lineUniqueKey: itemUniqueKey,
+                                        appliestoitem: NT_appliesToItem,
+                                        itemuniquekey: itemUniqueKey,
                                         debitaccount: NT_debitAccountID,
                                         creditaccount: NT_creditAccountID,
                                         department: NT_DepartmentID,
