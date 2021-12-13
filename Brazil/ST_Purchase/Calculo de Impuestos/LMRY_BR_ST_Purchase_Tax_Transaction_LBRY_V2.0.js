@@ -64,13 +64,6 @@ define([
                 var taxDetailOverride = recordObj.getValue({ fieldId: "taxdetailsoverride" });
                 if (taxDetailOverride == true || taxDetailOverride == "T") {
 
-                    var transactionSubsidiary = "";
-                    if (FEATURE_SUBSIDIARY == true) {
-                        transactionSubsidiary = recordObj.getValue({ fieldId: "subsidiary" });
-                    } else {
-                        transactionSubsidiary = recordObj.getValue({ fieldId: "custbody_lmry_subsidiary_country" });
-                    }
-
                     FEATURE_SUBSIDIARY = runtime.isFeatureInEffect({ feature: "SUBSIDIARIES" });
                     FEATURE_MULTIBOOK = runtime.isFeatureInEffect({ feature: "MULTIBOOK" });
 
@@ -85,6 +78,13 @@ define([
                     MANDATORY_LOCATION = runtime.getCurrentUser().getPreference({ name: "LOCMANDATORY" });
 
                     APPROVAL_JOURNAL = runtime.getCurrentScript().getParameter({ name: "CUSTOMAPPROVALJOURNAL" });
+
+                    var transactionSubsidiary = "";
+                    if (FEATURE_SUBSIDIARY == true) {
+                        transactionSubsidiary = recordObj.getValue({ fieldId: "subsidiary" });
+                    } else {
+                        transactionSubsidiary = recordObj.getValue({ fieldId: "custbody_lmry_subsidiary_country" });
+                    }
 
                     NS_FA_ACTIVE = _fixedAssetBundleActive(transactionSubsidiary);
 
@@ -148,7 +148,7 @@ define([
                     var SubstitutionTaxes = {};
                     var TaxNotIncluded = {};
 
-                    if (Number(STS_JSON) == 4 && transactionType != "itemfulfillment") {
+                    if (Number(STS_JSON.taxflow) == 4 && transactionType != "itemfulfillment") {
                         MVARecords = _getMVARecords(transactionSubsidiary);
                     }
 
@@ -401,9 +401,32 @@ define([
             var mvaRecords = {};
             if (MVA_Search != null && MVA_Search.length > 0) {
                 for (var i = 0; i < MVA_Search.length; i++) {
-                    
+                    var MVA_InternalID = MVA_Search[i].getValue({ name: "internalid" });
+                    var MVA_Rate = MVA_Search[i].getValue({ name: "custrecord_lmry_br_mva_rate" });
+                    var MVA_McnCode = MVA_Search[i].getValue({ name: "custrecord_lmry_br_mva_ncm" });
+                    var MVA_SubType = MVA_Search[i].getValue({ name: "custrecord_lmry_br_mva_subtype" });
+                    var MVA_TaxRate = MVA_Search[i].getValue({ name: "custrecord_lmry_br_mva_taxrate" });
+                    var MVA_SubstiSubType = MVA_Search[i].getValue({ name: "custrecord_lmry_br_mva_subtype_substi" });
+                    var MVA_SubstiTaxRate = MVA_Search[i].getValue({ name: "custrecord_lmry_br_mva_taxrate_substi" });
+
+                    MVA_Rate = parseFloat(MVA_Rate) || 0.00;
+                    MVA_TaxRate = parseFloat(MVA_TaxRate) || 0.00;
+                    MVA_SubstiTaxRate = parseFloat(MVA_SubstiTaxRate) || 0.00;
+
+                    mvaRecords[MVA_McnCode] = mvaRecords[MVA_McnCode] || [];
+                    mvaRecords[MVA_McnCode].push({
+                        mva_id: MVA_InternalID,
+                        mva_rate: MVA_Rate,
+                        mva_mcncode: MVA_McnCode,
+                        mva_subtype: MVA_SubType,
+                        mva_taxrate: MVA_TaxRate,
+                        mva_substisubtype: MVA_SubstiSubType,
+                        mva_substitaxrate: MVA_SubstiTaxRate
+                    });
                 }
             }
+            log.debug('[ mvaRecords ]', mvaRecords);
+            return mvaRecords;
 
         } catch (e) {
             Library_Mail.sendemail('[ _getMVARecords ]: ' + e, LMRY_Script);
@@ -894,7 +917,7 @@ define([
                 STS_JSON["billform"] = STS_SearchResult[0].getValue({ name: "custrecord_lmry_setuptax_form_bill" });
                 STS_JSON["billcreditform"] = STS_SearchResult[0].getValue({ name: "custrecord_lmry_setuptax_form_credit" });
                 STS_JSON["journalform"] = STS_SearchResult[0].getValue({ name: "custrecord_lmry_setuptax_form_journal" });
-                STS_JSON["taxflow"] = STS_SearchResult[0].getValue({ name: "custrecord_lmry_setuptax_br_ap_flow" }) || 1;
+                STS_JSON["taxflow"] = STS_SearchResult[0].getValue({ name: "custrecord_lmry_setuptax_br_ap_flow" });
                 STS_JSON["br_province"] = STS_SearchResult[0].getValue({ name: "custrecord_lmry_setuptax_br_province" });
                 STS_JSON["br_difal_acc"] = STS_SearchResult[0].getValue({ name: "custrecord_lmry_setuptax_br_difal_acct" });
                 STS_JSON["br_difal_obs"] = STS_SearchResult[0].getValue({ name: "custrecord_lmry_setuptax_br_difal_obs" });
