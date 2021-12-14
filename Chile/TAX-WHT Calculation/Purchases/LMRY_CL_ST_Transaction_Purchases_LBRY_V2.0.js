@@ -79,6 +79,7 @@
           
           var idCountry = recordObj.getValue({fieldId: "custbody_lmry_subsidiary_country"});
           var transactionDate = recordObj.getText("trandate");
+          var transactionDateValue = recordObj.getValue("trandate");
           var transactionEntity = recordObj.getValue({fieldId: "entity"});
           var transactionDocumentType = recordObj.getValue({fieldId: 'custbody_lmry_document_type'});
 
@@ -783,7 +784,7 @@
             } // Fin IF status
           } // Fin IF TResultWth
 
-          saveTaxResult(recordId, subsidiary, idCountry, TResultTax, TResultWth);
+          saveTaxResult(recordId, subsidiary, idCountry, transactionDateValue, TResultTax, TResultWth);
         
         } // Fin if taxdetailsoverride
       } // Fin if create, edit o copy
@@ -1144,33 +1145,34 @@
     }
   }
   
-  /**************************************************************************************************
-    * Funcion que permite agregar un registro al record de Tax Result
-    **************************************************************************************************/
-  function saveTaxResult(transaction, subsidiary, country, TResultTax, TResultWth) {
+  /***************************************************************************
+  * GUARDAR TAX RESULT EN EL RECORD: LATAMREADY - LATAMTAX TAX RESULT
+  *    - transaction: ID de la Transaccion
+  *    - subsidiary: Subsidiaria
+  *    - country: Pais
+  *    - transactionDate: Fecha de la transacción
+  *    - TResultWth: JSON de Tax Results
+  ***************************************************************************/
+  function saveTaxResult(transaction, subsidiary, country, transactionDate, TResultTax, TResultWth) {
     try {
       var resultSearchTR = search.create({
-          type: "customrecord_lmry_latamtax_tax_result",
-          columns: ["id"],
-          filters: [
-            "custrecord_lmry_tr_related_transaction",
-            "is",
-            transaction,
-          ],
+          type: "customrecord_lmry_ste_json_result",
+          columns: ["internalid"],
+          filters: ["custrecord_lmry_ste_related_transaction","is", transaction],
         }).run().getRange({ start: 0, end: 10 });
 
-      // Si ya existe el taxResult de la transaccion lo sobreescribe
       if (resultSearchTR != null && resultSearchTR.length > 0) {
-        var recordId = resultSearchTR[0].getValue("id");
+        var recordId = resultSearchTR[0].getValue("internalid");
 
         record.submitFields({
-          type: "customrecord_lmry_latamtax_tax_result",
+          type: "customrecord_lmry_ste_json_result",
           id: recordId,
           values: {
-            custrecord_lmry_tr_subsidiary: subsidiary,
-            custrecord_lmry_tr_country: country,
-            custrecord_lmry_tr_tax_transaction: JSON.stringify(TResultTax),
-            custrecord_lmry_tr_wht_transaction: JSON.stringify(TResultWth)
+            custrecord_lmry_ste_subsidiary: subsidiary,
+            custrecord_lmry_ste_subsidiary_country: country,
+            custrecord_lmry_ste_transaction_date: transactionDate,
+            custrecord_lmry_ste_tax_transaction: JSON.stringify(TResultTax),
+            custrecord_lmry_ste_wht_transaction: JSON.stringify(TResultWth)
           },
           options: {
             enableSourcing: false,
@@ -1179,27 +1181,31 @@
         });
       } else {
         var recordTR = record.create({
-          type: "customrecord_lmry_latamtax_tax_result",
+          type: "customrecord_lmry_ste_json_result",
           isDynamic: false,
         });
         recordTR.setValue({
-          fieldId: "custrecord_lmry_tr_related_transaction",
+          fieldId: "custrecord_lmry_ste_related_transaction",
           value: transaction,
         });
         recordTR.setValue({
-          fieldId: "custrecord_lmry_tr_subsidiary",
+          fieldId: "custrecord_lmry_ste_subsidiary",
           value: subsidiary,
         });
         recordTR.setValue({
-          fieldId: "custrecord_lmry_tr_country",
+          fieldId: "custrecord_lmry_ste_subsidiary_country",
           value: country,
         });
         recordTR.setValue({
-          fieldId: "custrecord_lmry_tr_tax_transaction",
+          fieldId: "custrecord_lmry_ste_transaction_date",
+          value: transactionDate,
+        });
+        recordTR.setValue({
+          fieldId: "custrecord_lmry_ste_tax_transaction",
           value: JSON.stringify(TResultTax),
         });
         recordTR.setValue({
-          fieldId: "custrecord_lmry_tr_wht_transaction",
+          fieldId: "custrecord_lmry_ste_wht_transaction",
           value: JSON.stringify(TResultWth),
         });
         recordTR.save({
@@ -1208,8 +1214,11 @@
           disableTriggers: true,
         });
       }
-    } catch (e) {
-      log.error("[ aftersubmit - saveTaxResult ]", e);
+    } 
+    catch (error) {
+      // log.error("saveTaxResult", error)
+      Library_Mail.sendemail('[ saveTaxResult ]: ' + error, LMRY_SCRIPT);
+      Library_Log.doLog({ title: '[ saveTaxResult ]', message: error, relatedScript: LMRY_SCRIPT_NAME });
     }
   }
   
