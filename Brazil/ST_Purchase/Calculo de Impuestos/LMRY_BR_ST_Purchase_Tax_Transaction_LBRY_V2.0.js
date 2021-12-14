@@ -339,7 +339,20 @@ define([
 
                                     if (Number(STS_JSON.taxflow) == 4 && transactionType != "itemfulfillment") {
                                         if (CC_IsSubstitutionTax == true || CC_IsSubstitutionTax == "T") {
-
+                                            var MVA_List = _getMVAByValues(MVARecords, itemMcnCode, "", "", CC_SubTypeID, CC_TaxRate);
+                                            if (MVA_List != null && MVA_List.length > 0) {
+                                                for (var x = 0; x < MVA_List.length; x > 0) {
+                                                    var MVA_Id = MVA_List[x].mva_id;
+                                                    SubstitutionTaxes[j] = SubstitutionTaxes[j] || {};
+                                                    SubstitutionTaxes[j][MVA_Id] = SubstitutionTaxes[j][MVA_Id] || [];
+                                                    SubstitutionTaxes[j][MVA_Id].push({
+                                                        subtype: CC_SubType,
+                                                        subtypeid: CC_SubTypeID,
+                                                        taxrate: parseFloat(CC_TaxRate),
+                                                        mvarate:
+                                                    })
+                                                }
+                                            }
                                         }
                                     }
 
@@ -370,6 +383,57 @@ define([
 
     }
 
+    /***************************************************************************
+     *  Función que retorna valores del Record: "LatamReady BR - MVA" que es un
+     *  JSON de valores del record, y hace ciertas validaciones y retorna un
+     *  arreglo, el filtro es el campo MCN del item.
+     ***************************************************************************/
+    function _getMVAByValues(mvaRecords, itemMcnCode, subType, taxRate, substiSubType, substiTaxRate) {
+
+        try {
+
+            var mvaList = [];
+            if (mvaRecords[itemMcnCode]) {
+                var mvaRecord = mvaRecords[itemMcnCode];
+                for (var i = 0; i < mvaRecord.length; i++) {
+                    var MVA = mvaRecord[i];
+                    var flag = true;
+
+                    if ((subType) && (Number(MVA.mva_subtype) != Number(subType))) {
+                        flag = false;
+                    }
+
+                    if ((taxRate) && (round4(MVA.mva_taxrate) != round4(taxRate))) {
+                        flag = false;
+                    }
+
+                    if ((substiSubtype) && (Number(MVA.mva_substisubtype) != Number(substiSubtype))) {
+                        flag = false;
+                    }
+
+                    if ((substiTaxRate) && (round4(MVA.mva_substitaxrate) != round4(substiTaxRate))) {
+                        flag = false;
+                    }
+
+                    if (flag) {
+                        mvaList.push(MVA);
+                    }
+                }
+            }
+            log.debug('[ mvaList ]', mvaList);
+            return mvaList;
+
+        } catch (e) {
+            Library_Mail.sendemail('[ _getMVAByValues ]: ' + e, LMRY_Script);
+            Library_Log.doLog({ title: '[ _getMVAByValues ]', message: e, relatedScript: LMRY_script_Name });
+        }
+
+    }
+
+    /***************************************************************************
+     *  Función que hace un búsqueda en el Record "LatamReady BR - MVA"
+     *  y retornar un JSON con datos del record
+     ***************************************************************************/
     function _getMVARecords(transactionSubsidiary) {
 
         try {
@@ -435,6 +499,15 @@ define([
 
     }
 
+    /***************************************************************************
+     *  Función que hará una búsqueda en el Record: "LatamReady - National
+     *  Taxes". Del culál se va a recuperar los registros configurados para este
+     *  proceso, según los filtros que se pongan
+     *  Parámetros:
+     *      - recordObj: Record de la transacción
+     *      - filtroTransactionType: Tipor de la transaccion
+     *      - transactionSubsidiary: Subsidiaria de la transaccion
+     ***************************************************************************/
     function _getNationalTaxes(recordObj, filtroTransactionType, transactionSubsidiary) {
 
         try {
@@ -555,6 +628,8 @@ define([
      *  proceso, según los filtros que se pongan
      *  Parámetros:
      *      - recordObj: Record de la transacción
+     *      - filtroTransactionType: Tipor de la transaccion
+     *      - transactionSubsidiary: Subsidiaria de la transaccion
      ***************************************************************************/
     function _getContributoryClasses(recordObj, filtroTransactionType, transactionSubsidiary) {
 
@@ -963,6 +1038,22 @@ define([
             Library_Log.doLog({ title: '[ _fixedAssetBundleActive ]', message: e, relatedScript: LMRY_script_Name });
         }
 
+    }
+
+    function _round2(num) {
+        if (num >= 0) {
+            return parseFloat(Math.round(parseFloat(num) * 1e2 + 1e-3) / 1e2);
+        } else {
+            return parseFloat(Math.round(parseFloat(num) * 1e2 - 1e-3) / 1e2);
+        }
+    }
+
+    function _round4(num) {
+        if (num >= 0) {
+            return parseFloat(Math.round(parseFloat(num) * 1e4 + 1e-3) / 1e4);
+        } else {
+            return parseFloat(Math.round(parseFloat(num) * 1e4 - 1e-3) / 1e4);
+        }
     }
 
     return {

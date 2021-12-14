@@ -502,10 +502,10 @@ define([
                         type: transactionType,
                         id: transactionID,
                         values: {
-                            "custbody_lmry_co_reteiva_amount": reteIVA,
-                            "custbody_lmry_co_reteica_amount": reteICA,
-                            "custbody_lmry_co_retecree_amount": reteCREE,
-                            "custbody_lmry_co_retefte_amount": reteFTE
+                            "custbody_lmry_co_reteiva_amount": parseFloat(Math.round(_getLocalAmount(recordObj, STS_Json, reteIVA) * 100) / 100),
+                            "custbody_lmry_co_reteica_amount": parseFloat(Math.round(_getLocalAmount(recordObj, STS_Json, reteICA) * 100) / 100),
+                            "custbody_lmry_co_retecree_amount": parseFloat(Math.round(_getLocalAmount(recordObj, STS_Json, reteCREE) * 100) / 100),
+                            "custbody_lmry_co_retefte_amount": parseFloat(Math.round(_getLocalAmount(recordObj, STS_Json, reteFTE) * 100) / 100)
                         },
                         options: {
                             enableSourcing: true,
@@ -602,6 +602,42 @@ define([
         } catch (e) {
             Library_Mail.sendemail('[ deleteRelatedRecords ]' + e, LMRY_SCRIPT);
             Library_Log.doLog({ title: '[ deleteRelatedRecords ]', message: e, relatedScript: LMRY_SCRIPT_NAME });
+        }
+
+    }
+
+    function _getLocalAmount(recordObj, STS_Json, whtAmount) {
+
+        try {
+
+            var transactionCurrency = recordObj.getValue({ fieldId: "currency" });
+            var transactionExchangeRate = recordObj.getValue({ fieldId: "exchangerate" });
+
+            var outputAmount = 0;
+            if ((FEATURE_SUBSIDIARY == true || FEATURE_SUBSIDIARY == "T") && (FEATURE_MULTIBOOK == true || FEATURE_MULTIBOOK == "T")) {
+                if (transactionCurrency == STS_Json.currency) {
+                    outputAmount = whtAmount;
+                } else {
+                    var bookLineCount = recordObj.getLineCount({ sublistId: "accountingbookdetail" });
+                    var exchangeRate = 1;
+                    for (var i = 0; i < bookLineCount; i++) {
+                        var bookCurrency = recordObj.getSublistValue({ sublistId: "accountingbookdetail", fieldId: "currency", line: i });
+                        if (STS_Json.currency == bookCurrency) {
+                            exchageRate = recordObj.getSublistValue({ sublistId: "accountingbookdetail", fieldId: "exchangerate", line: i });
+                            break;
+                        }
+                    }
+                    outputAmount = whtAmount * exchageRate;
+                }
+            } else {
+                outputAmount = whtAmount * transactionExchangeRate;
+            }
+
+            return outputAmount;
+
+        } catch (e) {
+            Library_Mail.sendemail('[ _getLocalAmount ]' + e, LMRY_SCRIPT);
+            Library_Log.doLog({ title: '[ _getLocalAmount ]', message: e, relatedScript: LMRY_SCRIPT_NAME });
         }
 
     }
@@ -1279,9 +1315,7 @@ define([
 
         try {
 
-            var transactionExchangeRate = recordObj.getValue({
-                fieldId: "exchangerate"
-            });
+            var transactionExchangeRate = recordObj.getValue({ fieldId: "exchangerate" });
 
             var exchangeRate = 1;
             if ((FEATURE_SUBSIDIARY == true || FEATURE_SUBSIDIARY == "T") && (FEATURE_MULTIBOOK == true || FEATURE_MULTIBOOK == "T")) {
