@@ -19,12 +19,13 @@ define(['N/record', 'N/ui/serverWidget', 'N/search', 'N/runtime', 'N/log', 'N/co
         './WTH_Library/LMRY_TAX_TransactionLBRY_V2.0', './WTH_Library/LMRY_Country_WHT_Lines_LBRY_V2.0',
         './Latam_Library/LMRY_HideView3LBRY_V2.0', './Latam_Library/LMRY_ExchangeRate_LBRY_V2.0',
         './WTH_Library/LMRY_EC_BaseAmounts_TaxCode_LBRY', './Latam_Library/LMRY_CO_ST_Purchase_Tax_Transaction_LBRY_V2.0',
-        './Latam_Library/LMRY_MX_ST_Purchase_Tax_Transaction_LBRY_V2.0', './Latam_Library/LMRY_MX_ST_DIOT_LBRY_V2.0'
+        './Latam_Library/LMRY_MX_ST_Purchase_Tax_Transaction_LBRY_V2.0', './Latam_Library/LMRY_MX_ST_DIOT_LBRY_V2.0',
+        './Latam_Library/LMRY_CO_ST_BillCredit_WHT_Lines_LBRY_V2.0' 
     ],
 
     function(record, serverWidget, search, runtime, log, config, library, library1, libraryDIOT, libraryGLImpact,
         Library_WHT_Transaction, libWHTLines, library_hideview3, library_ExchRate,
-        libraryEcBaseAmounts, CO_ST_TaxLibrary, MX_ST_TaxLibrary, MX_ST_DIOT_Library) {
+        libraryEcBaseAmounts, CO_ST_TaxLibrary, MX_ST_TaxLibrary, MX_ST_DIOT_Library, CO_ST_WhtLibrary) {
 
         var LMRY_script = 'LatamReady - Vendor Credit URET V2.0';
         var type = '';
@@ -635,6 +636,9 @@ define(['N/record', 'N/ui/serverWidget', 'N/search', 'N/runtime', 'N/log', 'N/co
                         if (ST_FEATURE == true || ST_FEATURE == "T") {
                             CO_ST_TaxLibrary.deleteTaxResult(LMRY_Intern);
                         }
+                        if (library.getAuthorization(340, licenses) == true) {
+                            CO_ST_WhtLibrary.deleteRelatedRecords(LMRY_Intern, "vendorcredit");
+                        }
                     }
                 }
 
@@ -751,6 +755,10 @@ define(['N/record', 'N/ui/serverWidget', 'N/search', 'N/runtime', 'N/log', 'N/co
                                     enableSourcing: true
                                 });
                             }
+                        }
+                        if (library.getAuthorization(340, licenses) == true) {
+                            recordCO = context.newRecord;
+                            CO_ST_WhtLibrary.setWHTTransaction(recordCO, context, licenses);
                         }
                     }
 
