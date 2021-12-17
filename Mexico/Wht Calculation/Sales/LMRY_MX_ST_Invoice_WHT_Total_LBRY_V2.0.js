@@ -165,8 +165,8 @@ function (log, format, record, search, runtime, Library_Mail, Library_Log) {
           var CC_generatedTransactionID = CC_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_gen_transaction" });
           var CC_taxType = CC_SearchResult[i].getText({ name: "custrecord_lmry_ccl_taxtype" });
           var CC_taxTypeID = CC_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_taxtype" });
+          var CC_subtype = CC_SearchResult[i].getText({ name: "custrecord_lmry_sub_type" });
           var CC_subtypeID = CC_SearchResult[i].getValue({ name: "custrecord_lmry_sub_type" });
-          var CC_subtype = CC_SearchResult[i].getValue({ name: "custrecord_lmry_sub_type" });
           var CC_Department = CC_SearchResult[i].getText({ name: "custrecord_lmry_ar_ccl_department" });
           var CC_DepartmentID = CC_SearchResult[i].getValue({ name: "custrecord_lmry_ar_ccl_department" });
           var CC_Class = CC_SearchResult[i].getText({ name: "custrecord_lmry_ar_ccl_class" });
@@ -227,8 +227,8 @@ function (log, format, record, search, runtime, Library_Mail, Library_Log) {
               value: CC_taxTypeID
             },
             subtype: {
-              text: CC_subtypeID,
-              value: CC_subtype
+              text:  CC_subtype,
+              value: CC_subtypeID
             },
             lineuniquekey: "",
             baseamount: amount_base,
@@ -270,7 +270,7 @@ function (log, format, record, search, runtime, Library_Mail, Library_Log) {
               contributoryClass: CC_internalID,
               nationalTax: "",
                 subtype: {
-                    text: CC_subtypeID,
+                    text: CC_subtype,
                     value: CC_subtypeID
                 },
                 taxitem: CC_taxItem,
@@ -400,8 +400,8 @@ function (log, format, record, search, runtime, Library_Mail, Library_Log) {
                 contributoryClass: "",
                 nationalTax: NT_internalID,
                 subtype: {
-                    text: NT_subtype,
-                    value: NT_subtypeID
+                  text: NT_subtype,
+                  value: NT_subtypeID
                 },
                 taxitem: NT_taxItem,
                 taxcode: NT_taxCode,
