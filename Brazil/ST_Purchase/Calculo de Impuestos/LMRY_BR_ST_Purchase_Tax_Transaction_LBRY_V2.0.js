@@ -42,6 +42,10 @@ define([
 
     var NS_FA_ACTIVE = false;
 
+    var applyWHT = false;
+    var arreglo_SumaBaseBR = [];
+    var arreglo_IndiceBaseBR = [];
+
     /***************************************************************************
      *  Función donde se hará el proceso de LatamTax Purchase el cual realiza
      *  el cálculo de impuesto según lo configurao.
@@ -78,6 +82,8 @@ define([
                     MANDATORY_LOCATION = runtime.getCurrentUser().getPreference({ name: "LOCMANDATORY" });
 
                     APPROVAL_JOURNAL = runtime.getCurrentScript().getParameter({ name: "CUSTOMAPPROVALJOURNAL" });
+
+                    applyWHT = recordObj.getValue({ fieldId: "custbody_lmry_apply_wht_code" });
 
                     var transactionSubsidiary = "";
                     if (FEATURE_SUBSIDIARY == true) {
@@ -118,7 +124,6 @@ define([
                     }
                     var transactionCountry = recordObj.getText({ fieldId: "custbody_lmry_subsidiary_country" });
                     var transactionCountryID = recordObj.getValue({ fieldId: "custbody_lmry_subsidiary_country" });
-                    var applyWHT = recordObj.getValue({ fieldId: "custbody_lmry_apply_wht_code" });
                     var transactionProvince = recordObj.getValue({ fieldId: "custbody_lmry_province" });
                     var transactionCity = recordObj.getValue({ fieldId: "custbody_lmry_city" });
                     var transactionDistrict = recordObj.getValue({ fieldId: "custbody_lmry_district" });
@@ -280,7 +285,7 @@ define([
                             // Calculo de impuestos por líneas de item
                             if (itemLineCount != null && itemLineCount != "") {
 
-                                for (var j = 0; j < itemLineCount; i++) {
+                                for (var j = 0; j < itemLineCount; j++) {
 
                                     var itemName = recordObj.getSublistText({ sublistId: "item", fieldId: "item", line: j });
                                     var itemID = recordObj.getSublistValue({ sublistId: "item", fieldId: "item", line: j });
@@ -343,18 +348,58 @@ define([
                                             if (MVA_List != null && MVA_List.length > 0) {
                                                 for (var x = 0; x < MVA_List.length; x > 0) {
                                                     var MVA_Id = MVA_List[x].mva_id;
+                                                    var MVA_Rate = MVA_List[x].mva_rate;
                                                     SubstitutionTaxes[j] = SubstitutionTaxes[j] || {};
                                                     SubstitutionTaxes[j][MVA_Id] = SubstitutionTaxes[j][MVA_Id] || [];
                                                     SubstitutionTaxes[j][MVA_Id].push({
-                                                        subtype: CC_SubType,
-                                                        subtypeid: CC_SubTypeID,
-                                                        taxrate: parseFloat(CC_TaxRate),
-                                                        mvarate:
-                                                    })
+                                                        subType: CC_SubType,
+                                                        subTypeId: CC_SubTypeID,
+                                                        taxRate: parseFloat(CC_TaxRate),
+                                                        mvaRate: MVA_Rate,
+                                                        taxRecordId: CC_InternalID,
+                                                        receita: CC_BR_Receita,
+                                                        taxSituation: itemTaxSituation,
+                                                        natureRevenue: CC_BR_Revenue,
+                                                        regime: itemRegimen,
+                                                        taxItem: CC_TaxItem,
+                                                        taxCode: CC_TaxCode,
+                                                        faTaxRate: CC_BR_TaxRateFA
+                                                    });
                                                 }
                                             }
+                                            continue;
                                         }
                                     }
+
+                                    if (transactionType != "itemfulfillment") {
+                                        var itemGrossAmount = recordObj.getSublistValue({ sublistId: "item", fieldId: "grossamt", line: j }) || 0.00;
+                                        var itemTaxAmount = recordObj.getSublistValue({ sublistId: "item", fieldId: "taxamount", line: j }) || 0.00;
+                                        var itemNetAmount = parseFloat(itemGrossAmount) - parseFloat(itemTaxAmount);
+                                    } else {
+                                        var itemQuantity = recordObj.getSublistValue({ sublistId: "item", fieldId: "quantity", line: j });
+                                        var itemRate = recordObj.getSublistValue({ sublistId: "item", fieldId: "rate", line: j });
+                                        var itemGrossAmount = round2(parseFloat(itemQuantity) * parseFloat(itemRate));
+                                        var itemNetAmount = itemGrossAmount;
+                                        var itemTaxAmount = 0.00;
+                                     }
+
+                                     if (itemTaxAmount == 0 && CC_AmountTo == 2) {      //taxamount es 0 y aplica al Tax Amount
+                                         continue;
+                                     }
+
+                                     var baseDifal = 0;
+                                     var baseFixedAsset = 0;
+                                     if (STS_JSON.taxflow == 1 || STS_JSON.taxflow == 3) { // Para los flujos 0 y 2
+                                         CC_AmountTo = 3 // Trabaja siempre con el Net Amount
+                                         var sumOfTaxes = parseFloat(_getSumOfTaxes(CC_SearchResult, "custrecord_lmry_ar_ccl_taxrate", "custrecord_lmry_br_ccl_rate_suma", "custrecord_lmry_ccl_tax_rule", itemTaxRule, "custrecord_lmry_sub_type"));
+                                         itemNetAmount = parseFloat(itemNetAmount / parseFloat(1 - sumOfTaxes));
+                                         itemTaxAmount = parseFloat(itemTaxAmount / parseFloat(1 - sumOfTaxes));
+                                         itemGrossAmount = parseFloat(itemGrossAmount / parseFloat(1 - sumOfTaxes));
+
+                                         if (CC_TelecomunicationTax == true || CC_TelecomunicationTax == "T") { // En el caso de un impuesto de Telecomunicación (FUST o FUNTTEL)
+                                             var
+                                         }
+                                     }
 
                                 } // Fin for itemLineCount
 
@@ -384,9 +429,99 @@ define([
     }
 
     /***************************************************************************
+     * Funcion que realiza la sumatoria de los Impuestos No Excluyentes para la
+     * formula del Monto Base de los Impuestos Excluyentes (Pais: Brasil)
+     * Parámetros :
+     *      retencionBR: impuesto calculado
+     *      itemLine: línea del item
+     *      flag: False: Impuesto Excluyente , True: Impuesto no Excluyente
+     **************************************************************************/
+    function _baseCalculationBR(retencionBR, itemLine, flag) {
+
+        try {
+
+            if (arreglo_IndiceBaseBR.length > 0) {
+                for (var i = 0; i < arreglo_IndiceBaseBR.length; i++) {
+                    if (arreglo_IndiceBaseBR[i] == itemLine) {
+                        if (flag == true) { // Inserta la sumatoria de los No Excluyentes
+                            arreglo_SumaBaseBR[i] = parseFloat(arreglo_SumaBaseBR[i]) + parseFloat(retencionBR);
+                            return 0;
+                        } else { // Obtiene la suma de los No Excluyentes almancedo
+                            return arreglo_SumaBaseBR[i];
+                        }
+                    }
+                }
+            }
+
+            arreglo_IndiceBaseBR.push(itemLine);
+            arreglo_SumaBaseBR.push(parseFloat(retencionBR));
+
+            return 0;
+
+        } catch (e) {
+            Library_Mail.sendemail('[ _baseCalculationBR ]: ' + e, LMRY_Script);
+            Library_Log.doLog({ title: '[ _baseCalculationBR ]', message: e, relatedScript: LMRY_script_Name });
+        }
+
+    }
+
+    /***************************************************************************
+     *  Función que hace la suma de porcentajes de los impuestos que se hayan
+     *  configurado por Contributory Class o National Tax
+     *  Parámetros:
+     *      - CC_NT_SearchResult: Búsqueda del CC o NT
+     *      - taxRateID: ID del campo Tax Rate del CC o NT
+     *      - sumTaxRateID: ID del campo Suma Tax Rate del CC o NT
+     *      - taxRuleID: ID del campo Tax Rule del CC o NT
+     *      - itemTaxRule: Tax Rule de la línea del Item
+     *      - taxSubTypeID: ID del campo SubType del CC o NT
+     ***************************************************************************/
+    function _getSumOfTaxes(CC_NT_SearchResult, taxRateID, sumTaxRateID, taxRuleID, itemTaxRule, taxSubTypeID) {
+
+        try {
+
+            var sumOfTaxes = 0.00;
+            for (var i = 0; i < CC_NT_SearchResult.length; i++) {
+
+                var taxRate = CC_NT_SearchResult[i].getValue({ name: taxRateID });
+                var sumtaxRate = CC_NT_SearchResult[i].getValue({ name: sumTaxRateID });
+                var isTaxByLocation = CC_NT_SearchResult[i].getValue({ name: "custrecord_lmry_tax_by_location", join: taxSubTypeID });
+                var taxRule = CC_NT_SearchResult[i].getValue({ name: taxRuleID });
+
+                if ((isTaxByLocation == true || isTaxByLocation == "T") && (applyWHT == true || applyWHT == "T")) {
+                    continue;
+                }
+
+                if (sumtaxRate != null && sumtaxRate == "") {
+                    sumOfTaxes = parseFloat(sumtaxRate) / 100;
+                }
+
+                if (taxRule != null && taxRule != "" && taxRule == itemTaxRule) {
+                    sumOfTaxes += parseFloat(taxRate);
+                }
+
+            }
+
+            return sumOfTaxes;
+
+        } catch (e) {
+            Library_Mail.sendemail('[ _getSumOfTaxes ]: ' + e, LMRY_Script);
+            Library_Log.doLog({ title: '[ _getSumOfTaxes ]', message: e, relatedScript: LMRY_script_Name });
+        }
+
+    }
+
+    /***************************************************************************
      *  Función que retorna valores del Record: "LatamReady BR - MVA" que es un
      *  JSON de valores del record, y hace ciertas validaciones y retorna un
      *  arreglo, el filtro es el campo MCN del item.
+     *  Parámetros:
+     *      - mvaRecords: JSON de datos del record "LatamReady BR - MVA"
+     *      - itemMcnCode: Código MCN de la línea de transacción
+     *      - subType: Impuestos
+     *      - taxRate: Porcentaje del impuesto
+     *      - substiSubtype: Impuesto sustituto
+     *      - substiTaxRate: Porcenta de impuesto sustituto
      ***************************************************************************/
     function _getMVAByValues(mvaRecords, itemMcnCode, subType, taxRate, substiSubType, substiTaxRate) {
 
@@ -433,6 +568,8 @@ define([
     /***************************************************************************
      *  Función que hace un búsqueda en el Record "LatamReady BR - MVA"
      *  y retornar un JSON con datos del record
+     *  Parámetros:
+     *      - transactionSubsidiary: Subsidiria de la transaccion
      ***************************************************************************/
     function _getMVARecords(transactionSubsidiary) {
 
@@ -765,7 +902,7 @@ define([
                 ]
             }).run().getRange(0, 1000);
 
-            if (BR_TF_Search != null || BR_TF_Search.length > 0) {
+            if (BR_TF_Search != null && BR_TF_Search.length > 0) {
                 for (var i = 0; i < BR_TF_Search.length; i++) {
                     var BR_TF_Province = BR_TF_Search[i].getValue({ name: "custrecord_lmry_br_province_transaction" });
                     var BR_TF_FiscalObservation = BR_TF_Search[i].getValue({ name: "custrecord_lmry_br_fiscal_observations" });
@@ -800,7 +937,7 @@ define([
                 ]
             }).run().getRange(0, 1000);
 
-            if (BR_PDR_Search != null || BR_PDR_Search.length > 0) {
+            if (BR_PDR_Search != null && BR_PDR_Search.length > 0) {
                 for (var i = 0; i < BR_PDR_Search.length; i++) {
                     var BR_PDR_Province = BR_PDR_Search[i].getValue({ name: "custrecord_lmry_br_difal_province" });
                     var BR_PDR_Rate = BR_PDR_Search[i].getValue({ name: "custrecord_lmry_br_difal_percentage" });

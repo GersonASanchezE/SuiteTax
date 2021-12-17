@@ -123,6 +123,7 @@ define(['N/log', 'N/record', 'N/search', 'N/runtime', 'N/format',
 
       } catch (e) {
         Library_Mail.sendemail( "setWHTTotalTransaction - Error: " + e, LMRY_SCRIPT );
+        log.error('[ Error ]', e);
       }
 
     }
@@ -335,7 +336,7 @@ define(['N/log', 'N/record', 'N/search', 'N/runtime', 'N/format',
                   transactionClass = recordObj.getSublistValue({ sublistId: "item", fieldId: "class", line: 0 });
                 }
                 if( transactionLocation == null || transactionLocation == "" ) {
-                  transactionLo = recordObj.getSublistValue({ sublistId: "item", fieldId: "location", line: 0 });
+                  transactionLocation = recordObj.getSublistValue({ sublistId: "item", fieldId: "location", line: 0 });
                 }
 
                 newRecord.setValue({ fieldId: "custbody_lmry_apply_wht_code", value: false });
@@ -366,13 +367,13 @@ define(['N/log', 'N/record', 'N/search', 'N/runtime', 'N/format',
                   }
 
                   if( transactionDepartment != null && transactionDepartment != "" ) {
-                    newRecord.setValue({ sublistId: "item", fieldId: "deparment", line: 0, value: transactionDepartment });
+                    newRecord.setSublistValue({ sublistId: "item", fieldId: "deparment", line: 0, value: transactionDepartment });
                   }
                   if( transactionClass != null && transactionClass != "" ) {
-                    newRecord.setValue({ sublistId: "item", fieldId: "class", line: 0, value: transactionClass });
+                    newRecord.setSublistValue({ sublistId: "item", fieldId: "class", line: 0, value: transactionClass });
                   }
                   if( transactionLocation != null && transactionLocation != "" ) {
-                    newRecord.setValue({ sublistId: "item", fieldId: "location", line: 0, value: transactionLocation });
+                    newRecord.setSublistValue({ sublistId: "item", fieldId: "location", line: 0, value: transactionLocation });
                   }
 
                   newRecord.setSublistValue({ sublistId: "item", fieldId: "custcol_lmry_base_amount", line: 0, value: whtAmount });
@@ -557,6 +558,7 @@ define(['N/log', 'N/record', 'N/search', 'N/runtime', 'N/format',
 
       } catch (e) {
         Library_Mail.sendemail( "Create_WHT_1 - Error: " + e, LMRY_SCRIPT );
+        log.error('[ Error ]', e);
       }
 
     }
@@ -744,7 +746,7 @@ define(['N/log', 'N/record', 'N/search', 'N/runtime', 'N/format',
                 if( transactionLocation != null && transactionLocation != "" ) {
                   newTransaction.setValue({ fieldId: "location", value: transactionLocation });
                 } else{
-                  transactionLocation = recordObj.getSublistValue({ sublistId: "location", fieldId: "location", line: 0 });
+                  transactionLocation = recordObj.getSublistValue({ sublistId: "item", fieldId: "location", line: 0 });
                 }
 
                 // Campos LatamReady
@@ -877,7 +879,7 @@ define(['N/log', 'N/record', 'N/search', 'N/runtime', 'N/format',
                 if( transactionLocation != null && transactionLocation != "" ) {
                   newJournalEntry.setValue({ fieldId: "location", value: transactionLocation });
                 } else{
-                  transactionLocation = recordObj.getSublistValue({ sublistId: "location", fieldId: "location", line: 0 });
+                  transactionLocation = recordObj.getSublistValue({ sublistId: "item", fieldId: "location", line: 0 });
                 }
 
                 // Campos LatamReady
@@ -925,6 +927,7 @@ define(['N/log', 'N/record', 'N/search', 'N/runtime', 'N/format',
 
       } catch (e) {
         Library_Mail.sendemail( "Create_WHT_2 - Error: " + e, LMRY_SCRIPT );
+        log.error('[ Error ]', e);
       }
 
     }
@@ -1063,6 +1066,7 @@ define(['N/log', 'N/record', 'N/search', 'N/runtime', 'N/format',
 
       } catch (e) {
         Library_Mail.sendemail( "getWhtAmountByWHT - Error: " + e, LMRY_SCRIPT );
+        log.error('[ Error ]', e);
       }
 
     }
@@ -1106,6 +1110,7 @@ define(['N/log', 'N/record', 'N/search', 'N/runtime', 'N/format',
 
       } catch (e) {
         Library_Mail.sendemail( "deleteJournalEntry - Error: " + e, LMRY_SCRIPT );
+        log.error('[ Error ]', e);
       }
 
     }
@@ -1152,6 +1157,7 @@ define(['N/log', 'N/record', 'N/search', 'N/runtime', 'N/format',
 
       } catch (e) {
         Library_Mail.sendemail( "deleteTransactionByType - Error: " + e, LMRY_SCRIPT );
+        log.error('[ Error ]', e);
       }
 
     }
@@ -1210,6 +1216,7 @@ define(['N/log', 'N/record', 'N/search', 'N/runtime', 'N/format',
 
       } catch (e) {
         Library_Mail.sendemail( "applyTransaction - Error: " + e, LMRY_SCRIPT );
+        log.error('[ Error ]', e);
       }
 
     }
@@ -1247,6 +1254,7 @@ define(['N/log', 'N/record', 'N/search', 'N/runtime', 'N/format',
 
       } catch (e) {
         Library_Mail.sendemail( "getTransactionsToApply - Error: " + e, LMRY_SCRIPT );
+        log.error('[ Error ]', e);
       }
 
     }
@@ -1311,7 +1319,7 @@ define(['N/log', 'N/record', 'N/search', 'N/runtime', 'N/format',
                 var bookCurrency = recordObj.getSublistValue({ sublistId: "accountingbookdetail", fieldId: "currency", line: i });
                 if( bookCurrency == setupCurrency ) {
                   exchangeRate = recordObj.getSublistValue({ sublistId: "accountingbookdetail", fieldId: "exchangerate", line: i });
-                  brak;
+                  break;
                 }
               }
             }
@@ -1330,6 +1338,7 @@ define(['N/log', 'N/record', 'N/search', 'N/runtime', 'N/format',
 
       } catch (e) {
         Library_Mail.sendemail( "getExchangeRate - Error: " + e, LMRY_SCRIPT );
+        log.error('[ Error ]', e);
       }
 
     }
@@ -1362,6 +1371,7 @@ define(['N/log', 'N/record', 'N/search', 'N/runtime', 'N/format',
 
       } catch (e) {
         Library_Mail.sendemail( "getFormatDate - Error: " + e, LMRY_SCRIPT );
+        log.error('[ Error ]', e);
       }
 
     }
@@ -1409,6 +1419,7 @@ define(['N/log', 'N/record', 'N/search', 'N/runtime', 'N/format',
 
       } catch (e) {
         Library_Mail.sendemail( "getTaxCodeFromSetupSubsidiary - Error: " + e, LMRY_SCRIPT );
+        log.error('[ Error ]', e);
       }
 
     }

@@ -17,7 +17,7 @@
 function (log, format, record, search, runtime, Library_Mail, Library_Log) {
   var LMRY_SCRIPT = "LatamReady - MX ST CreditMemo WHT Total LBRY";
   var LMRY_SCRIPT_NAME = 'LMRY_MX_ST_CreditMemo_WHT_Total_LBRY_V2.0.js';
-  
+
   var CONFIG_TRANSACTION = {
     // 'invoice': {
     //   'recordtype': 'creditmemo',
@@ -43,7 +43,7 @@ function (log, format, record, search, runtime, Library_Mail, Library_Log) {
   var WHT_MEMO = 'Latam - WHT Tax';
 
   var exchangeRate = 0;
-  
+
   /*********************************************************************************************************
    * Funcion que realiza el calculo de los impuestos.
    * Para Peru: Llamada desde el User Event del Invoice, Credit Memo.
@@ -59,7 +59,7 @@ function (log, format, record, search, runtime, Library_Mail, Library_Log) {
       var transactionType = recordObj.type;
 
       var appliedWHT = recordObj.getValue({fieldId: "custbody_lmry_apply_wht_code"});
-      
+
       recordObj = record.load({
         type: transactionType,
         id: transactionID,
@@ -67,14 +67,14 @@ function (log, format, record, search, runtime, Library_Mail, Library_Log) {
       });
 
       if (type == "edit") {
-        deleteRelatedRecords(transactionID, transactionType);
+        deleteRelatedRecords(transactionID);
       }
-      
+
       if (appliedWHT == true || appliedWHT == "T") {
 
         FEATURE_SUBSIDIARY = runtime.isFeatureInEffect({feature: "SUBSIDIARIES"});
         FEATURE_MULTIBOOK = runtime.isFeatureInEffect({feature: "MULTIBOOK"});
-        
+
         MANDATORY_DEPARTMENT = runtime.isFeatureInEffect({ feature: "DEPARTMENTS" });
         MANDATORY_CLASS = runtime.isFeatureInEffect({ feature: "CLASSES" });
         MANDATORY_LOCATION = runtime.isFeatureInEffect({ feature: "LOCATIONS" });
@@ -85,13 +85,13 @@ function (log, format, record, search, runtime, Library_Mail, Library_Log) {
         } else {
           subsidiary = recordObj.getValue({fieldId: "custbody_lmry_subsidiary_country",});
         }
-        
+
         var transactionDateValue = recordObj.getValue({fieldId: "trandate"});
         var transactionDate = recordObj.getText({fieldId: "trandate"});
         var idCountry = recordObj.getValue({fieldId: "custbody_lmry_subsidiary_country"});
         var transactionEntity = recordObj.getValue({fieldId: "entity"});
         var transactionDocumentType = recordObj.getValue({fieldId: 'custbody_lmry_document_type'});
-        
+
         var filtroTransactionType;
         switch (transactionType) {
           // case "invoice":
@@ -103,12 +103,12 @@ function (log, format, record, search, runtime, Library_Mail, Library_Log) {
           default:
             break;
         }
-               
+
         var setupSubsidiary = getSetupTaxSubsidiary(subsidiary);
         exchangeRate = getExchangeRate(recordObj, subsidiary, setupSubsidiary);
-        
+
         var itemLineCount = recordObj.getLineCount({sublistId: 'item'});
-        
+
         var taxResults = [];
         var transactionArray = [];
 
@@ -126,10 +126,10 @@ function (log, format, record, search, runtime, Library_Mail, Library_Log) {
         else {
           Library_Mail.sendemail('[ setWHTTransaction]: The approval routing for the transaction is disabled. ', LMRY_SCRIPT);
           Library_Log.doLog({ title: '[ afterSubmit - setWHTTransaction ]', message: "The approval routing for the transaction is disabled.", relatedScript: LMRY_SCRIPT_NAME });
-          
+
           return true;
         }
-        
+
       } // Fin if appliedWht
     } catch (error) {
       // log.error("[ afterSubmit - setWHTTransaction ]", error)
@@ -138,9 +138,9 @@ function (log, format, record, search, runtime, Library_Mail, Library_Log) {
     }
   }
 
-  
+
   /***************************************************************************
-  * FUNCION PARA CALCULAR LAS RETENCIONES 
+  * FUNCION PARA CALCULAR LAS RETENCIONES
   *    - recordObj: Registro de la transaccion
   *    - CC_SearchResult: Resultado de la busqueda de Contributory Classes
   *    - NT_SearchResult: Resultado de la busqueda de National Taxes
@@ -150,7 +150,7 @@ function (log, format, record, search, runtime, Library_Mail, Library_Log) {
     try {
       if (CC_SearchResult != null && CC_SearchResult.length > 0) {
         for (var i = 0; i < CC_SearchResult.length; i++) {
-  
+
           var CC_internalID = CC_SearchResult[i].getValue({ name: "internalid" });
           var CC_taxRate = CC_SearchResult[i].getValue({ name: "custrecord_lmry_co_ccl_taxrate" });
           var CC_generatedTransaction = CC_SearchResult[i].getText({ name: "custrecord_lmry_ccl_gen_transaction" });
@@ -185,9 +185,9 @@ function (log, format, record, search, runtime, Library_Mail, Library_Log) {
           var amount_base = 0;
 
           if (CC_appliesTo == '1') { // total
-            if (CC_amountTo == 1) { // GROSS 
-              amount_base = total_invoice; 
-            } 
+            if (CC_amountTo == 1) { // GROSS
+              amount_base = total_invoice;
+            }
             if (CC_amountTo == 2) { // TAX TOTAL
               if (taxtotal_invoice > 0) {
                 amount_base = taxtotal_invoice;
@@ -195,8 +195,8 @@ function (log, format, record, search, runtime, Library_Mail, Library_Log) {
                 continue;
               }
             }
-            if (CC_amountTo == 3) { // NET 
-              amount_base = subtotal_invoice; 
+            if (CC_amountTo == 3) { // NET
+              amount_base = subtotal_invoice;
             }
           }
 
@@ -258,7 +258,7 @@ function (log, format, record, search, runtime, Library_Mail, Library_Log) {
             lc_baseamount: amount_base * exchangeRate,
             lc_whtamount: WHTAmount * exchangeRate,
           });
-          
+
           if ( CC_generatedTransactionID == "5" ) {
             var auxTransJson = {
               contributoryClass: CC_internalID,
@@ -303,22 +303,22 @@ function (log, format, record, search, runtime, Library_Mail, Library_Log) {
             var NT_appliesTo= NT_SearchResult[i].getValue("custrecord_lmry_ntax_appliesto");
             var minimo = NT_SearchResult[i].getValue("custrecord_lmry_ntax_minamount");
             var NT_whtDescription = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_description" });
-  
+
             if (minimo == null || minimo == '' || minimo < 0) {
               minimo = 0;
             }
-  
+
             minimo = parseFloat(minimo);
-  
+
             var subtotal_invoice = parseFloat(recordObj.getValue("subtotal")) * parseFloat(exchangeRate);
             var total_invoice = parseFloat(recordObj.getValue("total")) * parseFloat(exchangeRate);
             var taxtotal_invoice = parseFloat(recordObj.getValue("taxtotal")) * parseFloat(exchangeRate);
             var amount_base = 0;
-  
+
             if (NT_appliesTo == '1') { // total
-              if (NT_amountTo == 1) { // GROSS 
-                amount_base = total_invoice; 
-              } 
+              if (NT_amountTo == 1) { // GROSS
+                amount_base = total_invoice;
+              }
               if (NT_amountTo == 2) { // TAX TOTAL
                 if (taxtotal_invoice > 0) {
                   amount_base = taxtotal_invoice;
@@ -326,26 +326,26 @@ function (log, format, record, search, runtime, Library_Mail, Library_Log) {
                   continue;
                 }
               }
-              if (NT_amountTo == 3) { // NET 
-                amount_base = subtotal_invoice; 
+              if (NT_amountTo == 3) { // NET
+                amount_base = subtotal_invoice;
               }
             }
-  
+
             if (amount_base <= 0) {
               continue;
             }
-  
+
             if (minimo > 0) {
               if (amount_base <= minimo) {
                 continue;
               }
             }
-  
+
             // taxInformation[NT_internalID] = [NT_taxItem, NT_taxCode];
             var WHTAmount = parseFloat(parseFloat(NT_taxRate) * amount_base) / exchangeRate / 100;
-  
+
             amount_base = amount_base / exchangeRate;
-  
+
             whtResult.push({
               taxtype: {
                 text: NT_taxType,
@@ -389,7 +389,7 @@ function (log, format, record, search, runtime, Library_Mail, Library_Log) {
               lc_baseamount: amount_base * exchangeRate,
               lc_whtamount: WHTAmount * exchangeRate,
             });
-  
+
             if ( NT_generatedTransactionID == "5" ) {
               var auxTransJson = {
                 contributoryClass: "",
@@ -407,13 +407,13 @@ function (log, format, record, search, runtime, Library_Mail, Library_Log) {
                 description: NT_whtDescription
               };
               transactionArray.push(auxTransJson);
-  
+
             }
           } // FIN FOR NATIONAL TAX
         }
       }
-      
-    } 
+
+    }
     catch (error) {
       // log.error("[ calculateWHTTax ]: ", error)
       Library_Mail.sendemail( "[ calculateWHTTax ]: " + error, LMRY_SCRIPT );
@@ -422,13 +422,13 @@ function (log, format, record, search, runtime, Library_Mail, Library_Log) {
   }
 
   /******************************************************************************
-  * FUNCION PARA GENERAR TRANSACCIONES SI HAY RETENCIONES APLCIADAS 
+  * FUNCION PARA GENERAR TRANSACCIONES SI HAY RETENCIONES APLCIADAS
   *    - recordObj: Registro de la transaccion
   *    - transactionArray: Detalle de las reteciones
   *    - STS_Json: Json con data del record LatamReady - Setup Tax Subsidiary
   ******************************************************************************/
   function createWHTTransaction(recordObj, transactionArray, STS_Json) {
-    
+
     try {
       var recordType = recordObj.getValue('baserecordtype');
       var idTransaction = recordObj.id;
@@ -451,17 +451,17 @@ function (log, format, record, search, runtime, Library_Mail, Library_Log) {
         var transactionNexusOverride = recordObj.getValue("taxregoverride");
         var transactionForm = runtime.getCurrentScript().getParameter({ name: "custscript_lmry_wht_invoice" });
         var toType = CONFIG_TRANSACTION[recordType]['recordtype'];
- 
+
         var groupsInformationWht = [];
         for (var i in transactionArray) {
           var auxArray = [];
           auxArray.push(transactionArray[i]);
           groupsInformationWht.push( auxArray );
         }
-        
+
         for (var subtypeID in groupsInformationWht) {
           var groupWht = groupsInformationWht[subtypeID];
- 
+
           var newRecordObj = record.create({
             type: toType,
             isDynamic: true
@@ -483,25 +483,25 @@ function (log, format, record, search, runtime, Library_Mail, Library_Log) {
           newRecordObj.setValue('custbody_lmry_reference_entity', entity);
           newRecordObj.setValue("entitytaxregnum", transactionEntityTaxRegNumer);
           newRecordObj.setValue("approvalstatus", 2);
- 
+
           if (transactionNexusOverride == true || transactionNexusOverride == "T") {
             var transactionNexus = recordObj.getValue("nexus");
             newRecordObj.setValue("nexus", transactionNexus);
           }
- 
+
           for (var i in groupWht) {
             var informationWHT = groupWht[i];
-            
+
             var taxItem = informationWHT["taxitem"];
             var taxCode = informationWHT["taxcode"];
-            
+
             var taxType = search.lookupFields({type: 'salestaxitem', id: taxCode, columns: ["taxtype"]});
             taxType = taxType.taxtype[0].value;
-            
+
             var newDeparment = "";
             var newClass = "";
             var newLocation = "";
-            
+
             if (STS_Json.depclassloc == true || STS_Json.depclassloc == "T") {
               newDeparment = informationWHT["department"];
               newClass = informationWHT["class"];
@@ -511,27 +511,27 @@ function (log, format, record, search, runtime, Library_Mail, Library_Log) {
               newClass = (MANDATORY_CLASS == true)? transactionClass: STS_Json.class;
               newLocation = (MANDATORY_LOCATION == true)? transactionLocation: STS_Json.location;
             }
- 
+
             newRecordObj.insertLine({sublistId: 'item',line: i});
- 
+
             newRecordObj.setCurrentSublistValue({sublistId: 'item', fieldId: 'item', value: taxItem});
             newRecordObj.setCurrentSublistValue({sublistId: 'item', fieldId: 'rate', value: informationWHT["whtamount"]});
             newRecordObj.setCurrentSublistValue({sublistId: 'item', fieldId: 'amount', value: informationWHT["whtamount"]});
             newRecordObj.setCurrentSublistValue({ sublistId: "item", fieldId: "department", value: newDeparment });
             newRecordObj.setCurrentSublistValue({ sublistId: "item", fieldId: "class", value: newClass });
             newRecordObj.setCurrentSublistValue({ sublistId: "item", fieldId: "location", value: newLocation });
-            
+
             var description = informationWHT['subtype']["text"] + MEMO_LINE;
             newRecordObj.setCurrentSublistValue({sublistId: 'item', fieldId: 'description', value: description});
-            
+
             newRecordObj.commitLine({ sublistId: "item" });
           }
-          
+
           var newItemLine = 0;
           for (var i in groupWht) {
             var informationWHT = groupWht[i];
             var itemDetailReference = newRecordObj.getSublistValue({ sublistId: "item", fieldId: "taxdetailsreference", line: newItemLine });
-            
+
             // Tax Details
             newRecordObj.selectNewLine({ sublistId: "taxdetails" });
             newRecordObj.setCurrentSublistValue("taxdetails", "taxdetailsreference", itemDetailReference);
@@ -541,10 +541,10 @@ function (log, format, record, search, runtime, Library_Mail, Library_Log) {
             newRecordObj.setCurrentSublistValue("taxdetails", "taxrate", 0);
             newRecordObj.setCurrentSublistValue("taxdetails", "taxamount", 0);
             newRecordObj.commitLine({ sublistId: "taxdetails" });
- 
+
             newItemLine += 1;
           }
-          
+
           idNewRecord = newRecordObj.save({
             ignoreMandatoryFields: true,
             disableTriggers: true,
@@ -553,10 +553,10 @@ function (log, format, record, search, runtime, Library_Mail, Library_Log) {
           // log.error("idnew", idNewRecord);
 
           newRecordArray.push(Number(idNewRecord));
-          
+
         }
         applyTransaction (newRecordArray, recordObj);
-      } 
+      }
     }
     catch (error){
       // log.error("Error createWHTTransaction", error);
@@ -579,7 +579,7 @@ function (log, format, record, search, runtime, Library_Mail, Library_Log) {
       var applyLineCount = newRecordObj.getLineCount({ sublistId: "apply" });
       var totalAmount = newRecordObj.getValue({ fieldId: "total" });
       // log.error("totalAmount", totalAmount);
-      for (var i = 0; i < applyLineCount; i++) { 
+      for (var i = 0; i < applyLineCount; i++) {
         var applyTransactionID = newRecordObj.getSublistValue({ sublistId: "apply", fieldId: "internalid", line: i });
         if (newRecordArray.indexOf(Number(applyTransactionID)) != -1) {
           newRecordObj.setSublistValue({ sublistId: "apply", fieldId: "apply", line: i, value: true });
@@ -663,7 +663,7 @@ function (log, format, record, search, runtime, Library_Mail, Library_Log) {
           disableTriggers: true,
         });
       }
-    } 
+    }
     catch (error) {
       // log.error("saveTaxResult", error)
       Library_Mail.sendemail('[ saveTaxResult ]: ' + error, LMRY_SCRIPT);
@@ -696,17 +696,17 @@ function (log, format, record, search, runtime, Library_Mail, Library_Log) {
         "AND",
         ["custrecord_lmry_ccl_gen_transaction", "anyof", "5"], //1:Journal, 2:SuiteGL, 3:LatamTax(Purchase), 4:Add Line, 5: Wht by Trans, 6: LatamTax (Sales)
       ];
-  
+
       var documents = ["@NONE@"];
       if (documentType) {
         documents.push(documentType);
       }
       filtrosCC.push("AND", ["custrecord_lmry_ccl_fiscal_doctype", "anyof", documents]);
-  
+
       if (FEATURE_SUBSIDIARY) {
         filtrosCC.push("AND", ["custrecord_lmry_ar_ccl_subsidiary", "anyof", subsidiary]);
       }
-  
+
       var searchCC = search.create({
         type: "customrecord_lmry_ar_contrib_class",
         columns: [
@@ -729,7 +729,7 @@ function (log, format, record, search, runtime, Library_Mail, Library_Log) {
         ],
         filters: filtrosCC,
       });
-  
+
       var searchResultCC = searchCC.run().getRange({start: 0,end: 1000});
       return searchResultCC;
     }
@@ -761,17 +761,17 @@ function (log, format, record, search, runtime, Library_Mail, Library_Log) {
         "AND",
         ["custrecord_lmry_ntax_gen_transaction", "anyof", "5"],
       ];
-  
+
       var documents = ["@NONE@"];
       if (documentType) {
         documents.push(documentType);
       }
       filtrosNT.push("AND", ["custrecord_lmry_ntax_fiscal_doctype", "anyof", documents]);
-  
+
       if (FEATURE_SUBSIDIARY) {
         filtrosNT.push("AND", ["custrecord_lmry_ntax_subsidiary", "anyof", subsidiary]);
       }
-  
+
       var searchNT = search.create({
         type: "customrecord_lmry_national_taxes",
         columns: [
@@ -930,7 +930,7 @@ function (log, format, record, search, runtime, Library_Mail, Library_Log) {
    *    - transactionID: ID de la transaccion
    *    - transactionType: Tipo de transaccion
    ***************************************************************************/
-   function deleteRelatedRecords(transactionID, transactionType) {
+   function deleteRelatedRecords(transactionID) {
     try {
       // BUSQUEDA DE TRANSACCIONES RELACIONADAS
       var relatedIDs = [];
@@ -938,7 +938,7 @@ function (log, format, record, search, runtime, Library_Mail, Library_Log) {
         type: "invoice",
         columns: ["internalid"],
         filters: [
-          ["custbody_lmry_reference_transaction", "IS", transactionID], 
+          ["custbody_lmry_reference_transaction", "IS", transactionID],
           "AND",
           ["mainline", "IS", "T"]
         ]
@@ -949,7 +949,7 @@ function (log, format, record, search, runtime, Library_Mail, Library_Log) {
           relatedIDs.push(Number(Transaction_SearchResult[i].getValue("internalid")));
         }
       }
-      
+
       if (relatedIDs.length > 0) {
 
         var recordObj = record.load({
@@ -971,7 +971,7 @@ function (log, format, record, search, runtime, Library_Mail, Library_Log) {
             disableTriggers: true
         });
       }
-      
+
       for (var i = 0; i < relatedIDs.length; i++) {
         record.delete({
           type: search.Type.INVOICE,
@@ -1058,5 +1058,3 @@ function (log, format, record, search, runtime, Library_Mail, Library_Log) {
     deleteRelatedRecords: deleteRelatedRecords
   };
 });
-
-

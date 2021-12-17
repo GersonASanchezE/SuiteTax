@@ -47,7 +47,7 @@ define([
             });
 
             if (type == "edit") {
-                deleteRelatedRecords(transactionID, transactionType);
+                deleteRelatedRecords(transactionID);
             }
 
             FEATURE_SUBSIDIARY = runtime.isFeatureInEffect({ feature: "SUBSIDIARIES" });
@@ -538,7 +538,7 @@ define([
      *    - transactionID: ID de la transaccion
      *    - transactionType: Tipo de transaccion
      ***************************************************************************/
-    function deleteRelatedRecords(transactionID, transactionType) {
+    function deleteRelatedRecords(transactionID) {
 
         try {
 
