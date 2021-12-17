@@ -75,7 +75,7 @@ define(['N/log', 'N/record', 'N/search', 'N/runtime', 'N/ui/serverWidget',
 
                         var transactionCountry = recordObj.getValue({ fieldId: 'custbody_lmry_subsidiary_country' });
                         var transactionDate = recordObj.getText({ fieldId: 'trandate' });
-                        var tranDate = recordObj.getText({ fieldId: 'trandate' });
+                        var tranDate = recordObj.getValue({ fieldId: 'trandate' });
                         var transactionEntity = recordObj.getValue({ fieldId: 'entity' });
                         var transactionDocType = recordObj.getValue({ fieldId: 'custbody_lmry_document_type' });
 
