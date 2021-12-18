@@ -58,6 +58,12 @@ function (log, format, record, search, runtime, Library_Mail, Library_Log) {
       var transactionID = recordObj.id;
       var transactionType = recordObj.type;
 
+      recordObj = record.load({
+        type: transactionType,
+        id: transactionID,
+        isDynamic: false
+      });
+
       var appliedWHT = recordObj.getValue({fieldId: "custbody_lmry_apply_wht_code"});
 
       if (type == "edit") {
