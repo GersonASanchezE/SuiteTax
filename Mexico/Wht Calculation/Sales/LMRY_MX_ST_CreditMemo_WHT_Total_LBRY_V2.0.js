@@ -9,7 +9,7 @@
 ||  File Name: LMRY_MX_ST_CreditMemo_WHT_Total_LBRY_V2.0.js     ||
 ||                                                              ||
 ||  Version Date         Author        Remarks                  ||
-||  2.0     Jun 20 2021  LatamReady    Use Script 2.0           ||
+||  2.0     Dic 20 2021  LatamReady    Use Script 2.0           ||
  \= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = */
 
  define(["N/log", "N/format", "N/record", "N/search", "N/runtime", "./LMRY_libSendingEmailsLBRY_V2.0", './LMRY_Log_LBRY_V2.0'
@@ -837,7 +837,7 @@ function (log, format, record, search, runtime, Library_Mail, Library_Log) {
                 fieldId: "currency",
                 line: i,
               });
-              if (lineaCurrencyMB == currencySetup) {
+              if (lineaCurrencyMB == setupSubsidiary["currency"]) {
                 exchangeRate = recordObj.getSublistValue({
                   sublistId: "accountingbookdetail",
                   fieldId: "exchangerate",

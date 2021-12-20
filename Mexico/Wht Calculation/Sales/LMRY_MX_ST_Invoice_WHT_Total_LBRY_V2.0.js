@@ -9,7 +9,7 @@
 ||  File Name: LMRY_MX_ST_Invoice_WHT_Total_LBRY_V2.0.js        ||
 ||                                                              ||
 ||  Version Date         Author        Remarks                  ||
-||  2.0     Jun 20 2021  LatamReady    Use Script 2.0           ||
+||  2.0     Dic 20 2021  LatamReady    Use Script 2.0           ||
  \= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = */
 
  define(["N/log", "N/format", "N/record", "N/search", "N/runtime", "./LMRY_libSendingEmailsLBRY_V2.0", './LMRY_Log_LBRY_V2.0'
@@ -146,6 +146,7 @@ function (log, format, record, search, runtime, Library_Mail, Library_Log) {
         }
       } // Fin if appliedWht
     } catch (error) {
+      // log.error("[ afterSubmit - setWHTTransaction ]", error)
       Library_Mail.sendemail('[ afterSubmit - setWHTTransaction ]: ' + error, LMRY_SCRIPT);
       Library_Log.doLog({ title: '[ afterSubmit - setWHTTransaction ]', message: error, relatedScript: LMRY_SCRIPT_NAME });
     }
@@ -192,10 +193,16 @@ function (log, format, record, search, runtime, Library_Mail, Library_Log) {
 
           minimo = parseFloat(minimo);
 
+          // log.error("exchangeRate", exchangeRate);
+
           var subtotal_invoice = parseFloat(recordObj.getValue("subtotal")) * parseFloat(exchangeRate);
           var total_invoice = parseFloat(recordObj.getValue("total")) * parseFloat(exchangeRate);
           var taxtotal_invoice = parseFloat(recordObj.getValue("taxtotal")) * parseFloat(exchangeRate);
           var amount_base = 0;
+          
+          // log.error("subtotal_invoice", subtotal_invoice)
+          // log.error("total_invoice", total_invoice)
+          // log.error("taxtotal_invoice", taxtotal_invoice)
 
           if (CC_appliesTo == '1') { // total
             if (CC_amountTo == 1) { // GROSS
@@ -222,8 +229,11 @@ function (log, format, record, search, runtime, Library_Mail, Library_Log) {
               continue;
             }
           }
-
+          // log.error("amount_base", amount_base);
+          
           var WHTAmount = parseFloat(parseFloat(CC_taxRate) * amount_base) / exchangeRate / 100;
+          
+          // log.error("WHTAmount", WHTAmount);
 
           amount_base = amount_base / exchangeRate;
 
@@ -426,6 +436,7 @@ function (log, format, record, search, runtime, Library_Mail, Library_Log) {
 
     }
     catch (error) {
+      // log.error("[ calculateWHTTax ]: ", error)
       Library_Mail.sendemail( "[ setWHTTax ]: " + error, LMRY_SCRIPT );
       Library_Log.doLog({ title: "[ setWHTTax ]", message: error, relatedScript: LMRY_SCRIPT_NAME });
     }
@@ -572,7 +583,7 @@ function (log, format, record, search, runtime, Library_Mail, Library_Log) {
             disableTriggers: true,
             enableSourcing: true
           });
-          // log.error("Vendor Credit", idNewRecord);
+          log.error("ID NEW CREDIT MEMO", idNewRecord);
         }
       }
     }
@@ -821,11 +832,11 @@ function (log, format, record, search, runtime, Library_Mail, Library_Log) {
                 fieldId: "currency",
                 line: i,
               });
-              if (lineaCurrencyMB == currencySetup) {
+              if (lineaCurrencyMB == setupSubsidiary["currency"]) {
                 exchangeRate = recordObj.getSublistValue({
                   sublistId: "accountingbookdetail",
                   fieldId: "exchangerate",
-                  line: i,
+                  line: i
                 });
                 break;
               }
@@ -839,9 +850,12 @@ function (log, format, record, search, runtime, Library_Mail, Library_Log) {
         // No es OneWorld o no tiene Multibook
         exchangeRate = recordObj.getValue({fieldId: "exchangerate",});
       }
+
       exchangeRate = parseFloat(exchangeRate);
       return exchangeRate;
+
     } catch (error) {
+      // log.error("[ getExchangeRate ]", getExchangeRate);
       Library_Mail.sendemail( "[ getExchangeRate ]: " + error, LMRY_SCRIPT );
       Library_Log.doLog({ title: "[ getExchangeRate ]", message: error, relatedScript: LMRY_SCRIPT_NAME });
     }
