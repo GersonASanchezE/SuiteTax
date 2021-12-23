@@ -144,11 +144,16 @@ define([
                                     var item = recordObj.getSublistText({ sublistId: 'item', fieldId: 'item', line: j });
                                     var itemID = recordObj.getSublistValue({ sublistId: 'item', fieldId: 'item', line: j });
                                     var itemUniqueKey = recordObj.getSublistValue({ sublistId: 'item', fieldId: 'lineuniquekey', line: j });
+                                    var itemType = recordObj.getSublistValue({ sublistId: "item", fieldId: "itemtype", line: j });
                                     var itemInvoiceIdentifier = recordObj.getSublistText({ sublistId: 'item', fieldId: 'custcol_lmry_taxcode_by_inv_ident', line: j });
                                     var itemDetailReference = recordObj.getSublistValue({ sublistId: 'item', fieldId: 'taxdetailsreference', line: j });
 
                                     if (itemInvoiceIdentifier == "" || itemInvoiceIdentifier == null) {
-                                        break;
+                                        continue;
+                                    }
+
+                                    if (itemType == "Group" || itemType == "EndGroup") {
+                                        continue;
                                     }
 
                                     var II_JSON = getInvoicingIdentifierJSON(itemInvoiceIdentifier);

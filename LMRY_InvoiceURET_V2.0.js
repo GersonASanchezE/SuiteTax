@@ -24,7 +24,8 @@ define(['./Latam_Library/LMRY_UniversalSetting_LBRY', './Latam_Library/LMRY_Hide
     './Latam_Library/LMRY_CO_Duplicate_Credit_Memos_LBRY_V2.0', 'N/cache', './WTH_Library/LMRY_New_Country_WHT_Lines_LBRY',
     './Latam_Library/LMRY_MX_ST_Sales_Tax_Transaction_LBRY_V2.0', './Latam_Library/LMRY_PE_MapAndSaveFields_LBRY_v2.0',
     './Latam_Library/LMRY_CO_ST_Sales_Tax_Transaction_LBRY_V2.0', './Latam_Library/LMRY_CO_ST_Invoice_WHT_Lines_LBRY_V2.0',
-    './Latam_Library/LMRY_SV_ST_Sales_Tax_Transaction_LBRY_V2.0'
+    './Latam_Library/LMRY_CO_ST_WHT_Total_Transaction_LBRY_V2.0', './Latam_Library/LMRY_MX_ST_Invoice_WHT_Total_LBRY_V2.0',
+    './Latam_Library/LMRY_EC_ST_Sales_Tax_Transaction_LBRY_V2.0',
 ],
 
     function (library_Uni_Setting, library_hideview3, Library_BoletoBancario, Library_Mail, Library_Number,
@@ -32,7 +33,8 @@ define(['./Latam_Library/LMRY_UniversalSetting_LBRY', './Latam_Library/LMRY_Hide
         libraryGLImpact, libWHTLines, library_ExchRate, Library_Tax_WHT, currency, runtime, record, search, log, config, serverWidget,
         Library_RetencionesEcuador, Library_CopySublist, LibraryTransferIva, ST_Library_Transaction, ST_Library_Withholding,
         ST_Library_Transaction_CL, libraryEcBaseAmounts, Library_BRDup, Library_Duplicate, cache, libNewWHTLines,
-        MX_ST_TaxLibrary, PE_libMapTransactions, CO_ST_TaxLibrary, CO_ST_WhtLibrary_Lines, SV_ST_TaxLibrary) {
+        MX_ST_TaxLibrary, PE_libMapTransactions, CO_ST_TaxLibrary, CO_ST_WhtLibrary_Lines, CO_ST_WhtLibrary_Total,
+        MX_ST_WhtLibrary_Total, EC_ST_TaxLibrary) {
 
         /**
          * Variable Universal del Registro personalizado
@@ -65,11 +67,11 @@ define(['./Latam_Library/LMRY_UniversalSetting_LBRY', './Latam_Library/LMRY_Hide
 
                 ST_FEATURE = runtime.isFeatureInEffect({ feature: "tax_overhauling" });
 
-                // Obtiene la interface que se esta ejecutando
-                var type_interface = runtime.executionContext;
-                if (type_interface == 'MAPREDUCE') {
-                    return true;
-                }
+                // // Obtiene la interface que se esta ejecutando
+                // var type_interface = runtime.executionContext;
+                // if (type_interface == 'MAPREDUCE') {
+                //     return true;
+                // }
 
                 RCD_OBJ = scriptContext.newRecord;
                 OBJ_FORM = scriptContext.form;
@@ -87,6 +89,23 @@ define(['./Latam_Library/LMRY_UniversalSetting_LBRY', './Latam_Library/LMRY_Hide
                     library_hideview3.PxHide(OBJ_FORM, '', RCD_OBJ.type);
                     library_hideview3.PxHideSubTab(OBJ_FORM, '', RCD_OBJ.type);
                     library_hideview3.PxHideColumn(OBJ_FORM, '', RCD_OBJ.type);
+                }
+
+                // Obtiene la interface que se esta ejecutando
+                var type_interface = runtime.executionContext;
+                var LMRY_Result = ValidateAccessInv(RCD_OBJ.getValue({
+                    fieldId: 'subsidiary'
+                }), OBJ_FORM, true, scriptContext.type);
+                // Sale del proceso si es MAPREDUCE
+                if (type_interface == 'MAPREDUCE') {
+                    if (LMRY_Result[0] == 'AR' || LMRY_Result[0] == 'MX') {
+                        if ((Library_Mail.getAuthorization(717, licenses) == false && LMRY_Result[0] == 'AR') ||
+                            (Library_Mail.getAuthorization(718, licenses) == false && LMRY_Result[0] == 'MX')) {
+                            return true;
+                        }
+                    } else {
+                        return true;
+                    }
                 }
 
                 if (scriptContext.type == 'create' || scriptContext.type == 'copy') {
@@ -235,8 +254,8 @@ define(['./Latam_Library/LMRY_UniversalSetting_LBRY', './Latam_Library/LMRY_Hide
                                 case "CO":
                                     CO_ST_TaxLibrary.disableInvoicingIdentifier(scriptContext);
                                     break;
-                                case "SV":
-                                    SV_ST_TaxLibrary.disableInvoicingIdentifier(scriptContext);
+                                case "EC":
+                                    EC_ST_TaxLibrary.disableInvoicingIdentifier(scriptContext);
                                     break;
                             }
                         }
@@ -252,8 +271,8 @@ define(['./Latam_Library/LMRY_UniversalSetting_LBRY', './Latam_Library/LMRY_Hide
                                 case "CO":
                                     CO_ST_TaxLibrary.deleteTaxDetailLines(RCD_OBJ);
                                     break;
-                                case "SV":
-                                    SV_ST_TaxLibrary.deleteTaxDetailLines(RCD_OBJ);
+                                case "EC":
+                                    EC_ST_TaxLibrary.deleteTaxDetailLines(RCD_OBJ);
                                     break;
                             }
                         }
@@ -271,8 +290,8 @@ define(['./Latam_Library/LMRY_UniversalSetting_LBRY', './Latam_Library/LMRY_Hide
                                     case "CO":
                                         CO_ST_TaxLibrary.deleteTaxDetailLines(RCD_OBJ);
                                         break;
-                                    case "SV":
-                                        SV_ST_TaxLibrary.deleteTaxDetailLines(RCD_OBJ);
+                                    case "EC":
+                                        EC_ST_TaxLibrary.deleteTaxDetailLines(RCD_OBJ);
                                         break;
                                 }
                             }
@@ -380,6 +399,26 @@ define(['./Latam_Library/LMRY_UniversalSetting_LBRY', './Latam_Library/LMRY_Hide
                             });
                             retecree.updateDisplayType({
                                 displayType: 'hidden'
+                            });
+                        }
+
+                        if (!Library_Mail.getAuthorization(721, licenses)) {
+                            var formObj = scriptContext.form;
+                            var itemFieldCREE = formObj.getSublist({ id: 'item' }).getField({ id: 'custcol_lmry_co_autoretecree' });
+                            var itemFieldIVA = formObj.getSublist({ id: 'item' }).getField({ id: 'custcol_lmry_co_reteiva' });
+                            var itemFieldICA = formObj.getSublist({ id: 'item' }).getField({ id: 'custcol_lmry_co_reteica' });
+                            var itemFieldFTE = formObj.getSublist({ id: 'item' }).getField({ id: 'custcol_lmry_co_retefte' });
+                            itemFieldCREE.updateDisplayType({
+                                displayType: serverWidget.FieldDisplayType.HIDDEN
+                            });
+                            itemFieldIVA.updateDisplayType({
+                                displayType: serverWidget.FieldDisplayType.HIDDEN
+                            });
+                            itemFieldICA.updateDisplayType({
+                                displayType: serverWidget.FieldDisplayType.HIDDEN
+                            });
+                            itemFieldFTE.updateDisplayType({
+                                displayType: serverWidget.FieldDisplayType.HIDDEN
                             });
                         }
                     }
@@ -628,7 +667,7 @@ define(['./Latam_Library/LMRY_UniversalSetting_LBRY', './Latam_Library/LMRY_Hide
                     } //FIN CL CHANGE CURRENCY
 
                     //BOTON MAP REDUCE RETENCION CO
-                    if (ST_FEATURE == false || ST_FEATURE == "F") {
+                    if (ST_FEATURE == false || ST_FEATURE == "F") {
                         if (LMRY_Result[0] == 'CO' && Library_Mail.getAuthorization(340, licenses) && scriptContext.type == 'view') {
                             libNewWHTLines.beforeLoad(RCD_OBJ, OBJ_FORM, scriptContext, 'customer');
                         }// Fin Boton CO Lineas
@@ -666,11 +705,11 @@ define(['./Latam_Library/LMRY_UniversalSetting_LBRY', './Latam_Library/LMRY_Hide
 
                 ST_FEATURE = runtime.isFeatureInEffect({ feature: "tax_overhauling" });
 
-                // Sale del proceso si es MAPREDUCE
-                var type_interface = runtime.executionContext;
-                if (type_interface == 'MAPREDUCE') {
-                    return true;
-                }
+                // // Sale del proceso si es MAPREDUCE
+                // var type_interface = runtime.executionContext;
+                // if (type_interface == 'MAPREDUCE') {
+                //     return true;
+                // }
 
                 var ORCD = scriptContext.oldRecord;
                 var RCD = scriptContext.newRecord;
@@ -682,6 +721,34 @@ define(['./Latam_Library/LMRY_UniversalSetting_LBRY', './Latam_Library/LMRY_Hide
                 var LMRY_Result = ValidateAccessInv(RCD.getValue({
                     fieldId: 'subsidiary'
                 }), RCD, false, scriptContext.type);
+
+                // Obtiene la interface que se esta ejecutando
+                var type_interface = runtime.executionContext;
+                var mapLicenses = licenses;
+                var mapResult = LMRY_Result;
+                if (subsidiary == null || subsidiary == '') {
+                    var oldSubsidiary = ORCD.getValue({
+                        fieldId: 'subsidiary'
+                    });
+                    mapLicenses = Library_Mail.getLicenses(oldSubsidiary);
+                    mapResult = ValidateAccessInv(ORCD.getValue({
+                        fieldId: 'subsidiary'
+                    }),
+                        ORCD, false,
+                        scriptContext.type);
+                }
+                // Sale del proceso si es MAPREDUCE
+                if (type_interface == 'MAPREDUCE') {
+                    if (mapResult[0] == 'AR' || mapResult[0] == 'MX') {
+                        if ((Library_Mail.getAuthorization(717, licenses) == false && LMRY_Result[0] == 'AR') ||
+                            (Library_Mail.getAuthorization(718, licenses) == false && LMRY_Result[0] == 'MX')) {
+                            return true;
+                        }
+                    } else {
+                        return true;
+                    }
+                }
+
                 // Tipo de evento del users events
                 var type_event = scriptContext.type;
                 //Universal Setting se realiza solo al momento de crear
@@ -959,6 +1026,9 @@ define(['./Latam_Library/LMRY_UniversalSetting_LBRY', './Latam_Library/LMRY_Hide
                                 break;
                             case "MX":
                                 MX_ST_TaxLibrary.deleteTaxResult(LMRY_Intern);
+                                if (Library_Mail.getAuthorization(30, licenses) == true) {
+                                    MX_ST_WhtLibrary_Total.deleteRelatedRecords(LMRY_Intern);
+                                }
                                 break;
                             case "CO":
                                 CO_ST_TaxLibrary.deleteTaxResult(LMRY_Intern);
@@ -966,8 +1036,8 @@ define(['./Latam_Library/LMRY_UniversalSetting_LBRY', './Latam_Library/LMRY_Hide
                                     CO_ST_WhtLibrary_Lines.deleteRelatedRecords(RCD.id, "invoice");
                                 }
                                 break;
-                            case "SV":
-                                SV_ST_TaxLibrary.deleteTaxResult(LMRY_Intern);
+                            case "EC":
+                                EC_ST_TaxLibrary.deleteTaxResult(LMRY_Intern);
                                 break;
                         }
                     }
@@ -1051,10 +1121,10 @@ define(['./Latam_Library/LMRY_UniversalSetting_LBRY', './Latam_Library/LMRY_Hide
 
                 ST_FEATURE = runtime.isFeatureInEffect({ feature: "tax_overhauling" });
                 // Sale del proceso si es MAPREDUCE
-                var type_interface = runtime.executionContext;
-                if (type_interface == 'MAPREDUCE') {
-                    return true;
-                }
+                // var type_interface = runtime.executionContext;
+                // if (type_interface == 'MAPREDUCE') {
+                //     return true;
+                // }
 
                 var ORCD = scriptContext.oldRecord;
                 var RCD = scriptContext.newRecord;
@@ -1073,6 +1143,33 @@ define(['./Latam_Library/LMRY_UniversalSetting_LBRY', './Latam_Library/LMRY_Hide
 
                 // Tipo de evento del users events
                 var type_event = scriptContext.type;
+
+                // Obtiene la interface que se esta ejecutando
+                var type_interface = runtime.executionContext;
+                var mapLicenses = licenses;
+                var mapResult = LMRY_Result;
+                if (subsidiary == null || subsidiary == '') {
+                    var oldSubsidiary = ORCD.getValue({
+                        fieldId: 'subsidiary'
+                    });
+                    mapLicenses = Library_Mail.getLicenses(oldSubsidiary);
+                    mapResult = ValidateAccessInv(ORCD.getValue({
+                        fieldId: 'subsidiary'
+                    }),
+                        ORCD, false,
+                        scriptContext.type);
+                }
+                // Sale del proceso si es MAPREDUCE
+                if (type_interface == 'MAPREDUCE') {
+                    if (mapResult[0] == 'AR' || mapResult[0] == 'MX') {
+                        if ((Library_Mail.getAuthorization(717, mapLicenses) == false && LMRY_Result[0] == 'AR') ||
+                            (Library_Mail.getAuthorization(718, mapLicenses) == false && LMRY_Result[0] == 'MX')) {
+                            return true;
+                        }
+                    } else {
+                        return true;
+                    }
+                }
 
                 //Universal Setting se realiza solo al momento de crear
                 if (type_event == 'create' && (type_interface == 'USERINTERFACE' || type_interface == 'USEREVENT' || type_interface == 'CSVIMPORT')) {
@@ -1126,6 +1223,7 @@ define(['./Latam_Library/LMRY_UniversalSetting_LBRY', './Latam_Library/LMRY_Hide
                 // Solo si la transaccion es Creada y/o Editada
                 if (scriptContext.type == 'create' || scriptContext.type == 'edit' || scriptContext.type == 'copy') {
                     var transactionType = 'invoice';
+
                     if (ST_FEATURE == false || ST_FEATURE == "F") {
                         if (LMRY_Result[0] == 'CO') {
                             var flagEntity = libNewWHTLines.searchEntity(RCD.getValue('entity'), 'customer');
@@ -1230,11 +1328,11 @@ define(['./Latam_Library/LMRY_UniversalSetting_LBRY', './Latam_Library/LMRY_Hide
                             case "MX":
                                 if (Library_Mail.getAuthorization(672, licenses) == true) {
                                     MX_ST_TaxLibrary.setTaxTransaction(ST_Context);
-                                    ST_RecordObj.save({
-                                        ignoreMandatoryFields: true,
-                                        disableTriggers: true,
-                                        enableSourcing: true,
-                                    });
+                                    ST_RecordObj.save({ ignoreMandatoryFields: true, disableTriggers: true, enableSourcing: true, });
+                                }
+                                if (Library_Mail.getAuthorization(30, licenses) == true) {
+                                    ST_RecordObj = scriptContext.newRecord;
+                                    MX_ST_WhtLibrary_Total.setWHTTransaction(ST_RecordObj, scriptContext, licenses);
                                 }
                                 break;
 
@@ -1249,14 +1347,10 @@ define(['./Latam_Library/LMRY_UniversalSetting_LBRY', './Latam_Library/LMRY_Hide
                                 }
                                 break;
 
-                            case "SV":
-                                if (Library_Mail.getAuthorization(723, licenses) == true) {
-                                    SV_ST_TaxLibrary.setTaxTransaction(ST_Context);
-                                    ST_RecordObj.save({
-                                        ignoreMandatoryFields: true,
-                                        disableTriggers: true,
-                                        enableSourcing: true,
-                                    });
+                            case "EC":
+                                if (Library_Mail.getAuthorization(730, licenses) == true) {
+                                    EC_ST_TaxLibrary.setTaxTransaction(ST_Context);
+                                    ST_RecordObj.save({ ignoreMandatoryFields: true, disableTriggers: true, enableSourcing: true });
                                 }
                                 break;
 
@@ -1280,7 +1374,10 @@ define(['./Latam_Library/LMRY_UniversalSetting_LBRY', './Latam_Library/LMRY_Hide
                      *  - Peru = PE WHT
                      *****************************/
                     try {
-                        if (LMRY_Result[0] == 'PE' && type_interface != 'SUITELET' && RCD.getValue("memo") != "VOID") {
+                        var currencyId = RCD.getValue({
+                            fieldId: 'currency'
+                        });
+                        if (LMRY_Result[0] == 'PE' && type_interface != 'SUITELET' && currencyId) {
                             // Importe de retencion
                             var custpage_wth = 0;
                             // Importe total de la transaccion
@@ -1579,7 +1676,7 @@ define(['./Latam_Library/LMRY_UniversalSetting_LBRY', './Latam_Library/LMRY_Hide
                             Library_Validation.Delete_JE(scriptContext.newRecord.id);
 
                             // Realiza la redireccion de cuentas
-                            if (ST_FEATURE != true || ST_FEATURE != "T") {
+                            if (ST_FEATURE == false && ST_FEATURE == "F") {
                                 Library_Accounts.Create_Redirect_Inv(scriptContext.newRecord.id);
                             }
                         }
@@ -1626,7 +1723,11 @@ define(['./Latam_Library/LMRY_UniversalSetting_LBRY', './Latam_Library/LMRY_Hide
                         // Si hay acceso y el Invoice esta aprobado, procesa
                         if (swAccess == true && approvalStatus == 2) {
                             // Realiza la redireccion de cuentas
-                            Library_Validation.Create_WHT_Latam('invoice', scriptContext.newRecord.id, ORCD);
+                            if (ST_FEATURE == true || ST_FEATURE == "T") {
+                                CO_ST_WhtLibrary_Total.setWHTTotalTransaction("invoice", scriptContext.newRecord.id);
+                            } else {
+                                Library_Validation.Create_WHT_Latam('invoice', scriptContext.newRecord.id, ORCD);
+                            }
                             //log.debug('invoice', scriptContext.newRecord.id);
                         }
 
@@ -1634,7 +1735,11 @@ define(['./Latam_Library/LMRY_UniversalSetting_LBRY', './Latam_Library/LMRY_Hide
                         //Si hay acceso Procesa
                         if (swAccess) {
                             // Realiza la redireccion de cuentas
-                            Library_Validation.Create_WHT_Latam('invoice', scriptContext.newRecord.id, ORCD);
+                            if (ST_FEATURE == true || ST_FEATURE == "T") {
+                                CO_ST_WhtLibrary_Total.setWHTTotalTransaction("invoice", scriptContext.newRecord.id);
+                            } else {
+                                Library_Validation.Create_WHT_Latam('invoice', scriptContext.newRecord.id, ORCD);
+                            }
                         }
                     }
 

@@ -397,7 +397,104 @@ define([
                                          itemGrossAmount = parseFloat(itemGrossAmount / parseFloat(1 - sumOfTaxes));
 
                                          if (CC_TelecomunicationTax == true || CC_TelecomunicationTax == "T") { // En el caso de un impuesto de Telecomunicación (FUST o FUNTTEL)
-                                             var
+                                             var sumaBaseCalculoI = _baseCalculationBR(0, j, false);
+                                             // Realiza la formula del Monto Base para excluyentes siguiendo la formula "Monto Base Excluyentes = Monto Base No Excluyentes - Suma Impuestos No Exluyentes"
+                                             itemNetAmount = parseFloat(itemNetAmount) - parseFloat(sumaBaseCalculoI);
+                                             itemTaxAmount = parseFloat(itemTaxAmount) - parseFloat(sumaBaseCalculoI);
+                                             itemGrossAmount = parseFloat(itemGrossAmount) - parseFloat(sumaBaseCalculoI);
+                                         }
+                                     } else { // Para los flujos 1 y 3
+                                         CC_AmountTo = 1; // Trabaja siempre con el Gross Amount
+                                         if (STS_JSON.taxflow == 4) {
+                                             baseDifal = itemGrossAmount;
+                                             baseFixedAsset = itemGrossAmount;
+                                             if (CC_TelecomunicationTax == true || CC_TelecomunicationTax == "T") { // En el caso de un impuesto de Telecomunicación (FUST o FUNTTEL)
+                                                 var sumaBaseCalculoI = _baseCalculationBR(0, j, false);
+                                                 // Si es un impuesto de telecomunicaciones se resta al gross(monto base), la suma de los otros impuestos(PIS, COFINS..)
+                                                 itemGrossAmount = parseFloat(itemGrossAmount) - parseFloat(sumaBaseCalculoI);
+                                             }
+                                         }
+                                     }
+
+                                     // Cálculo del monto base
+                                     switch (CC_AmountTo) {
+                                         case "1":
+                                            baseAmount = parseFloat(itemGrossAmount) - parseFloat(CC_NotTaxableMin);
+                                            break;
+                                         case "2":
+                                            baseAmount = parseFloat(itemTaxAmount) - parseFloat(CC_NotTaxableMin);
+                                            break;
+                                        case "3":
+                                            baseAmount = parseFloat(itemNetAmount) - parseFloat(CC_NotTaxableMin);
+                                            break;
+                                     }
+
+                                     compareAmount = parseFloat(baseAmount);
+                                     if (CC_BaseAmount != null && CC_BaseAmount != "") {
+                                         switch (CC_BaseAmount) {
+                                             case "2": // Substrac Minimun
+                                                baseAmount = parseFloat(baseAmount) - parseFloat(CC_MinAmount);
+                                                break;
+                                             case "3": // Minimum
+                                                baseAmount = parseFloat(CC_MinAmount);
+                                                break;
+                                            case "4": // Maximum
+                                                baseAmount = parseFloat(CC_MaxAmount);
+                                                break;
+                                            case "5": // Always Substrac Minimum
+                                                baseAmount = parseFloat(baseAmount) - parseFloat(CC_MinAmount);
+                                                break;
+                                         }
+                                     }
+
+                                     var originBaseAmount = parseFloat(baseAmount);
+                                     if ((CC_TelecomunicationTax == false || CC_TelecomunicationTax == "F") && (CC_ReductionRatio != 1)) {
+                                         baseAmount = baseAmount * CC_ReductionRatio;
+                                         baseAmount = round2(baseAmount);
+                                     }
+
+                                     if (baseAmount <= 0) {
+                                         continue;
+                                     }
+
+                                     // Calculo de retencion
+                                     if (CC_MaxAmount != 0) {
+                                         if ((CC_MinAmount <= parseFloat(compareAmount)) && (parseFloat(compareAmount) <= CC_MaxAmount)) {
+                                             retencion = (parseFloat(CC_TaxRate) * parseFloat(baseAmount) * parseFloat(CC_AdditionalRatio)) + parseFloat(CC_BaseRetention);
+                                         }
+                                     } else {
+                                         if (CC_MinAmount <= parseFloat(compareAmount)) {
+                                             retencion = (parseFloat(CC_TaxRate) * parseFloat(baseAmount) * parseFloat(CC_AdditionalRatio)) + parseFloat(CC_BaseRetention);
+                                         }
+                                     }
+
+                                     if (parseFloat(retencion) > 0 || CC_IsExempt == true || parseFloat(CC_TaxRate) == 0) {
+                                         var auxRetencion = round2(retencion);
+                                         if (parseFloat(retencion) > 0 || CC_IsExempt == true || parseFloat(CC_TaxRate) == 0) {
+                                             var telecommTaxesFlows = [1, 3, 4]; // Flujos con impuestos de telecomunicaciones (FUST y FUNTEL)
+                                             // Para Brasil se consideran los impuestos de telecomunicacion (campo is_exclusive) solo para el Flujo 0, 2, 3
+                                             if ((CC_TelecomunicationTax == false || CC_TelecomunicationTax == "F") && (telecommTaxesFlows.indexOf(STS_JSON.taxflow) != -1)) {
+                                                 _baseCalculationBR(parseFloat(retencion), j, true);
+                                             }
+
+                                             var baseNoTributada = 0;
+                                             var baseNoTributadaLC = 0;
+                                             if ((CC_TelecomunicationTax == false || CC_TelecomunicationTax == "F") && (CC_IsReduction == true || CC_IsReduction == "T")) {
+                                                 baseNoTributada = round2(originBaseAmount - baseAmount);
+                                                 if (exchangeRate == 1) {
+                                                     baseNoTributadaLC = baseNoTributada;
+                                                 } else {
+                                                     baseNoTributadaLC = (round2(originBaseAmount) * exchRate) - (round2(baseAmount) * exchangeRate)
+                                                 }
+                                             }
+
+                                             var difalAmount = 0.00, difalFxAmount = 0.00, faTaxAmount = 0.00;
+                                             var difalOrigen = "", difalDestination = "", difalAmountAuto = 0.00;
+                                             if (Number(STS_JSON.taxflow) == 4) {
+                                                 if (difalActive) {
+
+                                                 }
+                                             }
                                          }
                                      }
 

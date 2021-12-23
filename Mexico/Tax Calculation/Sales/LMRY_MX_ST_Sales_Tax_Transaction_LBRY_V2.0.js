@@ -93,8 +93,7 @@ define(['N/log', 'N/record', 'N/search', 'N/runtime', 'N/ui/serverWidget',
                         var exchangeRate = getExchangeRate(recordObj, transactionSubsidiary, STS_JSON);
                         var CC_SearchResult = getContributoryClasses(transactionSubsidiary, transactionDate, filtroTransactionType, transactionEntity, transactionDocType);
                         var NT_SearchResult = getNationalTaxes(transactionSubsidiary, transactionDate, filtroTransactionType, transactionDocType);
-                        log.error('[ CC_SearchResult ]', CC_SearchResult);
-                        log.error('[ NT_SearchResult ]', NT_SearchResult);
+
                         var itemLineCount = recordObj.getLineCount({ sublistId: 'item' });
 
                         var taxResult = [];
@@ -106,8 +105,13 @@ define(['N/log', 'N/record', 'N/search', 'N/runtime', 'N/ui/serverWidget',
                                 var item = recordObj.getSublistText({ sublistId: 'item', fieldId: 'item', line: i });
                                 var itemID = recordObj.getSublistValue({ sublistId: 'item', fieldId: 'item', line: i });
                                 var itemUniqueKey = recordObj.getSublistValue({ sublistId: 'item', fieldId: 'lineuniquekey', line: i });
+                                var itemType = recordObj.getSublistValue({ sublistId: "item", fieldId: "itemtype", line: i });
                                 var itemInvoiceIdentifier = recordObj.getSublistText({ sublistId: 'item', fieldId: 'custcol_lmry_taxcode_by_inv_ident', line: i });
                                 var itemDetailReference = recordObj.getSublistValue({ sublistId: 'item', fieldId: 'taxdetailsreference', line: i });
+
+                                if (itemType == "Group" || itemType == "EndGroup") {
+                                    continue;
+                                }
 
                                 var II_JSON = getInvoicingIdentifierJSON(itemInvoiceIdentifier);
 
