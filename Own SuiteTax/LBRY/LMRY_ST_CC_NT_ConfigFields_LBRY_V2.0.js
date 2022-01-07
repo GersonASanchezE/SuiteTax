@@ -220,11 +220,62 @@ define(['N/log', 'N/search', 'N/runtime', 'N/record', 'N/ui/message','./LMRY_lib
 
     }
 
+    /***************************************************************************
+     * FUNCION QUE PERMITE AUTOCOMPLETAR EL TAX TYPE Y TAX CODE DEL CONTRIBUTORY
+     * CLASS DESPUES DE QUE SE HAYA GUARDADO EL RECORD, ESTA FUNCION SERA
+     * LLAMADA EN EL BEFORESUBMIT DEL USER EVENT DEL CONTRIBUTORY CLASS
+     ***************************************************************************/
+    function setTaxTypeAndTaxCodeBYCC (ST_RecordObj) {
+
+        try {
+
+            var CC_SubType = ST_RecordObj.getText({ fieldId: "custrecord_lmry_sub_type" });
+            if (CC_SubType != null || CC_SubType != "") {
+
+                var TaxCode_Search = search.create({
+                    type: "salestaxitem",
+                    columns: [
+                        search.createColumn({ name: "internalid", label: "Internal ID" }),
+                        search.createColumn({ name: "custrecord_lmry_ste_setup_tax_type", label: "Latam - STE Setup Tax Type" })
+                    ],
+                    filters: [
+                        search.createFilter({ name: "name", operator: "IS", values: CC_SubType })
+                    ]
+                }).run().getRange(0, 10);
+
+                if (TaxCode_Search != null && TaxCode_Search.length > 0) {
+
+                    record.submitFields({
+                        type: "customrecord_lmry_ar_contrib_class",
+                        id: ST_RecordObj.id,
+                        values: {
+                            custrecord_lmry_cc_ste_tax_type: TaxCode_Search[0].getValue({ name: "custrecord_lmry_ste_setup_tax_type" }),
+                            custrecord_lmry_cc_ste_tax_code: TaxCode_Search[0].getValue({ name: "internalid" })
+                        },
+                        options: {
+                            enableSourcing: true,
+                            ignoreMandatoryFields: true,
+                            disableTriggers: true
+                        }
+                    });
+
+                }
+
+            }
+
+        } catch (e) {
+            log.error('[ setTaxTypeAndTaxCodeBYCC ]', e);
+            Library_Mail.sendemail('[ setTaxTypeAndTaxCodeBYCC ]: ' + e, LMRY_SCRIPT);
+        }
+
+    }
+
     return {
       disableTaxRateForPeru: disableTaxRateForPeru,
       setTaxRateByDetractionConceptForPeru: setTaxRateByDetractionConceptForPeru,
       validateUniqueCCByInvoicingIdentifier: validateUniqueCCByInvoicingIdentifier,
-      validateUniqueNTByInvoicingIdentifier: validateUniqueNTByInvoicingIdentifier
+      validateUniqueNTByInvoicingIdentifier: validateUniqueNTByInvoicingIdentifier,
+      setTaxTypeAndTaxCodeBYCC: setTaxTypeAndTaxCodeBYCC
     };
 
 });

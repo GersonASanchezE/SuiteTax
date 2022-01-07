@@ -183,7 +183,7 @@ define(['N/log', 'N/record', 'N/search', 'N/runtime', 'N/ui/serverWidget',
                                                 },
                                                 class: {
                                                     text: CC_Class,
-                                                        value: CC_ClassID
+                                                    value: CC_ClassID
                                                 },
                                                 location: {
                                                     text: CC_Location,

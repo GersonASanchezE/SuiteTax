@@ -53,12 +53,12 @@ define([
      *      - context: Objeto JSON donde tiene el record y el tipo de acció
      *          a realizar (create, edit o copy).
      ***************************************************************************/
-    function setTaxTransaction (context) {
+    function setTaxTransaction (recordObj, difalActive, isPreview) {
 
         try {
 
-            var recordObj = context.newRecord;
-            var actionType = context.type;
+            // var recordObj = context.newRecord;
+            // var actionType = context.type;
 
             var transactionID = recordObj.id;
             var transactionType = recordObj.type;
@@ -139,6 +139,7 @@ define([
 
                     var hasProvince = false;
                     var hasProvOrigen = transactionProvince ? transactionProvince : brTransactionFieldsJSON.province;
+                    var br_tf_province = brTransactionFieldsJSON.province;
                     if (hasProvOrigen && STS_JSON.br_province) {
                         hasProvince = true;
                     }
@@ -489,10 +490,27 @@ define([
                                              }
 
                                              var difalAmount = 0.00, difalFxAmount = 0.00, faTaxAmount = 0.00;
-                                             var difalOrigen = "", difalDestination = "", difalAmountAuto = 0.00;
+                                             var difalOrigenRate = "", difalDestinationRate = "", difalAmountAuto = 0.00;
                                              if (Number(STS_JSON.taxflow) == 4) {
                                                  if (difalActive) {
-
+                                                     if (hasProvince && arrayDifalSubType.indexOf(CC_SubTypeID) != -1 && matchDifal && STS_JSON.br_difal_acc) {
+                                                         difalOrigenRate = transactionProvince ? provinceRateJSON[transactionProvince]: provinceRateJSON[br_tf_province];
+                                                         difalDestinationRate = provinceRateJSON[STS_JSON.province];
+                                                         var oriAmt = (baseDifal * difalOrigenRate) / 100;
+                                                         oriAmt = Math.round(oriAmt * 100) / 100;
+                                                         var desAmt = (baseDifal * difalDestinationRate) / 100;
+                                                         desAmt = Math.round(desAmt * 100) / 100;
+                                                         difalAmountAuto = Math.abs(oriAmt - desAmt);
+                                                         if (exchangeRate != 1) {
+                                                             difalAmountAuto = round2(difalAmountAuto) * exchangeRate;
+                                                         }
+                                                         log.debug('[ Difal Data ]', [difalOrigenRate, difalDestinationRate, oriAmt, desAmt, difalAmountAuto].join('|'));
+                                                         var originAmt = (baseDifal * difalOrigenRate) / 100;
+                                                         var destinationAmt = (baseDifal * difalDestinationRate) / 100;
+                                                         if (!isPreview) {
+                                                             _createDifalJournal(originAmt, destinationAmt, STS_JSON, recordObj, CC_SubTypeID, j);
+                                                         }
+                                                     }
                                                  }
                                              }
                                          }
@@ -521,6 +539,84 @@ define([
         } catch (e) {
             Library_Mail.sendemail('[ afterSubmit - setTaxTransaction ]: ' + e, LMRY_Script);
             Library_Log.doLog({ title: '[ afterSubmit - setTaxTransaction ]', message: e, relatedScript: LMRY_script_Name });
+        }
+
+    }
+
+    /***************************************************************************
+     * Funcion que realiza la sumatoria de los Impuestos No Excluyentes para la
+     * formula del Monto Base de los Impuestos Excluyentes (Pais: Brasil)
+     * Parámetros :
+     *      originAmt: Monto de origen
+     *      destinationAmt: Monto de destino
+     *      STS_JSON: JSON con valores el Setup Tax Subsidiary
+     *      recordObj: Transaccion
+     *      subTypeID: ID del Sub Type del CC o NT
+     *      position: Posicion de la linea del item o expense
+     **************************************************************************/
+    function _createDifalJournal(originAmt, destinationAmt, STS_JSON, recordObj, subTypeID, position) {
+
+        try {
+
+            originAmt = Math.round(originAmt * 100) / 100;
+            destinationAmt = Math.round(destinationAmt * 100) / 100;
+
+            // Campos de cabacera de la transaccion
+            var transactionSubsidiary = recordObj.getValue({ fieldId: "subsidiary" });
+            var transactionDate = recordObj.getValue({ fieldId: "trandate" });
+            var transactionCurrency = recordObj.getValue({ fieldId: "currency" });
+            var transactionExchangeRate = recordObj.getValue({ fieldId: "exchangerate" });
+            var transactionAccount = recordObj.getValue({ fieldId: "account" });
+
+            // Campos de lineas del item
+            var itemDepartment = recordObj.getSublistValue({ sublistId: "item", fieldId: "department", line: position });
+            var itemClass = recordObj.getSublistValue({ sublistId: "item", fieldId: "class", line: position });
+            var itemLocation = recordObj.getSublistValue({ sublistId: "item", fieldId: "location", line: position });
+            var itemAdjustOrigin = recordObj.getSublistValue({ sublistId: "item", fieldId: "custcol_lmry_adjust_origin", line: position });
+            var itemUniqueKey = recordObj.getSublistValue({ sublistId: "item", fieldId: "lineuniquekey", line: position });
+
+            // Creacion de un Journal Entry
+            var newJournalRecord = record.create({
+                tyoe: record.Type.JOURNAL_ENTRY,
+                isDynamic: true
+            });
+
+            if (STS_JSON.journalform) {
+                newJournalRecord.setValue({ fieldId: "customform", value: STS_JSON.journalform });
+            }
+
+            newJournalRecord.setValue({ fieldId: "subsidiary", value: transactionSubsidiary });
+            newJournalRecord.setValue({ fieldId: "trandate", value: transactionDate });
+            newJournalRecord.setValue({ fieldId: "custbody_lmry_reference_transaction", value: recordObj.id });
+            newJournalRecord.setValue({ fieldId: "custbody_lmry_reference_transaction_id", value: recordObj.id });
+            newJournalRecord.setValue({ fieldId: "custbody_lmry_type_concept", value: 23 });
+            newJournalRecord.setValue({ fieldId: "currency", value: transactionCurrency });
+            newJournalRecord.setValue({ fieldId: "exchangerate", value: transactionExchangeRate });
+            newJournalRecord.setValue({ fieldId: "memo", value: "DIFAL Transaction " + recordObj.id });
+
+            // Origin
+            newJournalRecord.selectNewLine({ sublistId: "line" });
+            newJournalRecord.setCurrentSublistValue({ sublistId: "line", fieldId: "account", value: transactionAccount });
+            newJournalRecord.setCurrentSublistValue({ sublistId: "line", fieldId: "debit", value: originAmt });
+            newJournalRecord.setCurrentSublistValue({ sublistId: "line", fieldId: "custcol_lmry_br_tax", value: subTypeID });
+            if ((MANDATORY_DEPARTMENT) && (itemDepartment)) {
+                newJournalRecord.setCurrentSublistValue({ sublistId: "line", fieldId: "department", value: itemDepartment });
+            }
+            if ((MANDATORY_CLASS) && (itemClass)) {
+                newJournalRecord.setCurrentSublistValue({ sublistId: "line", fieldId: "class", value: itemClass });
+            }
+            if ((MANDATORY_LOCATION) && (itemLocation)) {
+                newJournalRecord.setCurrentSublistValue({ sublistId: "line", fieldId: "location", value: itemLocation });
+            }
+            if (itemAdjustOrigin) {
+                newJournalRecord.setCurrentSublistValue({ sublistId: "line", fieldId: "custcol_lmry_adjust_origin", value: itemAdjustOrigin });
+            }
+            newJournalRecord.setCurrentSublistValue({ sublistId: "line", fieldId: "custcol_lmry_item_posicion", value: itemUniqueKey });
+            newJournalRecord.commitLine({ sublistId: "line" });
+
+        } catch (e) {
+            Library_Mail.sendemail('[ _createDifalJournal ]: ' + e, LMRY_Script);
+            Library_Log.doLog({ title: '[ _createDifalJournal ]', message: e, relatedScript: LMRY_script_Name });
         }
 
     }

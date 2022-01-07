@@ -2503,6 +2503,7 @@ define(['N/log', 'N/record', 'N/search', 'N/runtime', 'N/format', '../Latam_Libr
            * Agrega las lineas al record LatamReady - Tax Results y genera los Journals
            ****************************************************************************/
           //Feature Create Tax Results
+          // saveTaxResult(taxResults, recordObj.id, recordObj.getValue('trandate'), subsidiary, idCountry);
           if (isUret && library.getAuthorization(596, licenses)) {
             for (var i = 0; i < taxResults.length; i++) {
               var taxResult = taxResults[i];
@@ -2714,6 +2715,54 @@ define(['N/log', 'N/record', 'N/search', 'N/runtime', 'N/format', '../Latam_Libr
       }
 
       return recordObj;
+    }
+
+    function saveTaxResult(taxResult, transactionID, transactionDate, transactionSubsidiary, transactionCountry) {
+      try {
+        var TR_JSON_Search = search.create({
+          type: "customrecord_lmry_ste_json_result",
+          columns: [ "internalId" ],
+          filters: [
+            [ "custrecord_lmry_ste_related_transaction", "IS", transactionID ]
+          ]
+        }).run().getRange(0, 10);
+
+        if (TR_JSON_Search != null && TR_JSON_Search.length) {
+          var TR_JSON_InternalID = TR_JSON_Search[0].getValue({ name: "internalid" });
+          record.submitFields({
+            type: "customrecord_lmry_ste_json_result",
+            id: TR_JSON_InternalID,
+            values: {
+              custrecord_lmry_ste_subsidiary: transactionSubsidiary,
+              custrecord_lmry_ste_subsidiary_country: transactionCountry,
+              custrecord_lmry_ste_tax_transaction: JSON.stringify(taxResult),
+              custrecord_lmry_ste_transaction_date: transactionDate
+            },
+            options: {
+              ignoreMandatoryFields: true,
+              disableTriggers: true,
+              enableSourcing: true
+            }
+          });
+        } else {
+          var TR_JSON_Record = record.create({
+            type: "customrecord_lmry_ste_json_result",
+            isDynamic: false
+          });
+          TR_JSON_Record.setValue({ fieldId: "custrecord_lmry_ste_related_transaction", value: transactionID });
+          TR_JSON_Record.setValue({ fieldId: "custrecord_lmry_ste_subsidiary", value: transactionSubsidiary });
+          TR_JSON_Record.setValue({ fieldId: "custrecord_lmry_ste_subsidiary_country", value: transactionCountry });
+          TR_JSON_Record.setValue({ fieldId: "custrecord_lmry_ste_transaction_date", value: transactionDate });
+          TR_JSON_Record.setValue({ fieldId: "custrecord_lmry_ste_tax_transaction", value: JSON.stringify(taxResult) });
+          TR_JSON_Record.save({
+            ignoreMandatoryFields: true,
+            disableTriggers: true,
+            enableSourcing: true
+          });
+        }
+      } catch (e) {
+        library.sendemail(' [ saveTaxResult ] ' + e, LMRY_script);
+      }
     }
 
     /**************************************************************************************************
