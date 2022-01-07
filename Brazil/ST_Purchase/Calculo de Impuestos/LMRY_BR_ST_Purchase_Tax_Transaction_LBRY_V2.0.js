@@ -45,6 +45,7 @@ define([
     var applyWHT = false;
     var arreglo_SumaBaseBR = [];
     var arreglo_IndiceBaseBR = [];
+    var blnTaxCalculate = false;
 
     /***************************************************************************
      *  Función donde se hará el proceso de LatamTax Purchase el cual realiza
@@ -162,6 +163,8 @@ define([
                     var expenseLineCount = recordObj.getLineCount({ sublistId: "expense" });
 
                     var taxResult = [];
+                    var taxDetailArray = [];
+                    var taxDetailLines = 0;
                     if (CC_SearchResult != null && CC_SearchResult.length > 0) {
 
                         for (var i = 0; i < CC_SearchResult.length; i++) {
@@ -175,8 +178,8 @@ define([
                             var CC_SubType = CC_SearchResult[i].getText({ name: "custrecord_lmry_sub_type" });
                             var CC_SubTypeID = CC_SearchResult[i].getValue({ name: "custrecord_lmry_sub_type" });
                             var CC_TaxByLocation = CC_SearchResult[i].getValue({ join: "custrecord_lmry_sub_type", name: "custrecord_lmry_tax_by_location" });
-                            var CC_ImportTax = CC_SearchResult[i].getValue({ join: "custrecord_lmry_sub_type", name: "custrecord_lmry_br_is_import_tax" });
-                            var CC_TaxNotIncluded = CC_SearchResult[i].getValue({ join: "custrecord_lmry_sub_type", name: "custrecord_lmry_is_tax_not_included" });
+                            var CC_IsImportTax = CC_SearchResult[i].getValue({ join: "custrecord_lmry_sub_type", name: "custrecord_lmry_br_is_import_tax" });
+                            var CC_IsTaxNotIncluded = CC_SearchResult[i].getValue({ join: "custrecord_lmry_sub_type", name: "custrecord_lmry_is_tax_not_included" });
                             var CC_STE_TaxType = CC_SearchResult[i].getText({ name: "custrecord_lmry_cc_ste_tax_type" });
                             var CC_STE_TaxTypeID = CC_SearchResult[i].getValue({ name: "custrecord_lmry_cc_ste_tax_type" });
                             var CC_STE_TaxCode = CC_SearchResult[i].getText({ name: "custrecord_lmry_cc_ste_tax_code" });
@@ -259,7 +262,7 @@ define([
                                 continue;
                             }
 
-                            if ((CC_ImportTax == true || CC_ImportTax == "T") && (transactionType != "itemfulfillment")) {
+                            if ((CC_IsImportTax == true || CC_IsImportTax == "T") && (transactionType != "itemfulfillment")) {
 
                                 // Solo aplica para el flujo 3
                                 if (Number(STS_JSON.taxflow) != 4) {
@@ -290,7 +293,7 @@ define([
 
                                     var itemName = recordObj.getSublistText({ sublistId: "item", fieldId: "item", line: j });
                                     var itemID = recordObj.getSublistValue({ sublistId: "item", fieldId: "item", line: j });
-                                    var lineUniqueKey = recordObj.getSublistValue({ sublistId: "item", fieldId: "lineuniquekey", line: j });
+                                    var itemUniqueKey = recordObj.getSublistValue({ sublistId: "item", fieldId: "lineuniquekey", line: j });
                                     var itemDetailReference = recordObj.getSublistValue({ sublistId: 'item', fieldId: 'taxdetailsreference', line: j });
                                     var itemTaxRule = recordObj.getSublistValue({ sublistId: "item", fieldId: "custcol_lmry_br_tax_rule", line: j });
                                     var itemRegimen = recordObj.getSublistValue({ sublistId: "item", fieldId: "custcol_lmry_br_regimen", line: j });
@@ -470,8 +473,10 @@ define([
                                      }
 
                                      if (parseFloat(retencion) > 0 || CC_IsExempt == true || parseFloat(CC_TaxRate) == 0) {
+
                                          var auxRetencion = round2(retencion);
                                          if (parseFloat(retencion) > 0 || CC_IsExempt == true || parseFloat(CC_TaxRate) == 0) {
+
                                              var telecommTaxesFlows = [1, 3, 4]; // Flujos con impuestos de telecomunicaciones (FUST y FUNTEL)
                                              // Para Brasil se consideran los impuestos de telecomunicacion (campo is_exclusive) solo para el Flujo 0, 2, 3
                                              if ((CC_TelecomunicationTax == false || CC_TelecomunicationTax == "F") && (telecommTaxesFlows.indexOf(STS_JSON.taxflow) != -1)) {
@@ -511,10 +516,104 @@ define([
                                                              _createDifalJournal(originAmt, destinationAmt, STS_JSON, recordObj, CC_SubTypeID, j);
                                                          }
                                                      }
+                                                 } else {
+                                                     if (CC_TaxDifal) {
+                                                         difalFxAmount = parseFloat(baseDifal) * CC_TaxDifal;
+                                                         difalAmount = difalFxAmount;
+                                                         if (exchangeRate != 1) {
+                                                             difalAmount = round2(difalAmount) * exchangeRate;
+                                                         }
+                                                     }
+                                                 }
+
+                                                 if (CC_BR_TaxRateFA && itemFixedAsset) {
+                                                     faTaxAmount = parseFloat(baseFixedAsset) * CC_BR_TaxRateFA;
+                                                     if (exchangeRate != 1) {
+                                                         faTaxAmount = round2(faTaxAmount) * exchangeRate;
+                                                     }
+                                                 }
+
+                                                 if (CC_IsSubstitutionTax == false || CC_IsSubstitutionTax == "F") {
+                                                     var mvaList = _getMVAByValues(MVARecords, itemMcnCode, CC_SubTypeID, CC_TaxRate);
+                                                     if (mvaList.length) {
+                                                         TaxesToSubstitutionTax[j] = TaxesToSubstitutionTax[j] || {};
+                                                         for (var m = 0; m < mvaList.length; m++) {
+                                                             var mvaID = mvaList[m].mva_id;
+                                                             var mvaRate = mvaList[m].mva_rate;
+                                                             TaxesToSubstitutionTax[j][mvaID] = TaxesToSubstitutionTax[j][mvaID] || [];
+                                                             TaxesToSubstitutionTax[j][mvaID].push({
+                                                                 mvaRate: mvaRate,
+                                                                 subType: CC_SubTypeID,
+                                                                 taxRate: parseFloat(CC_TaxRate),
+                                                                 taxRecordId: CC_InternalID
+                                                             });
+                                                         }
+                                                     }
+                                                 }
+
+                                                 if (CC_IsTaxNotIncluded == true || CC_IsTaxNotIncluded == "T") {
+                                                     TaxNotIncluded[j] = TaxNotIncluded[j] || {};
+                                                     if (!TaxNotIncluded[j][CC_SubTypeID]) {
+                                                         TaxNotIncluded[j][CC_SubTypeID] = {
+                                                             amount: 0.00,
+                                                             subType: CC_SubType,
+                                                             subTypeId: CC_SubTypeID
+                                                         };
+                                                     }
+                                                     TaxNotIncluded[j][CC_SubTypeID].amount += retencion;
                                                  }
                                              }
+
+                                             taxResult[j] = taxResult[j] || [];
+                                             taxResult[j].push({
+                                                subType: CC_SubType,
+                                                subTypeID: CC_SubTypeID,
+                                                lineUniqueKey: itemUniqueKey,
+                                                baseAmount: parseFloat(baseAmount),
+                                                retencion: parseFloat(retencion),
+                                                idCCNT: CC_InternalID,
+                                                taxRate: parseFloat(CC_TaxRate),
+                                                case: "2I",
+                                                debitAccount: CC_DebitAccountID,
+                                                creditAccount: CC_CreditAccountID,
+                                                itemName: itemName,
+                                                itemID: itemID,
+                                                itemLine: j,
+                                                description: CC_Description,
+                                                receita: CC_BR_Receita,
+                                                taxSituation: itemTaxSituation,
+                                                natureRevenue: CC_BR_Revenue,
+                                                regimen: itemRegimen,
+                                                isExempt: CC_IsExempt,
+                                                localCurrBaseAmt: exchangeRate == 1 ? parseFloat(baseAmount) : round2(parseFloat(baseAmount)) * exchangeRate,
+                                                localCurrAmt: exchangeRate == 1 ? retencion : round2(retencion) * exchangeRate,
+                                                localCurrGrossAmt: exchangeRate == 1 ? itemGrossAmount : round2(itemGrossAmount) * exchangeRate,
+                                                difalAmount: difalAmount,
+                                                difalTaxRate: CC_TaxDifal,
+                                                difalFxAmount: round4(difalFxAmount),
+                                                applyReport: CC_ApplyReport,
+                                                isImportTax: CC_IsImportTax,
+                                                baseNoTributada: baseNoTributada,
+                                                baseNoTributadaLocCurr: baseNoTributadaLC,
+                                                isSubstitutionTax: false,
+                                                isTaxNotIncluded: CC_IsTaxNotIncluded,
+                                                taxItem: CC_TaxItem,
+                                                taxCode: CC_TaxCode,
+                                                difalOrigen: difalOrigenRate,
+                                                difalDestination: difalDestinationRate,
+                                                difalAmountAuto: difalAmountAuto,
+                                                faTaxRate: CC_BR_TaxRateFA,
+                                                faTaxAmount: faTaxAmount,
+                                                fixedAsset: (CC_BR_TaxRateFA && !NS_FA_ACTIVE) ? fixedAsset : "",
+                                                fixedAssetNS: (CC_BR_TaxRateFA && NS_FA_ACTIVE) ? fixedAsset : ""
+                                             });
+
+                                             taxDetailLines += 1;
+                                             blnTaxCalculate = true;
+
                                          }
-                                     }
+
+                                     } // Fin retencion > 0
 
                                 } // Fin for itemLineCount
 
@@ -594,7 +693,7 @@ define([
             newJournalRecord.setValue({ fieldId: "exchangerate", value: transactionExchangeRate });
             newJournalRecord.setValue({ fieldId: "memo", value: "DIFAL Transaction " + recordObj.id });
 
-            // Origin
+            // Debit Line (Origin)
             newJournalRecord.selectNewLine({ sublistId: "line" });
             newJournalRecord.setCurrentSublistValue({ sublistId: "line", fieldId: "account", value: transactionAccount });
             newJournalRecord.setCurrentSublistValue({ sublistId: "line", fieldId: "debit", value: originAmt });
@@ -613,6 +712,59 @@ define([
             }
             newJournalRecord.setCurrentSublistValue({ sublistId: "line", fieldId: "custcol_lmry_item_posicion", value: itemUniqueKey });
             newJournalRecord.commitLine({ sublistId: "line" });
+
+            // Credit Line (Destination)
+            newJournalRecord.selectNewLine({ sublistId: "line" });
+            newJournalRecord.setCurrentSublistValue({ sublistId: "line", fieldId: "account", value: transactionAccount });
+            newJournalRecord.setCurrentSublistValue({ sublistId: "line", fieldId: "credit", value: originAmt });
+            newJournalRecord.setCurrentSublistValue({ sublistId: "line", fieldId: "custcol_lmry_br_tax", value: subTypeID });
+            if ((MANDATORY_DEPARTMENT) && (itemDepartment)) {
+                newJournalRecord.setCurrentSublistValue({ sublistId: "line", fieldId: "department", value: itemDepartment });
+            }
+            if ((MANDATORY_CLASS) && (itemClass)) {
+                newJournalRecord.setCurrentSublistValue({ sublistId: "line", fieldId: "class", value: itemClass });
+            }
+            if ((MANDATORY_LOCATION) && (itemLocation)) {
+                newJournalRecord.setCurrentSublistValue({ sublistId: "line", fieldId: "location", value: itemLocation });
+            }
+            if (itemAdjustOrigin) {
+                newJournalRecord.setCurrentSublistValue({ sublistId: "line", fieldId: "custcol_lmry_adjust_origin", value: itemAdjustOrigin });
+            }
+            newJournalRecord.setCurrentSublistValue({ sublistId: "line", fieldId: "custcol_lmry_item_posicion", value: itemUniqueKey });
+            newJournalRecord.commitLine({ sublistId: "line" });
+
+            // DIFAL
+            var difalAmt =  Math.round((originAmt - destinationAmt) * 100) / 100;
+            if (difalAmt > 0) {
+                newJournalRecord.selectNewLine({ sublistId: "line" });
+                newJournalRecord.setCurrentSublistValue({ sublistId: "line", fieldId: "account", value: transactionAccount });
+                if (originAmt > destinationAmt) {
+                    newJournalRecord.setSublistValue({ sublistId: "line", fieldId: "credit", value: difalAmt });
+                } else {
+                    newJournalRecord.setSublistValue({ sublistId: "line", fieldId: "debit", value: difalAmt });
+                }
+                if ((MANDATORY_DEPARTMENT) && (itemDepartment)) {
+                    newJournalRecord.setCurrentSublistValue({ sublistId: "line", fieldId: "department", value: itemDepartment });
+                }
+                if ((MANDATORY_CLASS) && (itemClass)) {
+                    newJournalRecord.setCurrentSublistValue({ sublistId: "line", fieldId: "class", value: itemClass });
+                }
+                if ((MANDATORY_LOCATION) && (itemLocation)) {
+                    newJournalRecord.setCurrentSublistValue({ sublistId: "line", fieldId: "location", value: itemLocation });
+                }
+            }
+
+            if (APPROVAL_JOURNAL == true || APPROVAL_JOURNAL == "T") {
+                newJournalRecord.setValue({ fieldId: "approvalstatus", value: 2 });
+            }
+
+            newJournalRecord.save({
+                ignoreMandatoryFields: true,
+                disableTriggers: true,
+                enableSourcing: true
+            });
+
+            return true;
 
         } catch (e) {
             Library_Mail.sendemail('[ _createDifalJournal ]: ' + e, LMRY_Script);
