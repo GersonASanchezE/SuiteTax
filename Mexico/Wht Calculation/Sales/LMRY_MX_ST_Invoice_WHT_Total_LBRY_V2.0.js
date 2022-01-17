@@ -583,7 +583,7 @@ function (log, format, record, search, runtime, Library_Mail, Library_Log) {
             disableTriggers: true,
             enableSourcing: true
           });
-          log.error("ID NEW CREDIT MEMO", idNewRecord);
+          // log.error("ID NEW CREDIT MEMO", idNewRecord);
         }
       }
     }

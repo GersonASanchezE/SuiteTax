@@ -291,8 +291,8 @@ function (log, record, search, runtime, library, Library_Log) {
         ["custrecord_lmry_ccl_taxtype", "anyof", "2"], //1:Retencion, 2:Percepcion, 3:Detraccion, 4:Calculo de Impuesto
         "AND",
         ["custrecord_lmry_ccl_gen_transaction", "anyof", "3"], //1:Journal, 2:SuiteGL, 3:LatamTax(Purchase), 4:Add Line, 5: WhtbyTrans, 6: LatamTax (Sales)
-        // "AND",
-        // ['custrecord_lmry_ar_ccl_resptype', 'anyof', RespType]
+        "AND",
+        ['custrecord_lmry_ar_ccl_resptype', 'anyof', RespType]
       ];
       var documents = ["@NONE@"];
       if (documentType) {
@@ -404,7 +404,7 @@ function (log, record, search, runtime, library, Library_Log) {
     try {
       
       var amount_base = parseFloat(recordObj.getValue("total")) - parseFloat(recordObj.getValue("taxtotal"));
-      log.error("amount_base", amount_base)
+      // log.error("amount_base", amount_base)
 
       var department_setup = segmentacion[0];
       var class_setup = segmentacion[1];
@@ -438,7 +438,7 @@ function (log, record, search, runtime, library, Library_Log) {
             description = '';
           }
 
-          log.error("itmsubtype", itmsubtype)
+          // log.error("itmsubtype", itmsubtype)
           // Valida si es articulo para las ventas
           // if (itmsubtype != 'Para la venta' && itmsubtype != 'For Purchase' && itmsubtype != 'Para reventa' && itmsubtype != 'For Resale') {
           //   continue;
@@ -538,7 +538,7 @@ function (log, record, search, runtime, library, Library_Log) {
           var itemDetailReference = recordObj.getSublistValue({ sublistId: 'item', fieldId: 'taxdetailsreference', line: numLines });
           
           recordObj.insertLine('taxdetails', lastDetailLine);
-          log.error("retencion", retencion)
+          // log.error("retencion", retencion)
           recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxdetailsreference", value: itemDetailReference });
           recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxtype", value: taxType });
           recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxcode",  value: taxCode });
@@ -546,12 +546,12 @@ function (log, record, search, runtime, library, Library_Log) {
           recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxrate",  value: parseFloat(tax_rate) * 100 });
           recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxamount", value: parseFloat(retencion) });
           
-          log.error("itemDetailReference", itemDetailReference)
-          log.error("taxtype", taxType)
-          log.error("taxcode", taxCode)
-          log.error("taxbasis", amount_base)
-          log.error("taxrate", tax_rate)
-          log.error("taxamount", retencion)
+          // log.error("itemDetailReference", itemDetailReference)
+          // log.error("taxtype", taxType)
+          // log.error("taxcode", taxCode)
+          // log.error("taxbasis", amount_base)
+          // log.error("taxrate", tax_rate)
+          // log.error("taxamount", retencion)
           recordObj.commitLine({sublistId: 'taxdetails'});
           
           
