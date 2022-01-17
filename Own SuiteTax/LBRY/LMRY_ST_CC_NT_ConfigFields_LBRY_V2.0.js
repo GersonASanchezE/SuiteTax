@@ -229,6 +229,11 @@ define(['N/log', 'N/search', 'N/runtime', 'N/record', 'N/ui/message','./LMRY_lib
 
         try {
 
+            ST_RecordObj = record.load({
+                type: ST_RecordObj.type,
+                id: ST_RecordObj.id
+            });
+
             var CC_SubType = ST_RecordObj.getText({ fieldId: "custrecord_lmry_sub_type" });
             if (CC_SubType != null || CC_SubType != "") {
 

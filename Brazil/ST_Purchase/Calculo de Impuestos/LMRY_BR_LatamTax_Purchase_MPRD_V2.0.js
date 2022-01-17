@@ -4,20 +4,24 @@
 ||  File Name: LMRY_BR_LatamTax_Purchase_MPRD_V2.0.js     	   ||
 ||                                                             ||
 ||  Version Date         Author        Remarks                 ||
-||  1.0     Ago 21 2019  LatamReady    Use Script 2.0          ||
+||  2.0     Ago 21 2019  LatamReady    Use Script 2.0          ||
 \= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = */
 /**
- * @NApiVersion 2.x
+ * @NApiVersion 2.0
  * @NScriptType MapReduceScript
  * @NModuleScope Public
  */
 
 define(['N/record', 'N/search', 'N/runtime', 'N/log', 'N/format',
+    './Latam_Library/LMRY_libSendingEmailsLBRY_V2.0',
     './Latam_Library/LMRY_BR_LatamTax_Purchase_LBRY_V2.0',
     './Latam_Library/LMRY_BR_WHT_Tax_Result_LBRY_V2.0',
-    './Latam_Library/LMRY_BR_ST_LatamTax_Purchase_LBRY_V2.0'],
+    './Latam_Library/LMRY_BR_ST_Purchase_Tax_Transaction_LBRY_V2.0',
+    // './Latam_Library/LMRY_BR_ST_LatamTax_Purchase_LBRY_V2.0',
+    './Latam_Library/LMRY_Log_LBRY_V2.0',
+    './Latam_Library/LMRY_BR_Withholding_Tax_Purchase_LBRY'],
 
-    function (record, search, runtime, log, format, libraryTaxPurchase, libraryRetenciones, ST_TaxPurchase) {
+    function (record, search, runtime, log, format, libraryMail, libraryTaxPurchase, libraryRetenciones, BR_TaxLibrary, lbryLog, libraryRetencionesLatam) {
 
         // Define characters that should not be counted when the script performs its
         // analysis of the text.
@@ -31,7 +35,7 @@ define(['N/record', 'N/search', 'N/runtime', 'N/log', 'N/format',
 
         function getInputData() {
             // Use the getInputData function to return two strings.
-            log.error('idLogRecord', idLogRecord);
+            log.debug('idLogRecord', idLogRecord);
 
             var logRecord = search.lookupFields({
                 type: 'customrecord_lmry_br_latamtax_pur_log',
@@ -85,156 +89,191 @@ define(['N/record', 'N/search', 'N/runtime', 'N/log', 'N/format',
 
         }
 
-        function map(context) {
-            try {
-                var searchResult = JSON.parse(context.value);
+        function reduce(context){
 
-                var TranID = searchResult.id;
-                var TranType = searchResult.values.type.value;
+          try{
 
-                ST_FEATURE = runtime.isFeatureInEffect({ feature: 'tax_overhauling' });
+            var searchResult = context.values;
+            searchResult = JSON.parse(searchResult[0]);
 
-                var typeTran = '';
-                switch (TranType) {
-                    case 'VendBill':
-                        typeTran = 'vendorbill';
-                        break;
-                    case 'VendCred':
-                        typeTran = 'vendorcredit';
-                        break;
-                    case 'PurchOrd':
-                        typeTran = 'purchaseorder';
-                        break;
-                }
+            var TranID = searchResult.id;
+            var TranType = searchResult.values.type.value;
 
-                var Jsonresult = {};
-                if (ST_FEATURE === true || ST_FEATURE === "T") {
-                    Jsonresult = ST_TaxPurchase.getTaxPurchase(TranID, typeTran);
-                } else {
-                    Jsonresult = libraryTaxPurchase.getTaxPurchase(TranID, typeTran);
-                }
+            ST_FEATURE = runtime.isFeatureInEffect({ feature: 'tax_overhauling' });
 
-                log.error('Jsonresult', Jsonresult);
-                var recordObj = record.load({
+            var typeTran = '';
+            switch (TranType) {
+                case 'VendBill':
+                    typeTran = 'vendorbill';
+                    break;
+                case 'VendCred':
+                    typeTran = 'vendorcredit';
+                    break;
+                case 'PurchOrd':
+                    typeTran = 'purchaseorder';
+                    break;
+                case 'ItemShip':
+                    typeTran = 'itemfulfillment';
+                    break;
+                case 'CardChrg':
+                    typeTran = 'creditcardcharge';
+                    break;
+                case 'CardRfnd':
+                    typeTran = 'creditcardrefund';
+                    break;
+            }
+
+            var recordObj = "";
+            if (ST_FEATURE == true || ST_FEATURE == "T") {
+                recordObj = record.load({
+                    type: typeTran,
+                    id: TranID,
+                    isDynamic: true
+                });
+            } else {
+                recordObj = record.load({
                     type: typeTran,
                     id: TranID
                 });
-
-                var featureSubs = runtime.isFeatureInEffect({
-                    feature: "SUBSIDIARIES"
-                });
-                var featureMB = runtime.isFeatureInEffect({
-                    feature: "MULTIBOOK"
-                });
-
-                //Setup Tax Subsidiary
-                var searchSetupSubsidiary = search.create({
-                    type: "customrecord_lmry_setup_tax_subsidiary",
-                    filters: [
-                        ['isinactive', 'is', 'F']
-                    ],
-                    columns: ['custrecord_lmry_setuptax_currency', 'custrecord_lmry_setuptax_br_ap_flow',
-                        'custrecord_lmry_setuptax_department', 'custrecord_lmry_setuptax_class', 'custrecord_lmry_setuptax_location']
-                });
-                if (featureSubs) {
-                    var subsidiary = recordObj.getValue({
-                        fieldId: 'subsidiary'
-                    });
-                    searchSetupSubsidiary.filters.push(search.createFilter({
-                        name: 'custrecord_lmry_setuptax_subsidiary',
-                        operator: 'is',
-                        values: subsidiary
-                    }));
-                }
-                var resultSearchSub = searchSetupSubsidiary.run().getRange(0, 1);
-
-                var currencySetup = '';
-                var taxCalculationForm = '', departmentSetup = "", classSetup = "", locationSetup = "";
-                if (resultSearchSub != null && resultSearchSub != '') {
-                    currencySetup = resultSearchSub[0].getValue('custrecord_lmry_setuptax_currency');
-                    taxCalculationForm = resultSearchSub[0].getValue('custrecord_lmry_setuptax_br_ap_flow');
-                    if (taxCalculationForm == '' || taxCalculationForm == null) {
-                        taxCalculationForm = 1;
-                    }
-                    departmentSetup = resultSearchSub[0].getValue("custrecord_lmry_setuptax_department");
-                    classSetup = resultSearchSub[0].getValue("custrecord_lmry_setuptax_class");
-                    locationSetup = resultSearchSub[0].getValue("custrecord_lmry_setuptax_location");
-                }
-
-                var cantItems = recordObj.getLineCount({
-                    sublistId: 'item'
-                });
-                for (var i = 0; i < cantItems; i++) {
-                    var wtaxLine = recordObj.getSublistValue('item', 'custcol_4601_witaxline', i);
-                    var isWtax = false;
-                    if (wtaxLine == true || wtaxLine == 'T') {
-                        isWtax = true;
-                    }
-                    if (!isWtax) {
-                        if (ST_FEATURE === true || ST_FEATURE === "T") {
-                            ST_TaxPurchase.updateLine(Jsonresult, recordObj, i, taxCalculationForm);
-                        } else {
-                            libraryTaxPurchase.updateLine(Jsonresult, recordObj, i, taxCalculationForm);
-                        }
-                    }
-
-                }
-
-                if (Number(taxCalculationForm) == 4) {
-                    libraryTaxPurchase.addTaxItems(recordObj, Jsonresult, departmentSetup, classSetup, locationSetup);
-                }
-
-                var generated = false;
-                for (var key in Jsonresult) {
-                    generated = true;
-                }
-
-                recordObj.setValue({
-                    fieldId: 'custbody_lmry_scheduled_process',
-                    value: true
-                });
-
-                if (taxCalculationForm == 4 && TranType == 'VendBill') {
-                    deleteTaxResults(TranID);
-                    libraryRetenciones.createTaxResults(TranID);
-                }
-
-                var exchRate = getExchangeRate(recordObj, currencySetup, featureSubs, featureMB);
-
-                var arrayTR = [];
-                if (ST_FEATURE === true || ST_FEATURE === "T") {
-                    arrayTR = ST_TaxPurchase.createTaxResult(Jsonresult, recordObj, exchRate);
-                } else {
-                    arrayTR = libraryTaxPurchase.createTaxResult(Jsonresult, recordObj, exchRate);
-                }
-                log.error('arrayTR', arrayTR.join('|'));
-
-                recordObj.save({
-                    ignoreMandatoryFields: true,
-                    enableSourcing: true,
-                    disableTriggers: true
-                });
-
-                context.write({
-                    key: TranID,
-                    value: {
-                        id: TranID
-                    }
-                });
-
-            } catch (err) {
-                var searchResult = JSON.parse(context.value);
-
-                var TranID = searchResult.id;
-
-                context.write({
-                    key: TranID,
-                    value: {
-                        error: err.message
-                    }
-                });
-                log.error('Error: ', err);
             }
+
+            var processed = recordObj.getValue("custbody_lmry_scheduled_process");
+            /*if (processed == true || processed == "T") {
+                log.debug("[ map ]", "Transaction ID: " + TranID + " has already been processed.");
+                return;
+            }*/
+
+            var subsidiaryId = "";
+            var licenses = [];
+
+            var FEAT_SUBS = runtime.isFeatureInEffect({
+                feature: "SUBSIDIARIES"
+            });
+            if (FEAT_SUBS == true || FEAT_SUBS == "T") {
+                subsidiaryId = recordObj.getValue("subsidiary");
+                licenses = libraryMail.getLicenses(subsidiaryId);
+            } else {
+                licenses = libraryMail.getLicenses(1);
+            }
+
+            var featureDifalAuto = libraryMail.getAuthorization(648, licenses);
+
+            //Setup Tax Subsidiary: Json tb usado en retenciones Latam (No Condicionar) [18-08-2021]
+            var setupTax = "";
+            if (ST_FEATURE == true || ST_FEATURE == "t") {
+                setupTax = BR_TaxLibrary.getSetupTaxSubsidiary(subsidiaryId);
+            } else {
+                setupTax = libraryTaxPurchase.getSetupTaxSubsidiary(subsidiaryId);
+            }
+            log.debug("setupTax", JSON.stringify(setupTax));
+
+            var Jsonresult = {};
+            if (ST_FEATURE === true || ST_FEATURE === "T") {
+                Jsonresult = BR_TaxLibrary.getTaxPurchase(recordObj, setupTax, featureDifalAuto);
+            } else {
+                Jsonresult = libraryTaxPurchase.getTaxPurchase(recordObj, setupTax, featureDifalAuto);
+            }
+
+            log.debug('Jsonresult', Jsonresult);
+
+            var cantItems = recordObj.getLineCount({
+                sublistId: 'item'
+            });
+
+            var taxCalculationForm = setupTax["taxFlow"];
+
+            for (var i = 0; i < cantItems; i++) {
+                var wtaxLine = recordObj.getSublistValue('item', 'custcol_4601_witaxline', i);
+                var isWtax = false;
+                if (wtaxLine == true || wtaxLine == 'T') {
+                    isWtax = true;
+                }
+                if (!isWtax) {
+                    if (ST_FEATURE === true || ST_FEATURE === "T") {
+                        BR_TaxLibrary.updateItemLine(Jsonresult, recordObj, i, taxCalculationForm);
+                    } else {
+                        libraryTaxPurchase.updateLine(Jsonresult, recordObj, i, taxCalculationForm);
+                    }
+                }
+            }
+
+            if (Number(taxCalculationForm) == 4 && typeTran != "itemfulfillment") {
+                libraryTaxPurchase.addTaxItems(recordObj, Jsonresult, setupTax["department"], setupTax["class"], setupTax["location"]);
+            }
+
+
+            recordObj.setValue({
+                fieldId: 'custbody_lmry_scheduled_process',
+                value: true
+            });
+
+            //RETENCIONES ESTANDAR SOLO SI EL FEATURE DE RETENCIONES LATAM ESTA DESACTIVADO
+            if (taxCalculationForm == 4 && TranType == 'VendBill' && !libraryMail.getAuthorization(670, licenses)) {
+                deleteTaxResults(TranID);
+                libraryRetenciones.createTaxResults(TranID);
+            }
+
+            var arrayTR = [];
+            if (ST_FEATURE === true || ST_FEATURE === "T") {
+                arrayTR = BR_TaxLibrary.createTaxResult(Jsonresult, recordObj, featureDifalAuto);
+            } else {
+                arrayTR = libraryTaxPurchase.createTaxResult(Jsonresult, recordObj, featureDifalAuto);
+            }
+
+            log.debug('arrayTR', arrayTR.join('|'));
+
+            recordObj.setValue({
+                fieldId: 'custbody_lmry_scheduled_process',
+                value: true
+            });
+
+            recordObj.save({
+                ignoreMandatoryFields: true,
+                enableSourcing: true,
+                disableTriggers: true
+            });
+
+            //CREDIT CARD: CREACION JOURNAL
+            if(TranType == 'CardChrg' || TranType == 'CardRfnd'){
+              libraryTaxPurchase.createJournalCreditCard(recordObj, setupTax);
+            }
+
+            //NUEVO RETENCIONES LATAM: 18-08-21
+
+            if(libraryMail.getAuthorization(670, licenses)){
+
+              log.debug('----------','Inicio Libreria Retenciones Latam');
+
+              libraryRetencionesLatam.getWithholdingTax(recordObj, setupTax);
+            }
+
+            //
+
+            context.write({
+                key: TranID,
+                value: {
+                    id: TranID
+                }
+            });
+
+
+          } catch (err) {
+
+            var searchResult = context.values;
+            searchResult = JSON.parse(searchResult[0]);
+
+            var TranID = searchResult.id;
+
+            context.write({
+                key: TranID,
+                value: {
+                    error: err.message
+                }
+            });
+            log.error('Error: ', err);
+            lbryLog.doLog({ title: "[ map ]", message: err });
+
+          }
 
         }
 
@@ -285,6 +324,7 @@ define(['N/record', 'N/search', 'N/runtime', 'N/log', 'N/format',
 
             } catch (err) {
                 log.error('[summarize]', err);
+                lbryLog.doLog({ title: "[ summarize ]", message: err });
             }
 
         }
@@ -374,7 +414,8 @@ define(['N/record', 'N/search', 'N/runtime', 'N/log', 'N/format',
 
         return {
             getInputData: getInputData,
-            map: map,
+            //map: map,
+            reduce: reduce,
             summarize: summarize
         };
     });

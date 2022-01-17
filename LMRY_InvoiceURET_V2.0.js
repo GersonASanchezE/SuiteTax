@@ -25,7 +25,9 @@ define(['./Latam_Library/LMRY_UniversalSetting_LBRY', './Latam_Library/LMRY_Hide
     './Latam_Library/LMRY_MX_ST_Sales_Tax_Transaction_LBRY_V2.0', './Latam_Library/LMRY_PE_MapAndSaveFields_LBRY_v2.0',
     './Latam_Library/LMRY_CO_ST_Sales_Tax_Transaction_LBRY_V2.0', './Latam_Library/LMRY_CO_ST_Invoice_WHT_Lines_LBRY_V2.0',
     './Latam_Library/LMRY_CO_ST_WHT_Total_Transaction_LBRY_V2.0', './Latam_Library/LMRY_MX_ST_Invoice_WHT_Total_LBRY_V2.0',
-    './Latam_Library/LMRY_EC_ST_Sales_Tax_Transaction_LBRY_V2.0',
+    './Latam_Library/LMRY_EC_ST_Sales_Tax_Transaction_LBRY_V2.0', './Latam_Library/LMRY_AR_ST_Sales_Perception_LBRY_V2.0',
+    './WTH_Library/LMRY_EC_WHT_Tax_Sales_LBRY','./WTH_Library/LMRY_EC_ST_Sales_WHT_Total_LBRY_V2.0','./WTH_Library/LMRY_EC_ST_Sales_WHT_Lines_LBRY_V2.0',
+    './Latam_Library/LMRY_AR_ST_Sales_Tax_Transaction_LBRY_V2.0'
 ],
 
     function (library_Uni_Setting, library_hideview3, Library_BoletoBancario, Library_Mail, Library_Number,
@@ -34,7 +36,8 @@ define(['./Latam_Library/LMRY_UniversalSetting_LBRY', './Latam_Library/LMRY_Hide
         Library_RetencionesEcuador, Library_CopySublist, LibraryTransferIva, ST_Library_Transaction, ST_Library_Withholding,
         ST_Library_Transaction_CL, libraryEcBaseAmounts, Library_BRDup, Library_Duplicate, cache, libNewWHTLines,
         MX_ST_TaxLibrary, PE_libMapTransactions, CO_ST_TaxLibrary, CO_ST_WhtLibrary_Lines, CO_ST_WhtLibrary_Total,
-        MX_ST_WhtLibrary_Total, EC_ST_TaxLibrary) {
+        MX_ST_WhtLibrary_Total, EC_ST_TaxLibrary, AR_ST_PercepetionLibrary, EC_ST_WhtLibrary ,EC_ST_WhtLibrary_Total,
+        EC_ST_WhtLibrary_Lines, AR_ST_TaxLibrary) {
 
         /**
          * Variable Universal del Registro personalizado
@@ -249,13 +252,16 @@ define(['./Latam_Library/LMRY_UniversalSetting_LBRY', './Latam_Library/LMRY_Hide
                         if (["create", "edit", "copy"].indexOf(scriptContext.type) != -1) {
                             switch (LMRY_Result[0]) {
                                 case "MX":
-                                    MX_ST_TaxLibrary.disableInvoicingIdentifier(scriptContext);
+                                    // MX_ST_TaxLibrary.disableInvoicingIdentifier(scriptContext);
                                     break;
                                 case "CO":
                                     CO_ST_TaxLibrary.disableInvoicingIdentifier(scriptContext);
                                     break;
                                 case "EC":
                                     EC_ST_TaxLibrary.disableInvoicingIdentifier(scriptContext);
+                                    break;
+                                case "AR":
+                                    AR_ST_TaxLibrary.disableInvoicingIdentifier(scriptContext);
                                     break;
                             }
                         }
@@ -273,6 +279,9 @@ define(['./Latam_Library/LMRY_UniversalSetting_LBRY', './Latam_Library/LMRY_Hide
                                     break;
                                 case "EC":
                                     EC_ST_TaxLibrary.deleteTaxDetailLines(RCD_OBJ);
+                                    break;
+                                case "AR":
+                                    AR_ST_TaxLibrary.deleteTaxDetailLines(RCD_OBJ);
                                     break;
                             }
                         }
@@ -292,6 +301,9 @@ define(['./Latam_Library/LMRY_UniversalSetting_LBRY', './Latam_Library/LMRY_Hide
                                         break;
                                     case "EC":
                                         EC_ST_TaxLibrary.deleteTaxDetailLines(RCD_OBJ);
+                                        break;
+                                    case "AR":
+                                        AR_ST_TaxLibrary.deleteTaxDetailLines(RCD_OBJ);
                                         break;
                                 }
                             }
@@ -1039,6 +1051,9 @@ define(['./Latam_Library/LMRY_UniversalSetting_LBRY', './Latam_Library/LMRY_Hide
                             case "EC":
                                 EC_ST_TaxLibrary.deleteTaxResult(LMRY_Intern);
                                 break;
+                            case "AR":
+                                AR_ST_TaxLibrary.deleteTaxResult(LMRY_Intern);
+                                break;
                         }
                     }
 
@@ -1352,8 +1367,22 @@ define(['./Latam_Library/LMRY_UniversalSetting_LBRY', './Latam_Library/LMRY_Hide
                                     EC_ST_TaxLibrary.setTaxTransaction(ST_Context);
                                     ST_RecordObj.save({ ignoreMandatoryFields: true, disableTriggers: true, enableSourcing: true });
                                 }
+                                if(Library_Mail.getAuthorization(639, licenses)  == true ){
+                                    EC_ST_WhtLibrary_Lines.ECsetAmounts(ST_Context);
+                                }
+                                if(Library_Mail.getAuthorization(630, licenses) == true ){
+                                    EC_ST_WhtLibrary_Total.ECsetAmounts(ST_Context);
+                                }
                                 break;
-
+                            case "AR":
+                                if (Library_Mail.getAuthorization(679, licenses) == true) {
+                                    AR_ST_TaxLibrary.setTaxTransaction(ST_Context);
+                                    ST_RecordObj.save({ ignoreMandatoryFields: true, disableTriggers: true, enableSourcing: true });
+                                }
+                                if (Library_Mail.getAuthorization(142, licenses) == true) {
+                                    AR_ST_PercepetionLibrary.applyPerception(ST_Context);
+                                }
+                                break;
                         }
 
                     }
@@ -1639,7 +1668,10 @@ define(['./Latam_Library/LMRY_UniversalSetting_LBRY', './Latam_Library/LMRY_Hide
 
                 //EC TRANSACTION FIELDS
                 if ((type_event == 'create' || type_event == 'edit') && LMRY_Result[0] == 'EC' && (Library_Mail.getAuthorization(630, licenses) || Library_Mail.getAuthorization(639, licenses))) {
-                    ECsetAmounts(LMRY_Intern);
+                    if(ST_FEATURE =='F' || ST_FEATURE == false){
+                        log.error("ECsetAmounts LEGACY","ECsetAmounts LEGACY")
+                        ECsetAmounts(LMRY_Intern);
+                    }
                 }
 
                 /*****************************************************
@@ -2256,7 +2288,7 @@ define(['./Latam_Library/LMRY_UniversalSetting_LBRY', './Latam_Library/LMRY_Hide
         }
 
         function ECsetAmounts(RecordID) {
-
+			log.error("ECsetAmounts",1)
             var recordObj = record.load({
                 type: 'invoice',
                 id: RecordID
@@ -2298,7 +2330,7 @@ define(['./Latam_Library/LMRY_UniversalSetting_LBRY', './Latam_Library/LMRY_Hide
                         sublistId: 'item',
                         fieldId: 'tax1amt',
                         line: i
-                    });
+                    })||0.0;
 
                     jsonAmounts['gross']['amount'] += parseFloat(grossAmount);
                     jsonAmounts['net']['amount'] += parseFloat(netAmount);
