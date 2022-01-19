@@ -290,7 +290,7 @@ function (log, record, search, runtime, library, Library_Log) {
         "AND",
         ["custrecord_lmry_ccl_taxtype", "anyof", "2"], //1:Retencion, 2:Percepcion, 3:Detraccion, 4:Calculo de Impuesto
         "AND",
-        ["custrecord_lmry_ccl_gen_transaction", "anyof", "3"], //1:Journal, 2:SuiteGL, 3:LatamTax(Purchase), 4:Add Line, 5: WhtbyTrans, 6: LatamTax (Sales)
+        ["custrecord_lmry_ccl_gen_transaction", "anyof", "4"], //1:Journal, 2:SuiteGL, 3:LatamTax(Purchase), 4:Add Line, 5: WhtbyTrans, 6: LatamTax (Sales)
         "AND",
         ['custrecord_lmry_ar_ccl_resptype', 'anyof', RespType]
       ];
@@ -352,7 +352,7 @@ function (log, record, search, runtime, library, Library_Log) {
         "AND",
         ["custrecord_lmry_ntax_taxtype", "anyof", "2"],
         "AND",
-        ["custrecord_lmry_ntax_gen_transaction", "anyof", "3"],
+        ["custrecord_lmry_ntax_gen_transaction", "anyof", "4"],
       ];
    
       var documents = ["@NONE@"];
