@@ -12,7 +12,7 @@
  * @NModuleScope Public
  */
 
-define(['N/record', 'N/runtime', 'N/search', 'N/log', 'N/config', 'N/https', 'N/url', 'N/ui/serverWidget',
+define(['./Latam_Library/LMRY_UniversalSetting_LBRY','N/record', 'N/runtime', 'N/search', 'N/log', 'N/config', 'N/https', 'N/url', 'N/ui/serverWidget',
     './Latam_Library/LMRY_libSendingEmailsLBRY_V2.0', './Latam_Library/LMRY_libWhtValidationLBRY_V2.0',
     './Latam_Library/LMRY_libDIOTLBRY_V2.0', './WTH_Library/LMRY_TAX_TransactionLBRY_V2.0',
     './WTH_Library/LMRY_ST_Tax_TransactionLBRY_V2.0', './Latam_Library/LMRY_GLImpact_LBRY_V2.0',
@@ -23,14 +23,15 @@ define(['N/record', 'N/runtime', 'N/search', 'N/log', 'N/config', 'N/https', 'N/
     './Latam_Library/LMRY_MX_ST_DIOT_LBRY_V2.0', "./Latam_Library/LMRY_CL_ST_Transaction_Purchases_LBRY_V2.0",
     './WTH_Library/LMRY_EC_BaseAmounts_TaxCode_LBRY', './Latam_Library/LMRY_BR_ValidateDuplicate_LBRY_V2.0',
     './WTH_Library/LMRY_New_Country_WHT_Lines_LBRY', './Latam_Library/LMRY_CO_ST_Purchase_Tax_Transaction_LBRY_V2.0',
-    './Latam_Library/LMRY_CO_ST_Bill_WHT_Lines_LBRY_V2.0', './Latam_Library/LMRY_SV_ST_Purchase_Tax_Transaction_LBRY_V2.0',
-    './Latam_Library/LMRY_BR_ST_Purchase_Tax_Transaction_LBRY_V2.0'
+    './Latam_Library/LMRY_CO_ST_WHT_Total_Transaction_LBRY_V2.0', './Latam_Library/LMRY_TranID_CSV_LBRY_V2.0',
+    './Latam_Library/LMRY_AR_ST_Purchase_Tax_Transaction_LBRY_V2.0', './Latam_Library/LMRY_AR_ST_Purchases_Perception_LBRY_V2.0',
+    './Latam_Library/LMRY_AR_ST_WHT_TransactionFields_LBRY_V2.0'
 ],
 
-    function (record, runtime, search, log, config, https, url, serverWidget, library, library1, libraryDIOT, Library_WHT_Transaction, ST_Library_Transaction,
+    function (library_Uni_Setting, record, runtime, search, log, config, https, url, serverWidget, library, library1, libraryDIOT, Library_WHT_Transaction, ST_Library_Transaction,
         libraryGLImpact, Library_HideView, library_hideview3, libWHTLines, library_ExchRate, Library_RetencionesEcuador, Library_WHT_GT, library_GLImpact_Popup,
         LibraryTransferIva, MX_ST_TaxLibrary, MX_ST_DIOT_Library, library_CL_Purchases, libraryEcBaseAmounts, Library_BRDup, libraryNewWHTLines,
-        CO_ST_TaxLibrary, CO_ST_WhtLibrary, SV_ST_TaxLibrary, BR_ST_TaxLibrary) {
+        CO_ST_TaxLibrary, CO_ST_WhtLibrary_Total, libraryTranIdCSV, AR_ST_TaxLibrary, AR_ST_Perception, AR_ST_TransFields) {
 
         var scriptObj = runtime.getCurrentScript();
         var type = '';
@@ -60,6 +61,8 @@ define(['N/record', 'N/runtime', 'N/search', 'N/log', 'N/config', 'N/https', 'N/
 
                 if (context.type == 'create' || context.type == 'copy') {
 
+                    library.cleanFieldsTransaction(recordObj);
+
                     var companyInformation = config.load({
                         type: config.Type.COMPANY_INFORMATION
                     });
@@ -84,6 +87,16 @@ define(['N/record', 'N/runtime', 'N/search', 'N/log', 'N/config', 'N/https', 'N/
                         field: lmry_exchange_rate,
                         nextfield: 'currency'
                     });
+                }
+
+                if (context.type != 'print' && context.type != 'email') {
+                    if (context.type == 'create') {
+                        form.addField({
+                            id: 'custpage_uni_set_status',
+                            label: 'Set Estatus',
+                            type: serverWidget.FieldType.CHECKBOX
+                        }).defaultValue = 'F';
+                    }
                 }
 
                 if (context.type != 'print' && context.type != 'email') {
@@ -186,8 +199,8 @@ define(['N/record', 'N/runtime', 'N/search', 'N/log', 'N/config', 'N/https', 'N/
                                 case "CO":
                                     CO_ST_TaxLibrary.disableInvoicingIdentifier(context);
                                     break;
-                                case "SV":
-                                    SV_ST_TaxLibrary.disableInvoicingIdentifier(context);
+                                case "AR" :
+                                    AR_ST_TaxLibrary.disableInvoicingIdentifier(context);
                                     break;
                             }
                         }
@@ -203,8 +216,8 @@ define(['N/record', 'N/runtime', 'N/search', 'N/log', 'N/config', 'N/https', 'N/
                                 case "CO":
                                     CO_ST_TaxLibrary.deleteTaxDetailLines(recordObj);
                                     break;
-                                case "SV":
-                                    SV_ST_TaxLibrary.deleteTaxDetailLines(recordObj);
+                                case "AR" :
+                                    AR_ST_TaxLibrary.deleteTaxDetailLines(recordObj);
                                     break;
                             }
                         }
@@ -222,8 +235,8 @@ define(['N/record', 'N/runtime', 'N/search', 'N/log', 'N/config', 'N/https', 'N/
                                     case "CO":
                                         CO_ST_TaxLibrary.deleteTaxDetailLines(recordObj);
                                         break;
-                                    case "SV":
-                                        SV_ST_TaxLibrary.deleteTaxDetailLines(recordObj);
+                                    case "AR":
+                                        AR_ST_TaxLibrary.deleteTaxDetailLines(recordObj);
                                         break;
                                 }
                             }
@@ -264,6 +277,43 @@ define(['N/record', 'N/runtime', 'N/search', 'N/log', 'N/config', 'N/https', 'N/
                             });
                             retecree.updateDisplayType({
                                 displayType: 'hidden'
+                            });
+                        }
+
+                        if (!library.getAuthorization(720, licenses)) {
+                            var formObj = context.form;
+                            var itemFieldCREE = formObj.getSublist({ id: 'item' }).getField({ id: 'custcol_lmry_co_autoretecree' });
+                            var itemFieldIVA = formObj.getSublist({ id: 'item' }).getField({ id: 'custcol_lmry_co_reteiva' });
+                            var itemFieldICA = formObj.getSublist({ id: 'item' }).getField({ id: 'custcol_lmry_co_reteica' });
+                            var itemFieldFTE = formObj.getSublist({ id: 'item' }).getField({ id: 'custcol_lmry_co_retefte' });
+                            if (JSON.stringify(itemFieldCREE) != '{}') itemFieldCREE.updateDisplayType({
+                                displayType: serverWidget.FieldDisplayType.HIDDEN
+                            });
+                            if (JSON.stringify(itemFieldIVA) != '{}') itemFieldIVA.updateDisplayType({
+                                displayType: serverWidget.FieldDisplayType.HIDDEN
+                            });
+                            if (JSON.stringify(itemFieldICA) != '{}') itemFieldICA.updateDisplayType({
+                                displayType: serverWidget.FieldDisplayType.HIDDEN
+                            });
+                            if (JSON.stringify(itemFieldFTE) != '{}') itemFieldFTE.updateDisplayType({
+                                displayType: serverWidget.FieldDisplayType.HIDDEN
+                            });
+
+                            var expenseFieldCREE = formObj.getSublist({ id: 'expense' }).getField({ id: 'custcol_lmry_co_autoretecree' });
+                            var expenseFieldIVA = formObj.getSublist({ id: 'expense' }).getField({ id: 'custcol_lmry_co_reteiva' });
+                            var expenseFieldICA = formObj.getSublist({ id: 'expense' }).getField({ id: 'custcol_lmry_co_reteica' });
+                            var expenseFieldFTE = formObj.getSublist({ id: 'expense' }).getField({ id: 'custcol_lmry_co_retefte' });
+                            if (JSON.stringify(expenseFieldCREE) != '{}') expenseFieldCREE.updateDisplayType({
+                                displayType: serverWidget.FieldDisplayType.HIDDEN
+                            });
+                            if (JSON.stringify(expenseFieldIVA) != '{}') expenseFieldIVA.updateDisplayType({
+                                displayType: serverWidget.FieldDisplayType.HIDDEN
+                            });
+                            if (JSON.stringify(expenseFieldICA) != '{}') expenseFieldICA.updateDisplayType({
+                                displayType: serverWidget.FieldDisplayType.HIDDEN
+                            });
+                            if (JSON.stringify(expenseFieldFTE) != '{}') expenseFieldFTE.updateDisplayType({
+                                displayType: serverWidget.FieldDisplayType.HIDDEN
                             });
                         }
                     } // Fin Solo localizacion CO
@@ -729,16 +779,12 @@ define(['N/record', 'N/runtime', 'N/search', 'N/log', 'N/config', 'N/https', 'N/
                         }
                     }
 
-                    if (ST_FEATURE == false || ST_FEATURE == "F") {
+                    //BOTON MAP REDUCE RETENCION CO
+                    if (LMRY_Result[0] == 'CO' && library.getAuthorization(340, licenses) && type == 'view') {
 
-                        //BOTON MAP REDUCE RETENCION CO
-                        if (LMRY_Result[0] == 'CO' && library.getAuthorization(340, licenses) && type == 'view') {
+                        libraryNewWHTLines.beforeLoad(recordObj, form, context, 'vendor');
 
-                            libraryNewWHTLines.beforeLoad(recordObj, form, context, 'vendor');
-
-                        } // Fin Boton CO Lineas
-
-                    }
+                    } // Fin Boton CO Lineas
 
                 } // Fin if (type != 'print' && type != 'email')
 
@@ -763,6 +809,7 @@ define(['N/record', 'N/runtime', 'N/search', 'N/log', 'N/config', 'N/https', 'N/
 
                 recordObj = context.newRecord;
                 type = context.type;
+                var type_interface = runtime.executionContext;
                 var form = context.form;
                 var subsidiary = recordObj.getValue({
                     fieldId: 'subsidiary'
@@ -813,14 +860,10 @@ define(['N/record', 'N/runtime', 'N/search', 'N/log', 'N/config', 'N/https', 'N/
                 }
 
                 //Nueva logica Country WHT Lineas
-                if (ST_FEATURE == false || ST_FEATURE == "F") {
-
-                    if (LMRY_Result[0] == 'CO') {
-                        libraryNewWHTLines.beforeSubmitTransaction(context, licenses);
-                    } else {
-                        libWHTLines.beforeSubmitTransaction(context, licenses);
-                    }
-
+                if (LMRY_Result[0] == 'CO') {
+                    libraryNewWHTLines.beforeSubmitTransaction(context, licenses);
+                } else {
+                    libWHTLines.beforeSubmitTransaction(context, licenses);
                 }
 
 
@@ -965,6 +1008,43 @@ define(['N/record', 'N/runtime', 'N/search', 'N/log', 'N/config', 'N/https', 'N/
                     }
                 }
 
+
+                if(type == 'create' && (type_interface == 'USERINTERFACE' || type_interface == 'USEREVENT' || type_interface == 'CSVIMPORT')){
+
+                    var type_document = recordObj.getValue('custbody_lmry_document_type');
+
+                    if (library_Uni_Setting.auto_universal_setting(licenses, false)) {
+                        //Solo si el campo LATAM - LEGAL DOCUMENT TYPE se encuentra vacío
+                        if (type_interface == 'USERINTERFACE') {
+                            if (recordObj.getValue('custpage_uni_set_status') == 'F' && (type_document == '' || type_document == null)) {
+                                //Seteo campos cabecera, numero pre impreso y template
+                                library_Uni_Setting.automatic_setfield(recordObj, false);
+                                library_Uni_Setting.set_preimpreso(recordObj, LMRY_Result, licenses);
+                                library_Uni_Setting.set_template(recordObj, licenses);
+                                recordObj.setValue('custpage_uni_set_status', 'T');
+                            }
+
+                        } else if (type_interface == 'CSVIMPORT' || type_interface == 'USEREVENT') {
+                            var check_csv = recordObj.getValue('custbody_lmry_scheduled_process');
+                            //Check box para controlar el seteo automático en el record anexado
+                            if ((check_csv == false || check_csv == 'F') && (type_document == '' || type_document == null)) {
+                                //Seteo campos cabecera, numero pre impreso y template
+                                library_Uni_Setting.automatic_setfield(recordObj, false);
+                                library_Uni_Setting.set_preimpreso(recordObj, LMRY_Result, licenses);
+                                library_Uni_Setting.set_template(recordObj, licenses);
+
+                                if (check_csv == 'F') {
+                                    recordObj.setValue('custbody_lmry_scheduled_process', 'T');
+                                } else {
+                                    recordObj.setValue('custbody_lmry_scheduled_process', true);
+                                }
+                            }
+                        }
+                        //Seteo de campos perteneciente a record anexado
+                        library_Uni_Setting.set_inv_identifier(recordObj);
+                    }
+                }
+
                 if (type == "delete") {
                     if (ST_FEATURE == true || ST_FEATURE == "T") {
                         switch (LMRY_Result[0]) {
@@ -976,12 +1056,12 @@ define(['N/record', 'N/runtime', 'N/search', 'N/log', 'N/config', 'N/https', 'N/
                                 break;
                             case "CO":
                                 CO_ST_TaxLibrary.deleteTaxResult(LMRY_Intern);
-                            	if (library.getAuthorization(340, licenses) == true) {
-                                    CO_ST_WhtLibrary.deleteRelatedRecords(LMRY_Intern, "vendorbill");
+                                break;
+                            case "AR":
+                                AR_ST_TaxLibrary.deleteTaxResult(LMRY_Intern);
+                                if (library.getAuthorization(138, licenses) == true) {
+                                    AR_ST_TransFields.deleteTransactionFields(LMRY_Intern);
                                 }
-                            	break;
-                            case "SV":
-                                SV_ST_TaxLibrary.deleteTaxResult(LMRY_Intern);
                                 break;
                         }
                     }
@@ -989,8 +1069,16 @@ define(['N/record', 'N/runtime', 'N/search', 'N/log', 'N/config', 'N/https', 'N/
 
                 //SETEO DE CAMPOS BASE 0%, 12% Y 14%
                 var eventsEC = ['create', 'copy', 'edit'];
-                if (LMRY_Result[0] == 'EC' && library.getAuthorization(42, licenses) && eventsEC.indexOf(type) != -1) {
-                    libraryEcBaseAmounts.setBaseAmounts(recordObj, '1');
+                if (eventsEC.indexOf(type) != -1) {
+                    if(LMRY_Result[0] == 'EC' && library.getAuthorization(42, licenses)){
+                        libraryEcBaseAmounts.setBaseAmounts(recordObj, '1');
+                    }
+
+                    if(type_interface == 'CSVIMPORT'){
+                        if(LMRY_Result[0] == 'AR'){
+                            libraryTranIdCSV.generateTranID(recordObj, LMRY_Result, licenses);
+                        }
+                    }
                 }
 
                 if (LMRY_Result[0] == "CO") {
@@ -1036,6 +1124,37 @@ define(['N/record', 'N/runtime', 'N/search', 'N/log', 'N/config', 'N/https', 'N/
                 // Validacion de Acceso a Features
                 var LMRY_Result = ValidateAccessVB(subsidiary);
 
+                //Universal Setting se realiza solo al momento de crear
+                if(type == 'create' && (type_interface == 'USERINTERFACE' || type_interface == 'USEREVENT' || type_interface == 'CSVIMPORT')){
+
+                    if (type_interface == 'USERINTERFACE') {
+                        //Mediante el custpage se conoce que el seteo de cabecera fue realizado por Universal Setting
+                        if (recordObj.getValue('custpage_uni_set_status') == 'T') {
+                            //Seteo de campos perteneciente a record anexado
+                            library_Uni_Setting.automatic_setfieldrecord(recordObj);
+                        }
+                    } else if (type_interface == 'CSVIMPORT' || type_interface == 'USEREVENT') {
+                        //Mediante el siguiente campo se conoce si seteo de cabecera fue realizado por Universal Setting
+                        var check_csv = recordObj.getValue('custbody_lmry_scheduled_process');
+
+                        if (check_csv == 'T' || check_csv == true) {
+                            //Seteo de campos perteneciente a record anexado
+                            library_Uni_Setting.automatic_setfieldrecord(recordObj);
+
+                            if (type_interface == 'CSVIMPORT') {
+                                //Cálculo de impuestos para BR inventario
+                                library_Uni_Setting.tax_calculator(recordObj);
+                            }
+
+                            if (check_csv == 'T') {
+                                recordObj.setValue('custbody_lmry_scheduled_process', 'F');
+                            } else {
+                                recordObj.setValue('custbody_lmry_scheduled_process', false);
+                            }
+                        }
+                    }
+                }
+
                 // Para validar si ingresa al log
                 // log.debug({
                 //   title: 'afterSubmit',
@@ -1046,9 +1165,11 @@ define(['N/record', 'N/runtime', 'N/search', 'N/log', 'N/config', 'N/https', 'N/
                 if (type == 'delete') {
                     // Para Argentina - AR - WHT Payment
                     if (LMRY_Result[0] == 'AR') {
-                        if (library.getAuthorization(138, licenses)) {
-                            // Elimina registros
-                            DeleteGroupLine(LMRY_Intern);
+                        if (ST_FEATURE == false || ST_FEATURE == "F") {
+                            if (library.getAuthorization(138, licenses)) {
+                                // Elimina registros
+                                DeleteGroupLine(LMRY_Intern);
+                            }
                         }
                     }
                     // Para Colombia Enabled Feature WHT Latam
@@ -1103,19 +1224,16 @@ define(['N/record', 'N/runtime', 'N/search', 'N/log', 'N/config', 'N/https', 'N/
                         });
                     }
 
-                    if (ST_FEATURE == false || ST_FEATURE == "F") {
+                    if (LMRY_Result[0] == 'CO') {
 
-                        if (LMRY_Result[0] == 'CO') {
+                        var flagEntity = libraryNewWHTLines.searchEntity(recordObj.getValue('entity'), 'vendor');
 
-                            var flagEntity = libraryNewWHTLines.searchEntity(recordObj.getValue('entity'), 'vendor');
-
-                            if (!flagEntity) {
-                                libraryNewWHTLines.newAfterSubmitTransaction(context, type, LMRY_Intern, transactionType, licenses, false);
-                            }
-
-                        } else {
-                            libWHTLines.afterSubmitTransaction(context, type, LMRY_Intern, transactionType, licenses);
+                        if (!flagEntity) {
+                            libraryNewWHTLines.newAfterSubmitTransaction(context, type, LMRY_Intern, transactionType, licenses, false);
                         }
+
+                    } else {
+                        libWHTLines.afterSubmitTransaction(context, type, LMRY_Intern, transactionType, licenses);
                     }
 
                 }
@@ -1237,13 +1355,6 @@ define(['N/record', 'N/runtime', 'N/search', 'N/log', 'N/config', 'N/https', 'N/
 
                         switch (LMRY_Result[0]) {
 
-                            case "BR":
-                                if (library.getAuthorization(290, licenses) == true) {
-                                    BR_ST_TaxLibrary.setTaxTransaction(ST_Context);
-                                    ST_RecordObj.save({ ignoreMandatoryFields: true, disableTriggers: true, enableSourcing: true });
-                                }
-                                break;
-
                             case "CL":
                                 if (library.getAuthorization(627, licenses) == true) {
                                     library_CL_Purchases.afterSubmitTransaction(ST_Context, licenses);
@@ -1263,19 +1374,20 @@ define(['N/record', 'N/runtime', 'N/search', 'N/log', 'N/config', 'N/https', 'N/
                                     CO_ST_TaxLibrary.setTaxTransaction(ST_Context);
                                     ST_RecordObj.save({ ignoreMandatoryFields: true, disableTriggers: true, enableSourcing: true });
                                 }
-                                if (library.getAuthorization(340, licenses) == true) {
-                                    ST_RecordObj = context.newRecord;
-                                    CO_ST_WhtLibrary.setWHTTransaction(ST_RecordObj, context, licenses);
-                                }
                                 break;
 
-                            case "SV":
-                                if (library.getAuthorization(724, licenses) == true) {
-                                    SV_ST_TaxLibrary.setTaxTransaction(ST_Context);
+                            case "AR":
+                                if (library.getAuthorization(678, licenses) == true) {
+                                    AR_ST_TaxLibrary.setTaxTransaction(ST_Context);
                                     ST_RecordObj.save({ ignoreMandatoryFields: true, disableTriggers: true, enableSourcing: true });
                                 }
+                                if (library.getAuthorization(218, licenses) == true) {
+                                    AR_ST_Perception.applyPerception(ST_Context);
+                                }
+                                if (library.getAuthorization(138, licenses) == true) {
+                                    AR_ST_TransFields.setTransactionFields(ST_Context);
+                                }
                                 break;
-
 
                         }
 
@@ -1335,7 +1447,11 @@ define(['N/record', 'N/runtime', 'N/search', 'N/log', 'N/config', 'N/https', 'N/
                     if (LMRY_Result[0] == 'CO') {
                         if (library.getAuthorization(27, licenses) && approvalStatus == 2) {
                             // Aplicacion de WHT Latam
-                            library1.Create_WHT_Latam('vendorbill', LMRY_Intern);
+                            if (ST_FEATURE == true || ST_FEATURE == "T") {
+                                CO_ST_WhtLibrary_Total.setWHTTotalTransaction("vendorbill", LMRY_Intern);
+                            } else {
+                                library1.Create_WHT_Latam('vendorbill', LMRY_Intern);
+                            }
                         }
                     }
                     // Para Colombia - Enabled Feature WHT Latam
@@ -1609,8 +1725,10 @@ define(['N/record', 'N/runtime', 'N/search', 'N/log', 'N/config', 'N/https', 'N/
                      * AR - WHT Payment
                      ***********************************/
                     if (LMRY_Result[0] == 'AR') {
-                        if (library.getAuthorization(138, licenses)) {
-                            GroupLine(context, LMRY_Intern);
+                        if (ST_FEATURE == false || ST_FEATURE == "F") {
+                            if (library.getAuthorization(138, licenses)) {
+                                GroupLine(context, LMRY_Intern);
+                            }
                         }
                     } // Solo AR - SUM TAX CODE GROUP
                 } // Solo Crear o Editar
@@ -1634,7 +1752,9 @@ define(['N/record', 'N/runtime', 'N/search', 'N/log', 'N/config', 'N/https', 'N/
                             filters: [
                                 ["custbody_lmry_reference_transaction", "is", LMRY_Intern],
                                 "AND",
-                                ["mainline", "is", "T"]
+                                ["mainline", "is", "T"],
+                                "AND",
+                                ["memomain", "startswith", "Calculo de IGV - Bill ID:"]
                             ],
                             columns: ['internalid']
                         });
@@ -2300,71 +2420,33 @@ define(['N/record', 'N/runtime', 'N/search', 'N/log', 'N/config', 'N/https', 'N/
                     feature: 'multprice'
                 });
 
-                RCD_TRANS.setValue({
-                    fieldId: 'custbody_lmry_informacion_adicional',
-                    value: ''
-                });
-
                 for (var i = 0; i < numLineas; i++) {
 
-                    var isItemTax = RCD_TRANS.getSublistValue({
-                        sublistId: 'item',
-                        fieldId: 'custcol_lmry_ar_item_tributo',
-                        line: i
-                    });
-                    if (!isItemTax || isItemTax == 'F') {
-                        RCD_TRANS.setSublistValue('item', 'custcol_lmry_br_taxc_rsp', i, '');
+                    var base_amount = RCD_TRANS.getSublistValue('item', 'custcol_lmry_br_base_amount', i); //base_amount es el nuevo net
+                    if (base_amount) {
+                        var quantityItem = RCD_TRANS.getSublistValue('item', 'quantity', i);
+                        quantityItem = parseFloat(quantityItem);
+                        var rateItem = parseFloat(base_amount) / quantityItem;
 
-                        if (RCD_TRANS.getSublistField({
-                            sublistId: 'item',
-                            fieldId: 'custcol_lmry_br_freight_val',
-                            line: i
-                        })) {
-                            RCD_TRANS.setSublistValue('item', 'custcol_lmry_br_freight_val', i, '');
+                        if (featureMultiPrice == true || featureMultiPrice == 'T') {
+                            RCD_TRANS.setSublistValue('item', 'price', i, -1);
+                        }
+                        RCD_TRANS.setSublistValue('item', 'rate', i, round2(rateItem));
+                        RCD_TRANS.setSublistValue('item', 'amount', i, round2(base_amount));
+                        RCD_TRANS.setSublistValue('item', 'grossamt', i, round2(base_amount));
+                        RCD_TRANS.setSublistValue('item', 'custcol_lmry_br_base_amount', i, '');
+                        RCD_TRANS.setSublistValue('item', 'custcol_lmry_br_total_impuestos', i, '');
+                        if (featureSuiteTax === false || featureSuiteTax === "F") {
+                            RCD_TRANS.setSublistValue('item', 'tax1amt', i, 0);
+                        } else {
+                            RCD_TRANS.setSublistValue('item', 'taxamount', i, 0);
+
+                            RCD_TRANS.removeLine({
+                                sublistId: 'taxdetails',
+                                line: 0
+                            });
                         }
 
-                        if (RCD_TRANS.getSublistField({
-                            sublistId: 'item',
-                            fieldId: 'custcol_lmry_br_insurance_val',
-                            line: i
-                        })) {
-                            RCD_TRANS.setSublistValue('item', 'custcol_lmry_br_insurance_val', i, '');
-                        }
-
-                        if (RCD_TRANS.getSublistField({
-                            sublistId: 'item',
-                            fieldId: 'custcol_lmry_br_expens_val',
-                            line: i
-                        })) {
-                            RCD_TRANS.setSublistValue('item', 'custcol_lmry_br_expens_val', i, '');
-                        }
-
-                        var base_amount = RCD_TRANS.getSublistValue('item', 'custcol_lmry_br_base_amount', i); //base_amount es el nuevo net
-                        if (base_amount) {
-                            var quantityItem = RCD_TRANS.getSublistValue('item', 'quantity', i);
-                            quantityItem = parseFloat(quantityItem);
-                            var rateItem = parseFloat(base_amount) / quantityItem;
-
-                            if (featureMultiPrice == true || featureMultiPrice == 'T') {
-                                RCD_TRANS.setSublistValue('item', 'price', i, -1);
-                            }
-                            RCD_TRANS.setSublistValue('item', 'rate', i, round2(rateItem));
-                            RCD_TRANS.setSublistValue('item', 'amount', i, round2(base_amount));
-                            RCD_TRANS.setSublistValue('item', 'grossamt', i, round2(base_amount));
-                            RCD_TRANS.setSublistValue('item', 'custcol_lmry_br_base_amount', i, '');
-                            RCD_TRANS.setSublistValue('item', 'custcol_lmry_br_total_impuestos', i, '');
-                            if (featureSuiteTax === false || featureSuiteTax === "F") {
-                                RCD_TRANS.setSublistValue('item', 'tax1amt', i, 0);
-                            } else {
-                                RCD_TRANS.setSublistValue('item', 'taxamount', i, 0);
-
-                                RCD_TRANS.removeLine({
-                                    sublistId: 'taxdetails',
-                                    line: 0
-                                });
-                            }
-
-                        }
                     }
                 }
 

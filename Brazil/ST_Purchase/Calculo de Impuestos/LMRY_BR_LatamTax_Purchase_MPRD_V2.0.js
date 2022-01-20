@@ -21,7 +21,7 @@ define(['N/record', 'N/search', 'N/runtime', 'N/log', 'N/format',
     './Latam_Library/LMRY_Log_LBRY_V2.0',
     './Latam_Library/LMRY_BR_Withholding_Tax_Purchase_LBRY'],
 
-    function (record, search, runtime, log, format, libraryMail, libraryTaxPurchase, libraryRetenciones, BR_TaxLibrary, lbryLog, libraryRetencionesLatam) {
+    function (record, search, runtime, log, format, libraryMail, libraryTaxPurchase, libraryRetenciones, BR_ST_TaxLibrary, lbryLog, libraryRetencionesLatam) {
 
         // Define characters that should not be counted when the script performs its
         // analysis of the text.
@@ -161,7 +161,7 @@ define(['N/record', 'N/search', 'N/runtime', 'N/log', 'N/format',
             //Setup Tax Subsidiary: Json tb usado en retenciones Latam (No Condicionar) [18-08-2021]
             var setupTax = "";
             if (ST_FEATURE == true || ST_FEATURE == "t") {
-                setupTax = BR_TaxLibrary.getSetupTaxSubsidiary(subsidiaryId);
+                setupTax = BR_ST_TaxLibrary.getSetupTaxSubsidiary(subsidiaryId);
             } else {
                 setupTax = libraryTaxPurchase.getSetupTaxSubsidiary(subsidiaryId);
             }
@@ -169,7 +169,7 @@ define(['N/record', 'N/search', 'N/runtime', 'N/log', 'N/format',
 
             var Jsonresult = {};
             if (ST_FEATURE === true || ST_FEATURE === "T") {
-                Jsonresult = BR_TaxLibrary.getTaxPurchase(recordObj, setupTax, featureDifalAuto);
+                Jsonresult = BR_ST_TaxLibrary.getTaxPurchase(recordObj, setupTax, featureDifalAuto);
             } else {
                 Jsonresult = libraryTaxPurchase.getTaxPurchase(recordObj, setupTax, featureDifalAuto);
             }
@@ -190,7 +190,7 @@ define(['N/record', 'N/search', 'N/runtime', 'N/log', 'N/format',
                 }
                 if (!isWtax) {
                     if (ST_FEATURE === true || ST_FEATURE === "T") {
-                        BR_TaxLibrary.updateItemLine(Jsonresult, recordObj, i, taxCalculationForm);
+                        BR_ST_TaxLibrary.updateItemLine(Jsonresult, recordObj, i, taxCalculationForm);
                     } else {
                         libraryTaxPurchase.updateLine(Jsonresult, recordObj, i, taxCalculationForm);
                     }
@@ -198,7 +198,11 @@ define(['N/record', 'N/search', 'N/runtime', 'N/log', 'N/format',
             }
 
             if (Number(taxCalculationForm) == 4 && typeTran != "itemfulfillment") {
-                libraryTaxPurchase.addTaxItems(recordObj, Jsonresult, setupTax["department"], setupTax["class"], setupTax["location"]);
+                if (ST_FEATURE == true || ST_FEATURE == "T") {
+                    BR_ST_TaxLibrary.addTaxItems(recordObj, Jsonresult, setupTax["department"], setupTax["class"], setupTax["location"]);
+                } else {
+                    libraryTaxPurchase.addTaxItems(recordObj, Jsonresult, setupTax["department"], setupTax["class"], setupTax["location"]);
+                }
             }
 
 
@@ -215,7 +219,7 @@ define(['N/record', 'N/search', 'N/runtime', 'N/log', 'N/format',
 
             var arrayTR = [];
             if (ST_FEATURE === true || ST_FEATURE === "T") {
-                arrayTR = BR_TaxLibrary.createTaxResult(Jsonresult, recordObj, featureDifalAuto);
+                arrayTR = BR_ST_TaxLibrary.createTaxResult(Jsonresult, recordObj, featureDifalAuto);
             } else {
                 arrayTR = libraryTaxPurchase.createTaxResult(Jsonresult, recordObj, featureDifalAuto);
             }

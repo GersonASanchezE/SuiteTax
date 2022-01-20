@@ -124,8 +124,9 @@ define(['N/ui/serverWidget', 'N/search', 'N/record', 'N/log', 'N/url', 'N/format
         type: 'customrecord_lmry_wht_payments_log',
         filters: filtros_log,
         columns: ['internalid', 'custrecord_lmry_wht_bil', 'custrecord_lmry_wht_exc',
-                  'custrecord_lmry_wht_cur', 'custrecord_lmry_wht_mul', 'custrecord_lmry_wht_bas',
-                  'custrecord_lmry_wht_ven']
+          'custrecord_lmry_wht_cur', 'custrecord_lmry_wht_mul', 'custrecord_lmry_wht_bas',
+          'custrecord_lmry_wht_ven'
+        ]
       });
 
       var result_log = search_log.run().getRange({

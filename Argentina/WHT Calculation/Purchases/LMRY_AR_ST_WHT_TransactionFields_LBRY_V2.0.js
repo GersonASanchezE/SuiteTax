@@ -21,15 +21,16 @@ define([
     var LMRY_SCRIPT = 'LMRY - AR ST WHT Transaction Fields V2.0';
     var LMRY_SCRIPT_NAME = 'LMRY_AR_ST_WHT_TransactionFields_LBRY_V2.0.js';
 
-    function setTransactionFields(context, recordObj) {
+    function setTransactionFields(context) {
 
         try {
 
-            var recordID = recordObj.id;
+            var recordID = context.newRecord.id;
+            var type = context.type;
 
-            if (context.type != "create") {
+            if (type != "create") {
                 // Elimina registros del record: LatamReady - Transaction Fields
-                _deleteTransactionFields(recordID);
+                deleteTransactionFields(recordID);
             }
 
             var arrayData = [];
@@ -214,7 +215,7 @@ define([
     /***************************************************************************
      * Elimina registros del record: LatamReady - Tax Code Group
      ***************************************************************************/
-    function _deleteTransactionFields(recordID) {
+    function deleteTransactionFields(recordID) {
 
         try {
             // TF: Transaction Fields
@@ -285,7 +286,8 @@ define([
     }
 
     return {
-        setTransactionFields: setTransactionFields
+        setTransactionFields: setTransactionFields,
+        deleteTransactionFields: deleteTransactionFields
     };
 
 });
