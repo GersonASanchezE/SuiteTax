@@ -23,37 +23,28 @@ function (log, record, search, runtime, library, Library_Log) {
   var FEATURE_DEPARTMENT = runtime.isFeatureInEffect({ feature: "DEPARTMENTS" });
   var FEATURE_CLASSES = runtime.isFeatureInEffect({ feature: "CLASSES" });
   var FEATURE_LOCATIONS = runtime.isFeatureInEffect({ feature: "LOCATIONS" });
-
+  
   // Accounting Preferences
   var userObj = runtime.getCurrentUser();
   var MANDATORY_DEPARTMENT = userObj.getPreference({ name: "DEPTMANDATORY" });
   var MANDATORY_LOCATION = userObj.getPreference({ name: "LOCMANDATORY" });
   var MANDATORY_CLASS = userObj.getPreference({ name: "CLASSMANDATORY" });
-
+  
   var FEATURE_SUBSIDIARIES = runtime.isFeatureInEffect({ feature: "SUBSIDIARIES" });
   var FEATURE_MULTIBOOK = runtime.isFeatureInEffect({ feature: "MULTIBOOK" });
   var USER = runtime.getCurrentUser();
-
+  
   var exchange_global = 1;
   var numLines = 1;
   var filtroTransactionType = "";
   // var cantidad = 0;
-
+  
   /*********************************************************************************************************
    * Funcion que realiza el calculo de los impuestos.
    * Para Peru: Llamada desde el User Event del Invoice, Credit Memo.
    ********************************************************************************************************/
   function applyPerception(context){
     try {
-<<<<<<< Updated upstream
-      var typeContext = scriptContext.type;
-      if (typeContext == "create" || typeContext == "edit") {
-        var recordObj = scriptContext.newRecord;
-
-        var override = recordObj.getValue('taxdetailsoverride');
-        if(override == false || override == 'F'){
-          return true;
-=======
       
       var id = context.newRecord.id;
       var type = context.newRecord.type;
@@ -87,7 +78,6 @@ function (log, record, search, runtime, library, Library_Log) {
         if (eDocStatus != null && eDocStatus != '') {
           eDocStatus = search.lookupFields({ type: 'customlist_psg_ei_status', id: eDocStatus, columns: ['name'] });
           eDocStatus = eDocStatus.name;
->>>>>>> Stashed changes
         }
       }
       
@@ -114,23 +104,6 @@ function (log, record, search, runtime, library, Library_Log) {
           }
           var RespType = responsableType.custentity_lmry_ar_tiporespons[0].value;
 
-<<<<<<< Updated upstream
-            // Verifica si esta activo el Feature Proyectos
-            var featjobs = runtime.isFeatureInEffect({feature: "JOBS"});
-            if (featjobs == true) {
-                var ajobs = search.lookupFields({ type: search.Type.JOB, id: entity, columns: ['customer'] });
-                    if (ajobs.customer) {
-                        entity = ajobs.customer[0].value;
-                    }
-            }
-            var subsidiary = recordObj.getValue("subsidiary");
-            var responsableType = search.lookupFields({ type: search.Type.VENDOR, id: entity, columns: ['custentity_lmry_ar_tiporespons'] });
-            // Se valida que el campo no este vacio
-            if (responsableType.custentity_lmry_ar_tiporespons.length == 0 || responsableType == '' || responsableType == null) {
-              return true;
-            }
-            var RespType = responsableType.custentity_lmry_ar_tiporespons[0].value;
-=======
           var setupSubsidiary = getSetupTaxSubsidiary(subsidiary);
           var tipoRedondeo = setupSubsidiary["rounding"];
           var apply_line = setupSubsidiary["applyLine"];
@@ -139,7 +112,6 @@ function (log, record, search, runtime, library, Library_Log) {
           var setup_location = setupSubsidiary["location"];
           var arregloSegmentacion = [setup_department, setup_class, setup_location];
           exchange_global = getExchangeRate(recordObj, subsidiary, setupSubsidiary);
->>>>>>> Stashed changes
 
           var searchResultCC = getContributoryClasses(subsidiary, transactionDate, filtroTransactionType, entity, legalDocType, RespType);
           var searchResultNT = getNationalTaxes(subsidiary, transactionDate, filtroTransactionType, legalDocType, RespType);
@@ -151,18 +123,6 @@ function (log, record, search, runtime, library, Library_Log) {
 
           recordObj.save({ ignoreMandatoryFields: true, disableTriggers: true, enableSourcing: true });
 
-<<<<<<< Updated upstream
-            var searchResultCC = getContributoryClasses(subsidiary, transactionDate, filtroTransactionType, entity, legalDocType, RespType);
-            var searchResultNT = getNationalTaxes(subsidiary, transactionDate, filtroTransactionType, legalDocType, RespType);
-            // log.error("searchResultCC21", searchResultCC)
-            // log.error("searchResultNT21", searchResultNT)
-
-            addItem(searchResultCC, recordObj, tipoRedondeo, arregloSegmentacion);
-            addItem(searchResultNT, recordObj, tipoRedondeo, arregloSegmentacion);
-
-          }
-=======
->>>>>>> Stashed changes
         }
       }
     }
@@ -172,7 +132,7 @@ function (log, record, search, runtime, library, Library_Log) {
       Library_Log.doLog({ title: '[ After Sumbit - applyPerception ]', message: err, relatedScript: LMRY_SCRIPT_NAME });
     }
   }
-
+  
   /**************************************************************
    * Validar si el tipo de documento de la transaccion se
    * encuentra en el registro personalizado
@@ -181,17 +141,17 @@ function (log, record, search, runtime, library, Library_Log) {
   function validarTipoDoc(tipoDoc) {
     try {
       var tipoDocEncontrado = false;
-
+  
       if (tipoDoc == '' || tipoDoc == null) {
         return tipoDocEncontrado;
       }
-
+  
       var busqDocTypePerc = search.create({
-        type: 'customrecord_lmry_ar_doctype_percep',
+        type: 'customrecord_lmry_ar_doctype_percep', 
         columns: ['custrecord_lmry_ar_doctype_percep'],
         filters: [['custrecord_lmry_ar_doctype_percep', 'anyof', tipoDoc]]
       });
-
+  
       var resultDocTypePerc = busqDocTypePerc.run().getRange(0, 1);
       if (resultDocTypePerc != null && resultDocTypePerc.length != 0) {
         tipoDocEncontrado = true;
@@ -204,7 +164,7 @@ function (log, record, search, runtime, library, Library_Log) {
       Library_Log.doLog({ title: '[ applyPerception - validarTipoDoc ]', message: err, relatedScript: LMRY_SCRIPT_NAME });
     }
   }
-
+  
   /**************************************************************
    * Verifica si en la lineas (item) esta marcado el campo
    * personalizado.
@@ -245,17 +205,17 @@ function (log, record, search, runtime, library, Library_Log) {
       if (featureSubs == true || featureSubs == 'T') {
         filters.push(['custrecord_lmry_setuptax_subsidiary', 'anyof', subsidiary]);
       }
-
+  
       var search_setupSub = search.create({
         type: 'customrecord_lmry_setup_tax_subsidiary',
         filters: filters,
         columns: ['custrecord_lmry_setuptax_currency', 'custrecord_lmry_setuptax_depclassloc', 'custrecord_lmry_setuptax_type_rounding', 'custrecord_lmry_setuptax_department', 'custrecord_lmry_setuptax_class','custrecord_lmry_setuptax_location', 'custrecord_lmry_setuptax_apply_line']
       });
-
+  
       var results = search_setupSub.run().getRange(0, 1);
-
+  
       var setupSubsidiary = {};
-
+  
       if (results && results.length > 0) {
         setupSubsidiary['isDefaultClassification'] = results[0].getValue('custrecord_lmry_setuptax_depclassloc');
         setupSubsidiary['rounding'] = results[0].getValue('custrecord_lmry_setuptax_type_rounding');
@@ -317,7 +277,7 @@ function (log, record, search, runtime, library, Library_Log) {
       Library_Log.doLog({ title: '[ applyPerception - getExchangeRate ]', message: e, relatedScript: LMRY_SCRIPT_NAME });
     }
   }
-
+  
   /***************************************************************************
   * BUSQUEDA DEL RECORD: LATAMREADY - CONTRIBUTORY CLASS
   *    - subsidiary: Subsiaria
@@ -405,19 +365,19 @@ function (log, record, search, runtime, library, Library_Log) {
         "AND",
         ["custrecord_lmry_ntax_gen_transaction", "anyof", "4"],
       ];
-
+   
       var documents = ["@NONE@"];
       if (documentType) {
         documents.push(documentType);
       }
       filtrosNT.push("AND", ["custrecord_lmry_ntax_fiscal_doctype", "anyof", documents]);
-
+   
       var featureSubs = runtime.isFeatureInEffect({feature: "SUBSIDIARIES"});
-
+   
       if (featureSubs) {
         filtrosNT.push("AND", ["custrecord_lmry_ntax_subsidiary", "anyof", subsidiary]);
       }
-
+  
       var searchNT = search.create({
         type: "customrecord_lmry_national_taxes",
         columns: [
@@ -450,23 +410,23 @@ function (log, record, search, runtime, library, Library_Log) {
       Library_Log.doLog({ title: '[ applyPerception - getNationalTaxes ]', message: e, relatedScript: LMRY_SCRIPT_NAME });
     }
   }
-
+   
   function addItem(result_CCNT, recordObj, tipoRedondeo, segmentacion) {
     try {
-
+      
       var amount_base = parseFloat(recordObj.getValue("total")) - parseFloat(recordObj.getValue("taxtotal"));
       log.debug("amount_base", amount_base)
 
       var department_setup = segmentacion[0];
       var class_setup = segmentacion[1];
       var location_setup = segmentacion[2];
-
+  
       var lastDetailLine = recordObj.getLineCount({sublistId: "taxdetails"});
 
       if (result_CCNT != null && result_CCNT.length > 0) {
         for (var i = 0; i < result_CCNT.length; i++) {
           var row = result_CCNT[i].columns;
-
+  
           var tax_rate = result_CCNT[i].getValue(row[0]); // Latam AR - Tax rate
           var r_department = result_CCNT[i].getValue(row[1]);
           var r_class = result_CCNT[i].getValue(row[2]);
@@ -475,7 +435,7 @@ function (log, record, search, runtime, library, Library_Log) {
           var tax_item = result_CCNT[i].getValue(row[5]); // Latam AR - Tax item
           var description = result_CCNT[i].getValue(row[6]);
           var applies_to_CCNT = result_CCNT[i].getValue(row[7]);
-          var juriisibb = result_CCNT[i].getValue(row[8]); // Latam AR - IIBB Jurisdiction
+          var juriisibb = result_CCNT[i].getValue(row[8]); // Latam AR - IIBB Jurisdiction 
           var iibbnorma = result_CCNT[i].getValue(row[9]); // Latam AR - IIBB Norma
           var itmsubtype = result_CCNT[i].getValue(row[10]); // Item SubType
           var regimenen = result_CCNT[i].getValue(row[11]); // Latam AR - Regimen
@@ -494,7 +454,7 @@ function (log, record, search, runtime, library, Library_Log) {
           // if (itmsubtype != 'Para la venta' && itmsubtype != 'For Purchase' && itmsubtype != 'Para reventa' && itmsubtype != 'For Resale') {
           //   continue;
           // }
-
+  
           if (amount_base <= 0) {
             continue;
           }
@@ -503,7 +463,7 @@ function (log, record, search, runtime, library, Library_Log) {
           var retencion = 0;
           retencion = parseFloat(amount_base) * parseFloat(tax_rate);
           var aux_cadena = retencion + ";";
-
+  
           if (tipoRedondeo == '1') {
             if (parseFloat(retencion) - parseInt(retencion) < 0.5) {
               retencion = parseInt(retencion);
@@ -515,54 +475,28 @@ function (log, record, search, runtime, library, Library_Log) {
           if (tipoRedondeo == '2') {
             retencion = parseInt(retencion);
           }
-
+  
           if (applies_account != '' && applies_account != null) {
             aux_cadena += applies_account;
           }
-
+  
           retencion = parseFloat(Math.round(parseFloat(retencion) * 100) / 100);
-<<<<<<< Updated upstream
-
-          // Agrega una linea en blanco
-          recordObj.insertLine('item', numLines);
-          recordObj.setCurrentSublistValue('item', 'item', tax_item);
-
-=======
   
           recordObj.selectNewLine('item');
           
           recordObj.setCurrentSublistValue('item', 'item', tax_item);
->>>>>>> Stashed changes
           recordObj.setCurrentSublistValue('item', 'description', description);
           recordObj.setCurrentSublistValue('item', 'quantity', 1);
           recordObj.setCurrentSublistValue('item', 'rate', 0);
           recordObj.setCurrentSublistValue('item', 'custcol_lmry_ar_perception_percentage', parseFloat(tax_rate)*100);
           recordObj.setCurrentSublistValue('item', 'custcol_lmry_ar_item_tributo', true);
           recordObj.setCurrentSublistValue('item', 'custcol_lmry_base_amount', amount_base);
-<<<<<<< Updated upstream
-          // recordObj.setSublistValue('item', 'custcol_lmry_ar_perception_account', numLines, aux_cadena);
-
-          // Name: Latam Col - AR Norma IIBB - ARCIBA
-          // if (iibbnorma != '' && iibbnorma != null) {
-          //   recordObj.setSublistValue('item', 'custcol_lmry_ar_norma_iibb_arciba', numLines, iibbnorma);
-          // }
-
-=======
   
->>>>>>> Stashed changes
           // Name: Latam Col - AR Jurisdiccion IIBB
           if (juriisibb != '' && juriisibb != null) {
             recordObj.setCurrentSublistValue('item', 'custcol_lmry_ar_col_jurisd_iibb', juriisibb);
           }
 
-<<<<<<< Updated upstream
-          // Name: Latam Col - AR Regimen
-          // if (regimenen != '' && regimenen != null) {
-          //   recordObj.setSublistValue('item', 'custcol_lmry_ar_col_regimen', numLines, regimenen);
-          // }
-
-=======
->>>>>>> Stashed changes
           // Department
           if (FEATURE_DEPARTMENT || FEATURE_DEPARTMENT == 'T') {
             if (r_department != '' && r_department != null) {
@@ -573,7 +507,7 @@ function (log, record, search, runtime, library, Library_Log) {
               }
             }
           }
-
+  
           // Class
           if (FEATURE_CLASSES || FEATURE_CLASSES == 'T') {
             if (r_class != '' && r_class != null) {
@@ -584,9 +518,9 @@ function (log, record, search, runtime, library, Library_Log) {
               }
             }
           }
-
+  
           var fieldLocation = recordObj.getSublistField({ sublistId: 'item', fieldId: 'location', line: numLines });
-
+          
           // Location
           if (fieldLocation != '' && fieldLocation != null && (FEATURE_LOCATIONS || FEATURE_LOCATIONS == 'T')) {
             if (r_location != '' && r_location != null) {
@@ -599,12 +533,6 @@ function (log, record, search, runtime, library, Library_Log) {
           }
 
           recordObj.commitLine({sublistId: 'item'});
-<<<<<<< Updated upstream
-
-          var itemDetailReference = recordObj.getSublistValue({ sublistId: 'item', fieldId: 'taxdetailsreference', line: numLines });
-
-          recordObj.insertLine('taxdetails', lastDetailLine);
-=======
           
           var itemid = recordObj.getSublistValue('item', 'item',numLines)
 
@@ -612,7 +540,6 @@ function (log, record, search, runtime, library, Library_Log) {
           var itemDetailReference = recordObj.getSublistValue({ sublistId: 'item', fieldId: 'taxdetailsreference', line: numLines });
           
           recordObj.selectNewLine('taxdetails');
->>>>>>> Stashed changes
           // log.error("retencion", retencion)
           recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxdetailsreference", value: itemDetailReference });
           recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxtype", value: taxType });
@@ -620,7 +547,7 @@ function (log, record, search, runtime, library, Library_Log) {
           recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxbasis",  value: amount_base });
           recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxrate",  value: parseFloat(tax_rate) * 100 });
           recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxamount", value: parseFloat(retencion) });
-
+          
           // log.error("itemDetailReference", itemDetailReference)
           // log.error("taxtype", taxType)
           // log.error("taxcode", taxCode)
@@ -628,8 +555,8 @@ function (log, record, search, runtime, library, Library_Log) {
           // log.error("taxrate", tax_rate)
           // log.error("taxamount", retencion)
           recordObj.commitLine({sublistId: 'taxdetails'});
-
-
+          
+          
           // Incrementa las lineas
           lastDetailLine++;
           numLines++;
@@ -642,27 +569,6 @@ function (log, record, search, runtime, library, Library_Log) {
       Library_Log.doLog({ title: '[ applyPerception - addItem ]', message: e, relatedScript: LMRY_SCRIPT_NAME });
     }
 
-<<<<<<< Updated upstream
-    function setTaxDetailLines() {
-      recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxdetailsreference", line: lastDetailLine, value: itemDetailReference });
-      recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxtype", line: lastDetailLine, value: taxType });
-      recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxcode", line: lastDetailLine, value: taxCode });
-      recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxbasis", line: lastDetailLine, value: amount_base });
-      recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxrate", line: lastDetailLine, value: parseFloat(tax_rate) * 100 });
-      recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxamount", line: lastDetailLine, value: parseFloat(retencion) });
-
-      // log.error("itemDetailReference", itemDetailReference)
-      // log.error("taxtype", taxType)
-      // log.error("taxcode", taxCode)
-      // log.error("taxbasis", amount_base)
-      // log.error("taxrate", tax_rate)
-      // log.error("taxamount", retencion)
-      lastDetailLine++;
-    }
-
-
-=======
->>>>>>> Stashed changes
   }
   
   return {
