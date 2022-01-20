@@ -52,8 +52,8 @@ define([
             });
 
         } catch (error) {
-            Library_Mail.sendemail('[ beforeLoad - disableInvoicingIdentifier ]: ' + error, LMRY_SCRIPT);
-            Library_Log.doLog({ title: '[ beforeLoad - disableInvoicingIdentifier ]', message: error, relatedScript: LMRY_SCRIPT_NAME });
+            Library_Mail.sendemail('[ disableInvoicingIdentifier ]: ' + error, LMRY_SCRIPT);
+            Library_Log.doLog({ title: '[ disableInvoicingIdentifier ]', message: error, relatedScript: LMRY_SCRIPT_NAME });
         }
 
     }
@@ -63,478 +63,483 @@ define([
      *    Class o National Tax para posteriormente realizar los calculos de
      *    impuestos.
      ***************************************************************************/
-    function setTaxTransaction(context) {
+    function setTaxTransaction(scriptContext) {
 
         try {
 
-            var recordObj = context.newRecord;
-            var actionType = context.type;
-
-            var transactionID = recordObj.id;
-            var transactionType = recordObj.type;
-
-            if (['create', 'edit', 'copy'].indexOf(actionType) != -1) {
-
-                var taxDetailOverride = recordObj.getValue({ fieldId: 'taxdetailsoverride' });
-                if (taxDetailOverride == true || taxDetailOverride == 'T') {
-
-                    if (actionType != "create") {
-                        deleteTaxDetailLines(recordObj);
-                    }
-
-                    FEATURE_SUBSIDIARY = runtime.isFeatureInEffect({ feature: 'SUBSIDIARIES' });
-                    FEATURE_MULTIBOOK = runtime.isFeatureInEffect({ feature: 'MULTIBOOK' });
-
-                    var transactionSubsidiary = "";
-                    if (FEATURE_SUBSIDIARY == true || FEATURE_SUBSIDIARY == 'T') {
-                        transactionSubsidiary = recordObj.getValue({ fieldId: 'subsidiary' });
-                    } else {
-                        transactionSubsidiary = recordObj.getValue({ fieldId: 'custbody_lmry_subsidiary_country' });
-                    }
-
-                    var transactionCountry = recordObj.getValue({ fieldId: 'custbody_lmry_subsidiary_country' });
-                    var transactionDate = recordObj.getText({ fieldId: 'trandate' });
-                    var tranDate = recordObj.getValue({ fieldId: 'trandate' });
-                    var transactionEntity = recordObj.getValue({ fieldId: 'entity' });
-                    var transactionDocType = recordObj.getValue({ fieldId: 'custbody_lmry_document_type' });
-
-                    var filtroTransactionType = '';
-                    switch (transactionType) {
-                        case 'vendorbill':
-                            filtroTransactionType = 4;
-                            break;
-                        case 'vendorcredit':
-                            filtroTransactionType = 7;
-                            break;
-                    }
-
-                    var STS_JSON = getSetupTaxSubsidiary(transactionSubsidiary);
-                    var exchangeRate = getExchangeRate(recordObj, transactionSubsidiary, STS_JSON);
-                    var CC_SearchResult = getContributoryClasses(transactionSubsidiary, transactionDate, filtroTransactionType, transactionEntity, transactionDocType);
-                    var NT_SearchResult = getNationalTaxes(transactionSubsidiary, transactionDate, filtroTransactionType, transactionDocType);
-
-                    log.error('[ CC_SearchResult ]', CC_SearchResult);
-                    log.error('[ NT_SearchResult ]', NT_SearchResult);
-
-                    var itemLineCount = recordObj.getLineCount({ sublistId: 'item' });
-                    var expenseLineCount = recordObj.getLineCount({ sublistId: 'expense' });
-
-                    var lastDetailLine = 0;
-                    var taxResult = [];
-
-                    if (CC_SearchResult != null && CC_SearchResult.length > 0) {
-
-                        for (var i = 0; i < CC_SearchResult.length; i++) {
-
-                            var CC_internalID = CC_SearchResult[i].getValue({ name: "internalid" });
-                            var CC_generatedTransaction = CC_SearchResult[i].getText({ name: "custrecord_lmry_ccl_gen_transaction" });
-                            var CC_generatedTransactionID = CC_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_gen_transaction" });
-                            var CC_taxType = CC_SearchResult[i].getText({ name: "custrecord_lmry_ccl_taxtype" });
-                            var CC_taxTypeID = CC_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_taxtype" });
-                            var CC_STE_taxType = CC_SearchResult[i].getText({ name: "custrecord_lmry_cc_ste_tax_type" });
-                            var CC_STE_taxTypeID = CC_SearchResult[i].getValue({ name: "custrecord_lmry_cc_ste_tax_type" });
-                            var CC_STE_taxCode = CC_SearchResult[i].getText({ name: "custrecord_lmry_cc_ste_tax_code" });
-                            var CC_STE_taxCodeID = CC_SearchResult[i].getValue({ name: "custrecord_lmry_cc_ste_tax_code" });
-                            var CC_taxRate = CC_SearchResult[i].getValue({ name: "custrecord_lmry_ar_ccl_taxrate" });
-                            var CC_isExempt = CC_SearchResult[i].getValue({ name: "custrecord_lmry_ar_ccl_isexempt" });
-                            var CC_invIdent = CC_SearchResult[i].getText({ name: "custrecord_lmry_cc_invoice_identifier" });
-                            var CC_invIdentID = CC_SearchResult[i].getValue({ name: "custrecord_lmry_cc_invoice_identifier" });
-                            var CC_Department = CC_SearchResult[i].getText({ name: "custrecord_lmry_ar_ccl_department" });
-                            var CC_DepartmentID = CC_SearchResult[i].getValue({ name: "custrecord_lmry_ar_ccl_department" });
-                            var CC_Class = CC_SearchResult[i].getText({ name: "custrecord_lmry_ar_ccl_class" });
-                            var CC_ClassID = CC_SearchResult[i].getValue({ name: "custrecord_lmry_ar_ccl_class" });
-                            var CC_Location = CC_SearchResult[i].getText({ name: "custrecord_lmry_ar_ccl_location" });
-                            var CC_LocationID = CC_SearchResult[i].getValue({ name: "custrecord_lmry_ar_ccl_location" });
-
-                            if (itemLineCount != null && itemLineCount > 0) {
-
-                                for (var j = 0; j < itemLineCount; j++) {
-
-                                    var item = recordObj.getSublistText({ sublistId: 'item', fieldId: 'item', line: j });
-                                    var itemID = recordObj.getSublistValue({ sublistId: 'item', fieldId: 'item', line: j });
-                                    var itemUniqueKey = recordObj.getSublistValue({ sublistId: 'item', fieldId: 'lineuniquekey', line: j });
-                                    var itemInvoiceIdentifier = recordObj.getSublistText({ sublistId: 'item', fieldId: 'custcol_lmry_taxcode_by_inv_ident', line: j });
-                                    var itemDetailReference = recordObj.getSublistValue({ sublistId: 'item', fieldId: 'taxdetailsreference', line: j });
-
-                                    if( itemInvoiceIdentifier != null && itemInvoiceIdentifier != "" ) {
-                                        var II_JSON = getInvoicingIdentifierJSON(itemInvoiceIdentifier);
-                                        log.debug('[ II_JSON ]', II_JSON);
-                                    } else {
-                                        break;
-                                    }
-
-                                    var itemNetAmount = recordObj.getSublistValue({ sublistId: "item", fieldId: "amount", line: j }) || 0.0;
-
-                                    if ((CC_invIdent == II_JSON.invoicing) && (CC_STE_taxType == II_JSON.taxtype) && (CC_STE_taxCode == II_JSON.taxcode)) {
-
-                                        var itemTaxAmountByCC = parseFloat(itemNetAmount) * parseFloat(CC_taxRate);
-                                        var itemGrossAmountByCC = parseFloat(itemNetAmount) + parseFloat(itemTaxAmountByCC);
-
-                                        recordObj.setSublistValue({ sublistId: "taxdetails", fieldId: "taxdetailsreference", line: lastDetailLine, value: itemDetailReference });
-                                        recordObj.setSublistValue({ sublistId: "taxdetails", fieldId: "taxtype", line: lastDetailLine, value: CC_STE_taxTypeID });
-                                        recordObj.setSublistValue({ sublistId: "taxdetails", fieldId: "taxcode", line: lastDetailLine, value: CC_STE_taxCodeID });
-                                        recordObj.setSublistValue({ sublistId: "taxdetails", fieldId: "taxbasis", line: lastDetailLine, value: parseFloat(itemNetAmount) });
-                                        recordObj.setSublistValue({ sublistId: "taxdetails", fieldId: "taxrate", line: lastDetailLine, value: parseFloat(CC_taxRate) * 100 });
-                                        recordObj.setSublistValue({ sublistId: "taxdetails", fieldId: "taxamount", line: lastDetailLine, value: itemTaxAmountByCC });
-
-                                        taxResult.push({
-                                            taxtype: {
-                                                text: CC_taxType,
-                                                value: CC_taxTypeID
-                                            },
-                                            ste_taxtype: {
-                                                text: CC_STE_taxType,
-                                                value: CC_STE_taxTypeID
-                                            },
-                                            ste_taxcode: {
-                                                text: CC_STE_taxCode,
-                                                value: CC_STE_taxCodeID
-                                            },
-                                            lineuniquekey: itemUniqueKey,
-                                            baseamount: parseFloat(itemNetAmount),
-                                            taxamount: Math.round(itemTaxAmountByCC * 100) / 100,
-                                            taxrate: CC_taxRate,
-                                            cc_nt_id: CC_internalID,
-                                            debitaccount: {},
-                                            creditaccount: {},
-                                            generatedtransaction: {
-                                                text: CC_generatedTransaction,
-                                                value: CC_generatedTransactionID
-                                            },
-                                            department: {
-                                                text: CC_Department,
-                                                value: CC_DepartmentID
-                                            },
-                                            class: {
-                                                text: CC_Class,
-                                                    value: CC_ClassID
-                                            },
-                                            location: {
-                                                text: CC_Location,
-                                                value: CC_LocationID
-                                            },
-                                            item: {
-                                                text: item,
-                                                value: itemID
-                                            },
-                                            expenseacc: {},
-                                            position: j,
-                                            description: "",
-                                            lc_baseamount: parseFloat(itemNetAmount * exchangeRate),
-                                            lc_taxamount: parseFloat(itemTaxAmountByCC * exchangeRate),
-                                            lc_grossamount: parseFloat(itemGrossAmountByCC * exchangeRate)
-                                        });
-
-                                        lastDetailLine += 1;
-
-                                    }
-
-                                } // FIN FOR ITEM COUNT
-
-                            } // FIN IF ITEM COUNT
-
-                            if (expenseLineCount != null && expenseLineCount > 0) {
-
-                                for (var j = 0; j < expenseLineCount; j++) {
-
-                                    var account = recordObj.getSublistText({ sublistId: 'expense', fieldId: 'account', line: j });
-                                    var accountID = recordObj.getSublistValue({ sublistId: 'expense', fieldId: 'account', line: j });
-                                    var expenseUniqueKey = recordObj.getSublistValue({ sublistId: 'expense', fieldId: 'lineuniquekey', line: j });
-                                    var expenseInvoiceIdentifier = recordObj.getSublistText({ sublistId: 'expense', fieldId: 'custcol_lmry_taxcode_by_inv_ident', line: j });
-                                    var expenseDetailReference = recordObj.getSublistValue({ sublistId: 'expense', fieldId: 'taxdetailsreference', line: j });
-
-                                    if( expenseInvoiceIdentifier != null && expenseInvoiceIdentifier != "" ) {
-                                        var II_JSON = getInvoicingIdentifierJSON(expenseInvoiceIdentifier);
-                                        log.debug('[ II_JSON ]', II_JSON);
-                                    } else {
-                                        break;
-                                    }
-
-                                    var expenseNetAmount = recordObj.getSublistValue({ sublistId: "expense", fieldId: "amount", line: j }) || 0.0;
-
-                                    if ((CC_invIdent == II_JSON.invoicing) && (CC_STE_taxType == II_JSON.taxtype) && (CC_STE_taxCode == II_JSON.taxcode)) {
-
-                                        var expenseTaxAmountByCC = parseFloat(expenseNetAmount) * parseFloat(CC_taxRate);
-                                        var expenseGrossAmountByCC = parseFloat(expenseNetAmount) + parseFloat(expenseTaxAmountByCC);
-
-                                        recordObj.setSublistValue({ sublistId: "taxdetails", fieldId: "taxdetailsreference", line: lastDetailLine, value: expenseDetailReference });
-                                        recordObj.setSublistValue({ sublistId: "taxdetails", fieldId: "taxtype", line: lastDetailLine, value: CC_STE_taxTypeID });
-                                        recordObj.setSublistValue({ sublistId: "taxdetails", fieldId: "taxcode", line: lastDetailLine, value: CC_STE_taxCodeID });
-                                        recordObj.setSublistValue({ sublistId: "taxdetails", fieldId: "taxbasis", line: lastDetailLine, value: parseFloat(expenseNetAmount) });
-                                        recordObj.setSublistValue({ sublistId: "taxdetails", fieldId: "taxrate", line: lastDetailLine, value: parseFloat(CC_taxRate) * 100 });
-                                        recordObj.setSublistValue({ sublistId: "taxdetails", fieldId: "taxamount", line: lastDetailLine, value: expenseTaxAmountByCC });
-
-                                        taxResult.push({
-                                            taxtype: {
-                                                text: CC_taxType,
-                                                value: CC_taxTypeID
-                                            },
-                                            ste_taxtype: {
-                                                text: CC_STE_taxType,
-                                                value: CC_STE_taxTypeID
-                                            },
-                                            ste_taxcode: {
-                                                text: CC_STE_taxCode,
-                                                value: CC_STE_taxCodeID
-                                            },
-                                            lineuniquekey: expenseUniqueKey,
-                                            baseamount: parseFloat(expenseNetAmount),
-                                            taxamount: Math.round(expenseTaxAmountByCC * 100) / 100,
-                                            taxrate: CC_taxRate,
-                                            cc_nt_id: CC_internalID,
-                                            debitaccount: {},
-                                            creditaccount: {},
-                                            generatedtransaction: {
-                                                text: CC_generatedTransaction,
-                                                value: CC_generatedTransactionID
-                                            },
-                                            department: {
-                                                text: CC_Department,
-                                                value: CC_DepartmentID
-                                            },
-                                            class: {
-                                                text: CC_Class,
-                                                    value: CC_ClassID
-                                            },
-                                            location: {
-                                                text: CC_Location,
-                                                value: CC_LocationID
-                                            },
-                                            item: {},
-                                            expenseacc: {
-                                                text: account,
-                                                value: accountID
-                                            },
-                                            position: j,
-                                            description: "",
-                                            lc_baseamount: parseFloat(expenseNetAmount * exchangeRate),
-                                            lc_taxamount: parseFloat(expenseTaxAmountByCC * exchangeRate),
-                                            lc_grossamount: parseFloat(expenseGrossAmountByCC * exchangeRate)
-                                        });
-
-                                        lastDetailLine += 1;
-
-                                    }
-
-                                } // FIN FOR EXPENSE COUNT
-
-                            } // FIN IF EXPENSE COUNT
-
-                        } // FIN FOR CONTRIBUTORY CLASS
-
-                    } else { // FIN IF CONTRIBUTORY CLASS
-
-                        if (NT_SearchResult != null && NT_SearchResult.length > 0) {
-
-                            for (var i = 0; i < NT_SearchResult.length; i++) {
-
-                                var NT_internalID = NT_SearchResult[i].getValue({ name: "internalid" });
-                                var NT_generatedTransaction = NT_SearchResult[i].getText({ name: "custrecord_lmry_ntax_gen_transaction" });
-                                var NT_generatedTransactionID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_gen_transaction" });
-                                var NT_taxType = NT_SearchResult[i].getText({ name: "custrecord_lmry_ntax_taxtype" });
-                                var NT_taxTypeID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_taxtype" });
-                                var NT_STE_taxType = NT_SearchResult[i].getText({ name: "custrecord_lmry_nt_ste_tax_type" });
-                                var NT_STE_taxTypeID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_nt_ste_tax_type" });
-                                var NT_STE_taxCode = NT_SearchResult[i].getText({ name: "custrecord_lmry_nt_ste_tax_code" });
-                                var NT_STE_taxCodeID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_nt_ste_tax_code" });
-                                var NT_taxRate = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_taxrate" });
-                                var NT_isExempt = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_isexempt" });
-                                var NT_invIdent = NT_SearchResult[i].getText({ name: "custrecord_lmry_nt_invoicing_identifier" });
-                                var NT_invIdentID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_nt_invoicing_identifier" });
-                                var NT_Department = NT_SearchResult[i].getText({ name: "custrecord_lmry_ntax_department" });
-                                var NT_DepartmentID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_department" });
-                                var NT_Class = NT_SearchResult[i].getText({ name: "custrecord_lmry_ntax_class" });
-                                var NT_ClassID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_class" });
-                                var NT_Location = NT_SearchResult[i].getText({ name: "custrecord_lmry_ntax_location" });
-                                var NT_LocationID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_location" });
-
-                                if (itemLineCount != null && itemLineCount > 0) {
-
-                                    for (var j = 0; j < itemLineCount; j++) {
-
-                                        var item = recordObj.getSublistText({ sublistId: 'item', fieldId: 'item', line: j });
-                                        var itemID = recordObj.getSublistValue({ sublistId: 'item', fieldId: 'item', line: j });
-                                        var itemUniqueKey = recordObj.getSublistValue({ sublistId: 'item', fieldId: 'lineuniquekey', line: j });
-                                        var itemInvoiceIdentifier = recordObj.getSublistText({ sublistId: 'item', fieldId: 'custcol_lmry_taxcode_by_inv_ident', line: j });
-                                        var itemDetailReference = recordObj.getSublistValue({ sublistId: 'item', fieldId: 'taxdetailsreference', line: j });
-
-                                        if( itemInvoiceIdentifier != null && itemInvoiceIdentifier != "" ) {
-                                            var II_JSON = getInvoicingIdentifierJSON(itemInvoiceIdentifier);
-                                            log.debug('[ II_JSON ]', II_JSON);
-                                        } else {
-                                            break;
-                                        }
-
-                                        var itemNetAmount = recordObj.getSublistValue({ sublistId: "item", fieldId: "amount", line: j }) || 0.0;
-
-                                        if ((NT_invIdent == II_JSON.invoicing) && (NT_STE_taxType == II_JSON.taxtype) && (NT_STE_taxCode == II_JSON.taxcode)) {
-
-                                            var itemTaxAmountByNT = parseFloat(itemNetAmount) * parseFloat(NT_taxRate);
-                                            var itemGrossAmountByNT = parseFloat(itemNetAmount) + parseFloat(itemTaxAmountByNT);
-
-                                            recordObj.setSublistValue({ sublistId: "taxdetails", fieldId: "taxdetailsreference", line: lastDetailLine, value: itemDetailReference });
-                                            recordObj.setSublistValue({ sublistId: "taxdetails", fieldId: "taxtype", line: lastDetailLine, value: NT_STE_taxTypeID });
-                                            recordObj.setSublistValue({ sublistId: "taxdetails", fieldId: "taxcode", line: lastDetailLine, value: NT_STE_taxCodeID });
-                                            recordObj.setSublistValue({ sublistId: "taxdetails", fieldId: "taxbasis", line: lastDetailLine, value: parseFloat(itemNetAmount) });
-                                            recordObj.setSublistValue({ sublistId: "taxdetails", fieldId: "taxrate", line: lastDetailLine, value: parseFloat(NT_taxRate) * 100 });
-                                            recordObj.setSublistValue({ sublistId: "taxdetails", fieldId: "taxamount", line: lastDetailLine, value: itemTaxAmountByNT });
-
-                                            taxResult.push({
-                                                taxtype: {
-                                                    text: NT_taxType,
-                                                    value: NT_taxTypeID
-                                                },
-                                                ste_taxtype: {
-                                                    text: NT_STE_taxType,
-                                                    value: NT_STE_taxTypeID
-                                                },
-                                                ste_taxcode: {
-                                                    text: NT_STE_taxCode,
-                                                    value: NT_STE_taxCodeID
-                                                },
-                                                lineuniquekey: itemUniqueKey,
-                                                baseamount: parseFloat(itemNetAmount),
-                                                taxamount: Math.round(itemTaxAmountByNT * 100) / 100,
-                                                taxrate: NT_taxRate,
-                                                cc_nt_id: NT_internalID,
-                                                debitaccount: {},
-                                                creditaccount: {},
-                                                generatedtransaction: {
-                                                    text: NT_generatedTransaction,
-                                                    value: NT_generatedTransactionID
-                                                },
-                                                department: {
-                                                    text: NT_Department,
-                                                    value: NT_DepartmentID
-                                                },
-                                                class: {
-                                                    text: NT_Class,
-                                                        value: NT_ClassID
-                                                },
-                                                location: {
-                                                    text: NT_Location,
-                                                    value: NT_LocationID
-                                                },
-                                                item: {
-                                                    text: item,
-                                                    value: itemID
-                                                },
-                                                expenseacc: {},
-                                                position: i,
-                                                description: "",
-                                                lc_baseamount: parseFloat(itemNetAmount * exchangeRate),
-                                                lc_taxamount: parseFloat(itemTaxAmountByNT * exchangeRate),
-                                                lc_grossamount: parseFloat(itemGrossAmountByNT * exchangeRate)
-                                            });
-
-                                            lastDetailLine += 1;
-
-                                        }
-
-                                    } // FIN FOR ITEM COUNT
-
-                                } // FIN IF ITEM COUNT
-
-                                if (expenseLineCount != null && expenseLineCount > 0) {
-
-                                    for (var j = 0; j < expenseLineCount; j++) {
-
-                                        var account = recordObj.getSublistText({ sublistId: 'expense', fieldId: 'account', line: j });
-                                        var accountID = recordObj.getSublistValue({ sublistId: 'expense', fieldId: 'account', line: j });
-                                        var expenseUniqueKey = recordObj.getSublistValue({ sublistId: 'expense', fieldId: 'lineuniquekey', line: j });
-                                        var expenseInvoiceIdentifier = recordObj.getSublistText({ sublistId: 'expense', fieldId: 'custcol_lmry_taxcode_by_inv_ident', line: j });
-                                        var expenseDetailReference = recordObj.getSublistValue({ sublistId: 'expense', fieldId: 'taxdetailsreference', line: j });
-
-                                        if( expenseInvoiceIdentifier != null && expenseInvoiceIdentifier != "" ) {
-                                            var II_JSON = getInvoicingIdentifierJSON(expenseInvoiceIdentifier);
-                                            log.debug('[ II_JSON ]', II_JSON);
-                                        } else {
-                                            break;
-                                        }
-
-                                        var expenseNetAmount = recordObj.getSublistValue({ sublistId: "expense", fieldId: "amount", line: j }) || 0.0;
-
-                                        if ((NT_invIdent == II_JSON.invoicing) && (NT_STE_taxType == II_JSON.taxtype) && (NT_STE_taxCode == II_JSON.taxcode)) {
-
-                                            var expenseTaxAmountByNT = parseFloat(expenseNetAmount) * parseFloat(NT_taxRate);
-                                            var expenseGrossAmountByNT = parseFloat(expenseNetAmount) + parseFloat(expenseTaxAmountByNT);
-
-                                            recordObj.setSublistValue({ sublistId: "taxdetails", fieldId: "taxdetailsreference", line: lastDetailLine, value: expenseDetailReference });
-                                            recordObj.setSublistValue({ sublistId: "taxdetails", fieldId: "taxtype", line: lastDetailLine, value: NT_STE_taxTypeID });
-                                            recordObj.setSublistValue({ sublistId: "taxdetails", fieldId: "taxcode", line: lastDetailLine, value: NT_STE_taxCodeID });
-                                            recordObj.setSublistValue({ sublistId: "taxdetails", fieldId: "taxbasis", line: lastDetailLine, value: parseFloat(expenseNetAmount) });
-                                            recordObj.setSublistValue({ sublistId: "taxdetails", fieldId: "taxrate", line: lastDetailLine, value: parseFloat(NT_taxRate) * 100 });
-                                            recordObj.setSublistValue({ sublistId: "taxdetails", fieldId: "taxamount", line: lastDetailLine, value: expenseTaxAmountByNT });
-
-                                            taxResult.push({
-                                                taxtype: {
-                                                    text: NT_taxType,
-                                                    value: NT_taxTypeID
-                                                },
-                                                ste_taxtype: {
-                                                    text: NT_STE_taxType,
-                                                    value: NT_STE_taxTypeID
-                                                },
-                                                ste_taxcode: {
-                                                    text: NT_STE_taxCode,
-                                                    value: NT_STE_taxCodeID
-                                                },
-                                                lineuniquekey: expenseUniqueKey,
-                                                baseamount: parseFloat(expenseNetAmount),
-                                                taxamount: Math.round(expenseTaxAmountByNT * 100) / 100,
-                                                taxrate: NT_taxRate,
-                                                cc_nt_id: NT_internalID,
-                                                debitaccount: {},
-                                                creditaccount: {},
-                                                generatedtransaction: {
-                                                    text: NT_generatedTransaction,
-                                                    value: NT_generatedTransactionID
-                                                },
-                                                department: {
-                                                    text: NT_Department,
-                                                    value: NT_DepartmentID
-                                                },
-                                                class: {
-                                                    text: NT_Class,
-                                                        value: NT_ClassID
-                                                },
-                                                location: {
-                                                    text: NT_Location,
-                                                    value: NT_LocationID
-                                                },
-                                                item: {},
-                                                expenseacc: {
-                                                    text: account,
-                                                    value: accountID
-                                                },
-                                                position: i,
-                                                description: "",
-                                                lc_baseamount: parseFloat(expenseNetAmount * exchangeRate),
-                                                lc_taxamount: parseFloat(expenseTaxAmountByNT * exchangeRate),
-                                                lc_grossamount: parseFloat(expenseGrossAmountByNT * exchangeRate)
-                                            });
-
-                                            lastDetailLine += 1;
-
-                                        }
-
-                                    } // FIN FOR EXPENSE COUNT
-
-                                } // FIN IF EXPENSE COUNT
-
-                            } // FIN FOR NATIONAL TAX
-
-                        } // FIN IF NATIONAL TAX
-
-                    }
-
-                    saveTaxResult(transactionID, transactionSubsidiary, transactionCountry, tranDate, taxResult);
-
-                } // FIN IF TAX DETAIL OVERRIDE
+            var transactionID = scriptContext.newRecord.id;
+            var transactionType = scriptContext.newRecord.type;
+            var actionType = scriptContext.type;
+
+            var recordObj = record.load({
+                type: transactionType,
+                id: transactionID,
+                isDynamic: true
+            });
+
+            var taxDetailOverride = recordObj.getValue({ fieldId: 'taxdetailsoverride' });
+            if (taxDetailOverride == false || taxDetailOverride == "F") {
+                return true;
+            }
+
+            if (actionType != "create") {
+                deleteTaxDetailLines(recordObj);
+            }
+
+            FEATURE_SUBSIDIARY = runtime.isFeatureInEffect({ feature: 'SUBSIDIARIES' });
+            FEATURE_MULTIBOOK = runtime.isFeatureInEffect({ feature: 'MULTIBOOK' });
+
+            var transactionSubsidiary = "";
+            if (FEATURE_SUBSIDIARY == true || FEATURE_SUBSIDIARY == 'T') {
+                transactionSubsidiary = recordObj.getValue({ fieldId: 'subsidiary' });
+            } else {
+                transactionSubsidiary = recordObj.getValue({ fieldId: 'custbody_lmry_subsidiary_country' });
+            }
+
+            var transactionCountry = recordObj.getValue({ fieldId: 'custbody_lmry_subsidiary_country' });
+            var transactionDate = recordObj.getText({ fieldId: 'trandate' });
+            var tranDate = recordObj.getValue({ fieldId: 'trandate' });
+            var transactionEntity = recordObj.getValue({ fieldId: 'entity' });
+            var transactionDocType = recordObj.getValue({ fieldId: 'custbody_lmry_document_type' });
+
+            var filtroTransactionType = '';
+            switch (transactionType) {
+                case 'vendorbill':
+                    filtroTransactionType = 4;
+                    break;
+                case 'vendorcredit':
+                    filtroTransactionType = 7;
+                    break;
+            }
+
+            var STS_JSON = _getSetupTaxSubsidiary(transactionSubsidiary);
+            var exchangeRate = _getExchangeRate(recordObj, transactionSubsidiary, STS_JSON);
+            var CC_SearchResult = _getContributoryClasses(transactionSubsidiary, transactionDate, filtroTransactionType, transactionEntity, transactionDocType);
+            var NT_SearchResult = _getNationalTaxes(transactionSubsidiary, transactionDate, filtroTransactionType, transactionDocType);
+
+            var itemLineCount = recordObj.getLineCount({ sublistId: 'item' });
+            var expenseLineCount = recordObj.getLineCount({ sublistId: 'expense' });
+
+            var taxResult = [];
+            if (CC_SearchResult != null && CC_SearchResult.length > 0) {
+
+                for (var i = 0; i < CC_SearchResult.length; i++) {
+
+                    var CC_internalID = CC_SearchResult[i].getValue({ name: "internalid" });
+                    var CC_generatedTransaction = CC_SearchResult[i].getText({ name: "custrecord_lmry_ccl_gen_transaction" });
+                    var CC_generatedTransactionID = CC_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_gen_transaction" });
+                    var CC_taxType = CC_SearchResult[i].getText({ name: "custrecord_lmry_ccl_taxtype" });
+                    var CC_taxTypeID = CC_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_taxtype" });
+                    var CC_STE_taxType = CC_SearchResult[i].getText({ name: "custrecord_lmry_cc_ste_tax_type" });
+                    var CC_STE_taxTypeID = CC_SearchResult[i].getValue({ name: "custrecord_lmry_cc_ste_tax_type" });
+                    var CC_STE_taxCode = CC_SearchResult[i].getText({ name: "custrecord_lmry_cc_ste_tax_code" });
+                    var CC_STE_taxCodeID = CC_SearchResult[i].getValue({ name: "custrecord_lmry_cc_ste_tax_code" });
+                    var CC_taxRate = CC_SearchResult[i].getValue({ name: "custrecord_lmry_ar_ccl_taxrate" });
+                    var CC_isExempt = CC_SearchResult[i].getValue({ name: "custrecord_lmry_ar_ccl_isexempt" });
+                    var CC_invIdent = CC_SearchResult[i].getText({ name: "custrecord_lmry_cc_invoice_identifier" });
+                    var CC_invIdentID = CC_SearchResult[i].getValue({ name: "custrecord_lmry_cc_invoice_identifier" });
+                    var CC_Department = CC_SearchResult[i].getText({ name: "custrecord_lmry_ar_ccl_department" });
+                    var CC_DepartmentID = CC_SearchResult[i].getValue({ name: "custrecord_lmry_ar_ccl_department" });
+                    var CC_Class = CC_SearchResult[i].getText({ name: "custrecord_lmry_ar_ccl_class" });
+                    var CC_ClassID = CC_SearchResult[i].getValue({ name: "custrecord_lmry_ar_ccl_class" });
+                    var CC_Location = CC_SearchResult[i].getText({ name: "custrecord_lmry_ar_ccl_location" });
+                    var CC_LocationID = CC_SearchResult[i].getValue({ name: "custrecord_lmry_ar_ccl_location" });
+
+                    if (itemLineCount != null && itemLineCount > 0) {
+
+                        for (var j = 0; j < itemLineCount; j++) {
+
+                            var item = recordObj.getSublistText({ sublistId: 'item', fieldId: 'item', line: j });
+                            var itemID = recordObj.getSublistValue({ sublistId: 'item', fieldId: 'item', line: j });
+                            var itemUniqueKey = recordObj.getSublistValue({ sublistId: 'item', fieldId: 'lineuniquekey', line: j });
+                            var itemType = recordObj.getSublistValue({ sublistId: "item", fieldId: "itemtype", line: j });
+                            var itemInvoiceIdentifier = recordObj.getSublistText({ sublistId: 'item', fieldId: 'custcol_lmry_taxcode_by_inv_ident', line: j });
+                            var itemDetailReference = recordObj.getSublistValue({ sublistId: 'item', fieldId: 'taxdetailsreference', line: j });
+
+                            if (itemType == "Group" || itemType == "EndGroup") {
+                                continue;
+                            }
+
+                            if (itemInvoiceIdentifier == "" || itemInvoiceIdentifier == null) {
+                                continue;
+                            }
+
+                            var II_JSON = _getInvoicingIdentifierJSON(itemInvoiceIdentifier);
+
+                            var itemNetAmount = recordObj.getSublistValue({ sublistId: "item", fieldId: "amount", line: j }) || 0.0;
+
+                            if ((CC_invIdent == II_JSON.invoicing) && (CC_STE_taxType == II_JSON.taxtype) && (CC_STE_taxCode == II_JSON.taxcode)) {
+
+                                var itemTaxAmountByCC = parseFloat(itemNetAmount) * parseFloat(CC_taxRate);
+                                var itemGrossAmountByCC = parseFloat(itemNetAmount) + parseFloat(itemTaxAmountByCC);
+
+                                taxResult.push({
+                                    taxtype: {
+                                        text: CC_taxType,
+                                        value: CC_taxTypeID
+                                    },
+                                    ste_taxtype: {
+                                        text: CC_STE_taxType,
+                                        value: CC_STE_taxTypeID
+                                    },
+                                    ste_taxcode: {
+                                        text: CC_STE_taxCode,
+                                        value: CC_STE_taxCodeID
+                                    },
+                                    lineuniquekey: itemUniqueKey,
+                                    baseamount: parseFloat(itemNetAmount),
+                                    taxamount: Math.round(itemTaxAmountByCC * 100) / 100,
+                                    taxrate: CC_taxRate,
+                                    cc_nt_id: CC_internalID,
+                                    debitaccount: {},
+                                    creditaccount: {},
+                                    generatedtransaction: {
+                                        text: CC_generatedTransaction,
+                                        value: CC_generatedTransactionID
+                                    },
+                                    department: {
+                                        text: CC_Department,
+                                        value: CC_DepartmentID
+                                    },
+                                    class: {
+                                        text: CC_Class,
+                                            value: CC_ClassID
+                                    },
+                                    location: {
+                                        text: CC_Location,
+                                        value: CC_LocationID
+                                    },
+                                    item: {
+                                        text: item,
+                                        value: itemID
+                                    },
+                                    expenseacc: {},
+                                    position: j,
+                                    description: "",
+                                    lc_baseamount: parseFloat(itemNetAmount * exchangeRate),
+                                    lc_taxamount: parseFloat(itemTaxAmountByCC * exchangeRate),
+                                    lc_grossamount: parseFloat(itemGrossAmountByCC * exchangeRate)
+                                });
+
+                                recordObj.selectNewLine({ sublistId: "taxdetails" });
+                                recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxdetailsreference", value: itemDetailReference });
+                                recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxtype", value: CC_STE_taxTypeID });
+                                recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxcode", value: CC_STE_taxCodeID });
+                                recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxbasis", value: parseFloat(itemNetAmount) });
+                                recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxrate", value: parseFloat(CC_taxRate) * 100 });
+                                recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxamount", value: itemTaxAmountByCC });
+                                recordObj.commitLine({ sublistId: "taxdetails" });
+
+                            }
+
+                        } // FIN FOR ITEM COUNT
+
+                    } // FIN IF ITEM COUNT
+
+                    if (expenseLineCount != null && expenseLineCount > 0) {
+
+                        for (var j = 0; j < expenseLineCount; j++) {
+
+                            var account = recordObj.getSublistText({ sublistId: 'expense', fieldId: 'account', line: j });
+                            var accountID = recordObj.getSublistValue({ sublistId: 'expense', fieldId: 'account', line: j });
+                            var expenseUniqueKey = recordObj.getSublistValue({ sublistId: 'expense', fieldId: 'lineuniquekey', line: j });
+                            var expenseInvoiceIdentifier = recordObj.getSublistText({ sublistId: 'expense', fieldId: 'custcol_lmry_taxcode_by_inv_ident', line: j });
+                            var expenseDetailReference = recordObj.getSublistValue({ sublistId: 'expense', fieldId: 'taxdetailsreference', line: j });
+
+                            if (expenseInvoiceIdentifier == "" || expenseInvoiceIdentifier == null) {
+                                continue;
+                            }
+
+                            var II_JSON = _getInvoicingIdentifierJSON(expenseInvoiceIdentifier);
+
+                            var expenseNetAmount = recordObj.getSublistValue({ sublistId: "expense", fieldId: "amount", line: j }) || 0.0;
+
+                            if ((CC_invIdent == II_JSON.invoicing) && (CC_STE_taxType == II_JSON.taxtype) && (CC_STE_taxCode == II_JSON.taxcode)) {
+
+                                var expenseTaxAmountByCC = parseFloat(expenseNetAmount) * parseFloat(CC_taxRate);
+                                var expenseGrossAmountByCC = parseFloat(expenseNetAmount) + parseFloat(expenseTaxAmountByCC);
+
+                                taxResult.push({
+                                    taxtype: {
+                                        text: CC_taxType,
+                                        value: CC_taxTypeID
+                                    },
+                                    ste_taxtype: {
+                                        text: CC_STE_taxType,
+                                        value: CC_STE_taxTypeID
+                                    },
+                                    ste_taxcode: {
+                                        text: CC_STE_taxCode,
+                                        value: CC_STE_taxCodeID
+                                    },
+                                    lineuniquekey: expenseUniqueKey,
+                                    baseamount: parseFloat(expenseNetAmount),
+                                    taxamount: Math.round(expenseTaxAmountByCC * 100) / 100,
+                                    taxrate: CC_taxRate,
+                                    cc_nt_id: CC_internalID,
+                                    debitaccount: {},
+                                    creditaccount: {},
+                                    generatedtransaction: {
+                                        text: CC_generatedTransaction,
+                                        value: CC_generatedTransactionID
+                                    },
+                                    department: {
+                                        text: CC_Department,
+                                        value: CC_DepartmentID
+                                    },
+                                    class: {
+                                        text: CC_Class,
+                                            value: CC_ClassID
+                                    },
+                                    location: {
+                                        text: CC_Location,
+                                        value: CC_LocationID
+                                    },
+                                    item: {},
+                                    expenseacc: {
+                                        text: account,
+                                        value: accountID
+                                    },
+                                    position: j,
+                                    description: "",
+                                    lc_baseamount: parseFloat(expenseNetAmount * exchangeRate),
+                                    lc_taxamount: parseFloat(expenseTaxAmountByCC * exchangeRate),
+                                    lc_grossamount: parseFloat(expenseGrossAmountByCC * exchangeRate)
+                                });
+
+                                recordObj.selectNewLine({ sublistId: "taxdetails" });
+                                recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxdetailsreference", value: expenseDetailReference });
+                                recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxtype", value: CC_STE_taxTypeID });
+                                recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxcode", value: CC_STE_taxCodeID });
+                                recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxbasis", value: parseFloat(expenseNetAmount) });
+                                recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxrate", value: parseFloat(CC_taxRate) * 100 });
+                                recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxamount", value: expenseTaxAmountByCC });
+                                recordObj.commitLine({ sublistId: "taxdetails" });
+
+                            }
+
+                        } // FIN FOR EXPENSE COUNT
+
+                    } // FIN IF EXPENSE COUNT
+
+                } // FIN FOR CONTRIBUTORY CLASS
+
+            } else { // FIN IF CONTRIBUTORY CLASS
+
+                if (NT_SearchResult != null && NT_SearchResult.length > 0) {
+
+                    for (var i = 0; i < NT_SearchResult.length; i++) {
+
+                        var NT_internalID = NT_SearchResult[i].getValue({ name: "internalid" });
+                        var NT_generatedTransaction = NT_SearchResult[i].getText({ name: "custrecord_lmry_ntax_gen_transaction" });
+                        var NT_generatedTransactionID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_gen_transaction" });
+                        var NT_taxType = NT_SearchResult[i].getText({ name: "custrecord_lmry_ntax_taxtype" });
+                        var NT_taxTypeID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_taxtype" });
+                        var NT_STE_taxType = NT_SearchResult[i].getText({ name: "custrecord_lmry_nt_ste_tax_type" });
+                        var NT_STE_taxTypeID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_nt_ste_tax_type" });
+                        var NT_STE_taxCode = NT_SearchResult[i].getText({ name: "custrecord_lmry_nt_ste_tax_code" });
+                        var NT_STE_taxCodeID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_nt_ste_tax_code" });
+                        var NT_taxRate = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_taxrate" });
+                        var NT_isExempt = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_isexempt" });
+                        var NT_invIdent = NT_SearchResult[i].getText({ name: "custrecord_lmry_nt_invoicing_identifier" });
+                        var NT_invIdentID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_nt_invoicing_identifier" });
+                        var NT_Department = NT_SearchResult[i].getText({ name: "custrecord_lmry_ntax_department" });
+                        var NT_DepartmentID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_department" });
+                        var NT_Class = NT_SearchResult[i].getText({ name: "custrecord_lmry_ntax_class" });
+                        var NT_ClassID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_class" });
+                        var NT_Location = NT_SearchResult[i].getText({ name: "custrecord_lmry_ntax_location" });
+                        var NT_LocationID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_location" });
+
+                        if (itemLineCount != null && itemLineCount > 0) {
+
+                            for (var j = 0; j < itemLineCount; j++) {
+
+                                var item = recordObj.getSublistText({ sublistId: 'item', fieldId: 'item', line: j });
+                                var itemID = recordObj.getSublistValue({ sublistId: 'item', fieldId: 'item', line: j });
+                                var itemUniqueKey = recordObj.getSublistValue({ sublistId: 'item', fieldId: 'lineuniquekey', line: j });
+                                var itemType = recordObj.getSublistValue({ sublistId: "item", fieldId: "itemtype", line: j });
+                                var itemInvoiceIdentifier = recordObj.getSublistText({ sublistId: 'item', fieldId: 'custcol_lmry_taxcode_by_inv_ident', line: j });
+                                var itemDetailReference = recordObj.getSublistValue({ sublistId: 'item', fieldId: 'taxdetailsreference', line: j });
+
+                                if (itemType == "Group" || itemType == "EndGroup") {
+                                    continue;
+                                }
+
+                                if (itemInvoiceIdentifier == "" || itemInvoiceIdentifier == null) {
+                                    continue;
+                                }
+
+                                var II_JSON = _getInvoicingIdentifierJSON(itemInvoiceIdentifier);
+
+                                var itemNetAmount = recordObj.getSublistValue({ sublistId: "item", fieldId: "amount", line: j }) || 0.0;
+
+                                if ((NT_invIdent == II_JSON.invoicing) && (NT_STE_taxType == II_JSON.taxtype) && (NT_STE_taxCode == II_JSON.taxcode)) {
+
+                                    var itemTaxAmountByNT = parseFloat(itemNetAmount) * parseFloat(NT_taxRate);
+                                    var itemGrossAmountByNT = parseFloat(itemNetAmount) + parseFloat(itemTaxAmountByNT);
+
+                                    taxResult.push({
+                                        taxtype: {
+                                            text: NT_taxType,
+                                            value: NT_taxTypeID
+                                        },
+                                        ste_taxtype: {
+                                            text: NT_STE_taxType,
+                                            value: NT_STE_taxTypeID
+                                        },
+                                        ste_taxcode: {
+                                            text: NT_STE_taxCode,
+                                            value: NT_STE_taxCodeID
+                                        },
+                                        lineuniquekey: itemUniqueKey,
+                                        baseamount: parseFloat(itemNetAmount),
+                                        taxamount: Math.round(itemTaxAmountByNT * 100) / 100,
+                                        taxrate: NT_taxRate,
+                                        cc_nt_id: NT_internalID,
+                                        debitaccount: {},
+                                        creditaccount: {},
+                                        generatedtransaction: {
+                                            text: NT_generatedTransaction,
+                                            value: NT_generatedTransactionID
+                                        },
+                                        department: {
+                                            text: NT_Department,
+                                            value: NT_DepartmentID
+                                        },
+                                        class: {
+                                            text: NT_Class,
+                                                value: NT_ClassID
+                                        },
+                                        location: {
+                                            text: NT_Location,
+                                            value: NT_LocationID
+                                        },
+                                        item: {
+                                            text: item,
+                                            value: itemID
+                                        },
+                                        expenseacc: {},
+                                        position: i,
+                                        description: "",
+                                        lc_baseamount: parseFloat(itemNetAmount * exchangeRate),
+                                        lc_taxamount: parseFloat(itemTaxAmountByNT * exchangeRate),
+                                        lc_grossamount: parseFloat(itemGrossAmountByNT * exchangeRate)
+                                    });
+
+                                    recordObj.selectNewLine({ sublistId: "taxdetails" });
+                                    recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxdetailsreference", value: itemDetailReference });
+                                    recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxtype", value: NT_STE_taxTypeID });
+                                    recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxcode", value: NT_STE_taxCodeID });
+                                    recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxbasis", value: parseFloat(itemNetAmount) });
+                                    recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxrate", value: parseFloat(NT_taxRate) * 100 });
+                                    recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxamount", value: itemTaxAmountByNT });
+                                    recordObj.commitLine({ sublistId: "taxdetails" });
+
+                                }
+
+                            } // FIN FOR ITEM COUNT
+
+                        } // FIN IF ITEM COUNT
+
+                        if (expenseLineCount != null && expenseLineCount > 0) {
+
+                            for (var j = 0; j < expenseLineCount; j++) {
+
+                                var account = recordObj.getSublistText({ sublistId: 'expense', fieldId: 'account', line: j });
+                                var accountID = recordObj.getSublistValue({ sublistId: 'expense', fieldId: 'account', line: j });
+                                var expenseUniqueKey = recordObj.getSublistValue({ sublistId: 'expense', fieldId: 'lineuniquekey', line: j });
+                                var expenseInvoiceIdentifier = recordObj.getSublistText({ sublistId: 'expense', fieldId: 'custcol_lmry_taxcode_by_inv_ident', line: j });
+                                var expenseDetailReference = recordObj.getSublistValue({ sublistId: 'expense', fieldId: 'taxdetailsreference', line: j });
+
+                                if (expenseInvoiceIdentifier == "" || expenseInvoiceIdentifier == null) {
+                                    continue;
+                                }
+
+                                var II_JSON = _getInvoicingIdentifierJSON(expenseInvoiceIdentifier);
+
+                                var expenseNetAmount = recordObj.getSublistValue({ sublistId: "expense", fieldId: "amount", line: j }) || 0.0;
+
+                                if ((NT_invIdent == II_JSON.invoicing) && (NT_STE_taxType == II_JSON.taxtype) && (NT_STE_taxCode == II_JSON.taxcode)) {
+
+                                    var expenseTaxAmountByNT = parseFloat(expenseNetAmount) * parseFloat(NT_taxRate);
+                                    var expenseGrossAmountByNT = parseFloat(expenseNetAmount) + parseFloat(expenseTaxAmountByNT);
+
+                                    taxResult.push({
+                                        taxtype: {
+                                            text: NT_taxType,
+                                            value: NT_taxTypeID
+                                        },
+                                        ste_taxtype: {
+                                            text: NT_STE_taxType,
+                                            value: NT_STE_taxTypeID
+                                        },
+                                        ste_taxcode: {
+                                            text: NT_STE_taxCode,
+                                            value: NT_STE_taxCodeID
+                                        },
+                                        lineuniquekey: expenseUniqueKey,
+                                        baseamount: parseFloat(expenseNetAmount),
+                                        taxamount: Math.round(expenseTaxAmountByNT * 100) / 100,
+                                        taxrate: NT_taxRate,
+                                        cc_nt_id: NT_internalID,
+                                        debitaccount: {},
+                                        creditaccount: {},
+                                        generatedtransaction: {
+                                            text: NT_generatedTransaction,
+                                            value: NT_generatedTransactionID
+                                        },
+                                        department: {
+                                            text: NT_Department,
+                                            value: NT_DepartmentID
+                                        },
+                                        class: {
+                                            text: NT_Class,
+                                                value: NT_ClassID
+                                        },
+                                        location: {
+                                            text: NT_Location,
+                                            value: NT_LocationID
+                                        },
+                                        item: {},
+                                        expenseacc: {
+                                            text: account,
+                                            value: accountID
+                                        },
+                                        position: i,
+                                        description: "",
+                                        lc_baseamount: parseFloat(expenseNetAmount * exchangeRate),
+                                        lc_taxamount: parseFloat(expenseTaxAmountByNT * exchangeRate),
+                                        lc_grossamount: parseFloat(expenseGrossAmountByNT * exchangeRate)
+                                    });
+
+                                    recordObj.selectNewLine({ sublistId: "taxdetails" });
+                                    recordObj.setSublistValue({ sublistId: "taxdetails", fieldId: "taxdetailsreference", value: expenseDetailReference });
+                                    recordObj.setSublistValue({ sublistId: "taxdetails", fieldId: "taxtype", value: NT_STE_taxTypeID });
+                                    recordObj.setSublistValue({ sublistId: "taxdetails", fieldId: "taxcode", value: NT_STE_taxCodeID });
+                                    recordObj.setSublistValue({ sublistId: "taxdetails", fieldId: "taxbasis", value: parseFloat(expenseNetAmount) });
+                                    recordObj.setSublistValue({ sublistId: "taxdetails", fieldId: "taxrate", value: parseFloat(NT_taxRate) * 100 });
+                                    recordObj.setSublistValue({ sublistId: "taxdetails", fieldId: "taxamount", value: expenseTaxAmountByNT });
+                                    recordObj.commitLine({ sublistId: "taxdetails" });
+
+                                }
+
+                            } // FIN FOR EXPENSE COUNT
+
+                        } // FIN IF EXPENSE COUNT
+
+                    } // FIN FOR NATIONAL TAX
+
+                } // FIN IF NATIONAL TAX
 
             }
 
-            return recordObj;
+            _saveTaxResult(transactionID, transactionSubsidiary, transactionCountry, tranDate, taxResult);
+
+            recordObj.save({
+                ignoreMandatoryFields: true,
+                disableTriggers: true,
+                enableSourcing: true
+            });
 
         } catch (error) {
             Library_Mail.sendemail('[ afterSubmit - setTaxTransaction ]: ' + error, LMRY_SCRIPT);
@@ -551,13 +556,9 @@ define([
      *    - tranDate: Fecha de la transaccion
      *    - taxResult: Arreglo de JSON con los detalles de impuestos
      ***************************************************************************/
-    function saveTaxResult(recordID, subsidiary, countryID, tranDate, taxResult) {
+    function _saveTaxResult(recordID, subsidiary, countryID, tranDate, taxResult) {
 
         try {
-
-            // tranDate = tranDate.toISOString();
-            // tranDate = new Date(tranDate);
-            // tranDate = format.format({ value: tranDate, type: format.Type.DATE });
 
             var taxResultSearch = search.create({
                 type: "customrecord_lmry_ste_json_result",
@@ -622,8 +623,8 @@ define([
             }
 
         } catch (error) {
-            Library_Mail.sendemail('[ afterSubmit - saveTaxResult ]: ' + error, LMRY_SCRIPT);
-            Library_Log.doLog({ title: '[ adterSubmit - saveTaxResult ]', message: error, relatedScript: LMRY_SCRIPT_NAME });
+            Library_Mail.sendemail('[ _saveTaxResult ]: ' + error, LMRY_SCRIPT);
+            Library_Log.doLog({ title: '[ _saveTaxResult ]', message: error, relatedScript: LMRY_SCRIPT_NAME });
         }
 
     }
@@ -636,7 +637,7 @@ define([
      *    - entity: ID de la Entidad
      *    - documentType: Tipo de Documento Fiscal
      ***************************************************************************/
-    function getNationalTaxes(subsidiary, transactionDate, filtroTransactionType, documentType) {
+    function _getNationalTaxes(subsidiary, transactionDate, filtroTransactionType, documentType) {
 
         try {
 
@@ -680,12 +681,12 @@ define([
                 columns: NT_Columns,
                 filters: NT_Filters
             }).run().getRange(0, 1000);
-
+            log.debug('[ searchNT ]', searchNT);
             return searchNT;
 
         } catch (error) {
-            Library_Mail.sendemail('[ afterSubmit - getNationalTaxes ]: ' + error, LMRY_SCRIPT);
-            Library_Log.doLog({ title: '[ afterSubmit - getNationalTaxes ]', message: error, relatedScript: LMRY_SCRIPT_NAME });
+            Library_Mail.sendemail('[ _getNationalTaxes ]: ' + error, LMRY_SCRIPT);
+            Library_Log.doLog({ title: '[ _getNationalTaxes ]', message: error, relatedScript: LMRY_SCRIPT_NAME });
         }
 
     }
@@ -698,7 +699,7 @@ define([
      *    - entity: ID de la Entidad
      *    - documentType: Tipo de Documento Fiscal
      ***************************************************************************/
-    function getContributoryClasses(subsidiary, transactionDate, filtroTransactionType, entity, documentType) {
+    function _getContributoryClasses(subsidiary, transactionDate, filtroTransactionType, entity, documentType) {
 
         try {
 
@@ -743,12 +744,12 @@ define([
                 columns: CC_Columns,
                 filters: CC_Filters
             }).run().getRange(0, 1000);
-
+            log.debug('[ searchCC ]', searchCC);
             return searchCC;
 
         } catch (error) {
-            Library_Mail.sendemail('[ afterSubmit - getContributoryClasses ]: ' + error, LMRY_SCRIPT);
-            Library_Log.doLog({ title: '[ afterSubmit - getContributoryClasses ]', message: error, relatedScript: LMRY_SCRIPT_NAME });
+            Library_Mail.sendemail('[ _getContributoryClasses ]: ' + error, LMRY_SCRIPT);
+            Library_Log.doLog({ title: '[ _getContributoryClasses ]', message: error, relatedScript: LMRY_SCRIPT_NAME });
         }
 
     }
@@ -760,7 +761,7 @@ define([
      *    - subsidiary: Subsidiaria de transaccion
      *    - STS_JSON: Json con campos del record LatamReady - Setup Tax Subsidiary
      ***************************************************************************/
-    function getExchangeRate(recordObj, subsidiary, STS_JSON) {
+    function _getExchangeRate(recordObj, subsidiary, STS_JSON) {
 
         try {
 
@@ -800,12 +801,12 @@ define([
             } else {
                 exchangeRate = transactionExchangeRate;
             }
-
+            log.debug('[ exchangeRate ]', exchangeRate);
             return exchangeRate;
 
         } catch (error) {
-            Library_Mail.sendemail('[ afterSubmit - getExchangeRate ]: ' + error, LMRY_SCRIPT);
-            Library_Log.doLog({ title: '[ afterSubmit - getExchangeRate ]', message: error, relatedScript: LMRY_SCRIPT_NAME });
+            Library_Mail.sendemail('[ _getExchangeRate ]: ' + error, LMRY_SCRIPT);
+            Library_Log.doLog({ title: '[ _getExchangeRate ]', message: error, relatedScript: LMRY_SCRIPT_NAME });
 
         }
 
@@ -815,7 +816,7 @@ define([
      * BUSQUEDA DEL RECORD: LATMAREADY - SETUP TAX SUBSIDIARY
      *    - subsidiary: Subsiaria a filtrar para recuperar su configuración
      ***************************************************************************/
-    function getSetupTaxSubsidiary(subsidiary) {
+    function _getSetupTaxSubsidiary(subsidiary) {
 
         try {
 
@@ -858,12 +859,12 @@ define([
                 setupTaxSubsidiary["taxcode"] = setupTaxSubsidiarySearch[0].getValue({ name: "custrecord_lmry_setuptax_tax_code" });
 
             }
-
+            log.debug('[ setupTaxSubsidiary ]', setupTaxSubsidiary);
             return setupTaxSubsidiary;
 
         } catch (error) {
-            Library_Mail.sendemail('[ afterSubmit - getSetupTaxSubsidiary ]: ' + error, LMRY_SCRIPT);
-            Library_Log.doLog({ title: '[ afterSubmit - getSetupTaxSubsidiary ] ', message: error, relatedScript: LMRY_SCRIPT_NAME });
+            Library_Mail.sendemail('[ _getSetupTaxSubsidiary ]: ' + error, LMRY_SCRIPT);
+            Library_Log.doLog({ title: '[ _getSetupTaxSubsidiary ] ', message: error, relatedScript: LMRY_SCRIPT_NAME });
         }
 
     }
@@ -872,17 +873,11 @@ define([
      * BUSQUEDA DEL RECORD: LATMAREADY - SETUP TAX SUBSIDIARY
      *    - subsidiary: Subsiaria a filtrar para recuperar su configuración
      ***************************************************************************/
-     function getInvoicingIdentifierJSON(invoicingIdentifier) {
+     function _getInvoicingIdentifierJSON(invoicingIdentifier) {
 
          try {
              var aux1 = invoicingIdentifier.split(":");
              var aux2 = aux1[1].split(" ");
-             // FORMATO ORIGINAL: AT_CO:CO_SR (Exportacion - Gravado - Reducido)
-             // FORMATO NUEVO:
-             // AT_CO
-             // CO_SR
-             // Exportacion - Gravado - Reducido
-             // Expresion regular para obtener lo que esta dentro de los parentesis
              var regExp = /\(([^)]+)\)/;
              var aux3 = regExp.exec(aux1[1]);
              var aux4 = aux1[1];
@@ -891,12 +886,12 @@ define([
                  taxcode: aux2[0],
                  invoicing: aux3[1],
              };
-
+             log.debug('[ II_JSON ]', II_JSON);
              return II_JSON;
 
          } catch (error) {
-             Library_Mail.sendemail( "[ afterSubmit - getInvoicingIdentifierJSON ]: " + error, LMRY_SCRIPT );
-             Library_Log.doLog({ title: "[ afterSubmit - getInvoicingIdentifierJSON ]", message: error, relatedScript: LMRY_SCRIPT_NAME });
+             Library_Mail.sendemail( "[ _getInvoicingIdentifierJSON ]: " + error, LMRY_SCRIPT );
+             Library_Log.doLog({ title: "[ _getInvoicingIdentifierJSON ]", message: error, relatedScript: LMRY_SCRIPT_NAME });
          }
 
      }
@@ -918,8 +913,8 @@ define([
             }
 
         } catch (error) {
-            Library_Mail.sendemail('[ beforeLoad - deleteTaxDetailLines ]: ' + error, LMRY_SCRIPT);
-            Library_Log.doLog({ title: '[ beforeLoad - deleteTaxDetailLines ]', message: error, relatedScript: LMRY_SCRIPT_NAME });
+            Library_Mail.sendemail('[ deleteTaxDetailLines ]: ' + error, LMRY_SCRIPT);
+            Library_Log.doLog({ title: '[ deleteTaxDetailLines ]', message: error, relatedScript: LMRY_SCRIPT_NAME });
         }
 
     }
@@ -952,8 +947,8 @@ define([
             }
 
         } catch (error) {
-            Library_Mail.sendemail('[ beforeSubmit - deleteTaxResult ]: ' + error, LMRY_SCRIPT);
-            Library_Log.doLog({ title: '[ beforeSubmit - deleteTaxResult ]', message: error, relatedScript: LMRY_SCRIPT_NAME });
+            Library_Mail.sendemail('[ deleteTaxResult ]: ' + error, LMRY_SCRIPT);
+            Library_Log.doLog({ title: '[ deleteTaxResult ]', message: error, relatedScript: LMRY_SCRIPT_NAME });
         }
 
     }
