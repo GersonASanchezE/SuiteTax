@@ -36,7 +36,7 @@ define([
             var arrayData = [];
             var TCG_SearchResult = _getTaxCodeGroups();
             // log.debug('[ TCG_SearchResult] ', TCG_SearchResult);
-            if (TCG_SearchResult != null && TCG_SearchResult){
+            if (TCG_SearchResult != null && TCG_SearchResult.length > 0){
 
                 for (var i = 0; i < TCG_SearchResult.length; i++) {
 

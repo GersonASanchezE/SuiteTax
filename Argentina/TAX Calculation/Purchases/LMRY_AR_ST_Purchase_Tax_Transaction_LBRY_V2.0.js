@@ -78,6 +78,7 @@ define([
             });
 
             var taxDetailOverride = recordObj.getValue({ fieldId: 'taxdetailsoverride' });
+
             if (taxDetailOverride == false || taxDetailOverride == "F") {
                 return true;
             }
@@ -190,7 +191,8 @@ define([
                                     baseamount: parseFloat(itemNetAmount),
                                     taxamount: Math.round(itemTaxAmountByCC * 100) / 100,
                                     taxrate: CC_taxRate,
-                                    cc_nt_id: CC_internalID,
+                                    contributoryClass: CC_internalID,
+                                    nationalTax: "",
                                     debitaccount: {},
                                     creditaccount: {},
                                     generatedtransaction: {
@@ -276,7 +278,8 @@ define([
                                     baseamount: parseFloat(expenseNetAmount),
                                     taxamount: Math.round(expenseTaxAmountByCC * 100) / 100,
                                     taxrate: CC_taxRate,
-                                    cc_nt_id: CC_internalID,
+                                    contributoryClass: CC_internalID,
+                                    nationalTax: "",
                                     debitaccount: {},
                                     creditaccount: {},
                                     generatedtransaction: {
@@ -395,7 +398,8 @@ define([
                                         baseamount: parseFloat(itemNetAmount),
                                         taxamount: Math.round(itemTaxAmountByNT * 100) / 100,
                                         taxrate: NT_taxRate,
-                                        cc_nt_id: NT_internalID,
+                                        contributoryClass: "",
+                                        nationalTax: NT_internalID,
                                         debitaccount: {},
                                         creditaccount: {},
                                         generatedtransaction: {
@@ -481,7 +485,8 @@ define([
                                         baseamount: parseFloat(expenseNetAmount),
                                         taxamount: Math.round(expenseTaxAmountByNT * 100) / 100,
                                         taxrate: NT_taxRate,
-                                        cc_nt_id: NT_internalID,
+                                        contributoryClass: "",
+                                        nationalTax: NT_internalID,
                                         debitaccount: {},
                                         creditaccount: {},
                                         generatedtransaction: {

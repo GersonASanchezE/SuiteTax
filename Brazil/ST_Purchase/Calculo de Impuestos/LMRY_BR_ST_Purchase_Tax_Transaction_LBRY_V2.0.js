@@ -2059,6 +2059,9 @@ define([
             var transactionDate = recordObj.getValue({ fieldId: "trandate" });
             var transactionCurrency = recordObj.getValue({ fieldId: "currency" });
             var transactionExchangeRate = recordObj.getValue({ fieldId: "exchangerate" });
+            var transactionDepartment = recordObj.getValue({ fieldId: "department" });
+            var transactionClass = recordObj.getValue({ fieldId: "class" });
+            var transactionLocation = recordObj.getValue({ fieldId: "location" });
 
             var newJournalRecord = record.create({
                 type: record.Type.JOURNAL_ENTRY,
@@ -2115,11 +2118,184 @@ define([
                 filters: TRs_Filters
             }).run().getRange(0, 1000);
 
+            if (TRs_Search != null && TRs_Search.length > 0) {
+                for (var i = 0; i < TRs_Search.length; i++) {
 
+                    var TR_SubType = TRs_Search[i].getValue({ name: "custrecord_lmry_br_type" });
+                    var TR_SubTypeID = TRs_Search[i].getValue({ name: "custrecord_lmry_br_type_id" });
+                    var TR_Amount = TRs_Search[i].getValue({ name: "custrecord_lmry_br_total" });
+                    var TR_Item = TRs_Search[i].getValue({ name: "custrecord_lmry_item" });
+                    var TR_Position = TRs_Search[i].getValue({ name: "custrecord_lmry_br_positem" });
+                    var TR_ContributoryClass = TRs_Search[i].getValue({ name: "custrecord_lmry_ccl" });
+                    var TR_NationalTax = TRs_Search[i].getValue({ name: "custrecord_lmry_ntax" });
+                    var TR_IsImportTax = TRs_Search[i].getValue({ name: "custrecord_lmry_br_is_import_tax_result" });
+                    var TR_IsSubstitutionTax = TRs_Search[i].getValue({ name: "custrecord_lmry_is_substitution_tax_resu" });
+                    var TR_IsTaxNotIncluded = TRs_Search[i].getValue({ name: "custrecord_lmry_is_tax_not_included", join: "custrecord_lmry_br_type_id" });
+
+                    TR_Amount = _round2(TR_Amount);
+                    if (TR_Amount <= 0) {
+                        continue;
+                    }
+
+                    if (!TR_ContributoryClass && !TR_NationalTax) {
+                        continue;
+                    }
+
+                    if(Number(STS_JSON.taxFlow) == 4) {
+                        if ((TR_IsImportTax == true || TR_IsImportTax == "T") || (TR_IsTaxNotIncluded == true || TR_IsTaxNotIncluded == "T")) ´
+                        continue;
+                    }
+
+                    var TR_ImportTaxLevel = (TR_ContributoryClass) ?
+                                            TRs_Search[i].getValue({ name: "custrecord_lmry_ccl_br_nivel_contabiliz", join: "custrecord_lmry_ccl" }) :
+                                            TRs_Search[i].getValue({ name: "custrecord_lmry_ccl_br_nivel_contabiliz", join: "custrecord_lmry_ntax" });
+
+                    if ((TR_IsImportTax == true || TR_IsImportTax == "T") && (Number(TR_ImportTaxLevel) != 1)) {
+                        continue;
+                    }
+
+                    var recordType = (TR_ContributoryClass) ? "customrecord_lmry_ar_contrib_class" : "customrecord_lmry_national_taxes";
+                    var recordID = TR_ContributoryClass || TR_NationalTax;
+
+                    if (TR_ContributoryClass) {
+
+                        var CC_Search = search.lookupFields({
+                            type: recordType,
+                            id: recordID,
+                            columns: [
+                                "custrecord_lmry_br_ccl_account2",
+                                "custrecord_lmry_br_ccl_account1",
+                                "custrecord_lmry_ccl_gl_impact",
+                                "custrecord_lmry_ccl_config_segment"
+                            ]
+                        });
+                        var DebitAccount = CC_Search.custrecord_lmry_br_ccl_account1[0].value || "";
+                        var CreditAccount = CC_Search.custrecord_lmry_br_ccl_account2[0].value || "";
+                        var GlImpact = CC_Search.custrecord_lmry_ccl_gl_impact;
+
+                    } else {
+
+                        var NT_Search = search.lookupFields({
+                            type: recordType,
+                            id: recordID,
+                            columns: [
+                                "custrecord_lmry_ntax_credit_account",
+                                "custrecord_lmry_ntax_debit_account",
+                                "custrecord_lmry_ntax_gl_impact",
+                                "custrecord_lmry_ntax_config_segment"
+                            ]
+                        });
+                        var DebitAccount = CC_Search.custrecord_lmry_ntax_debit_account[0].value || "";
+                        var CreditAccount = CC_Search.custrecord_lmry_ntax_credit_account[0].value || "";
+                        var GlImpact = CC_Search.custrecord_lmry_ntax_gl_impact;
+
+                    }
+
+                    var auxMemo = (TR_ContributoryClass) ? "Contributory Class" : "National Tax";
+
+                    if ((GlImpact == false || GlImpact == "F") || !DebitAccount || !CreditAccount) {
+                        continue;
+                    }
+
+                    if (TR_Position == "" || TR_Position == null) {
+                        continue;
+                    }
+
+                    var itemDepartment = recordObj.getSublistValue({ sublistId: "item", fieldId: "department", line: TR_Position });
+                    var itemClass = recordObj.getSublistValue({ sublistId: "item", fieldId: "class", line: TR_Position });
+                    var itemLocation = recordObj.getSublistValue({ sublistId: "item", fieldId: "location", line: TR_Position });
+
+                    var oldDeparment = itemDepartment || transactionDepartment;
+                    var oldClass = itemClass || transactionClass;
+                    var oldLocation = itemLocation || transactionLocation;
+
+                    if (STS_JSON.segmentacion) {
+                        var newDepartment = _chooseSegmentation(MANDATORY_DEPARTMENT, oldDeparment, transactionDepartment, STS_JSON.department, transactionDeparment);
+                        var newClass = _chooseSegmentation(MANDATORY_CLASS, oldClass, transactionClass, STS_JSON.class, transactionClass);
+                        var newLocation = _chooseSegmentation(MANDATORY_LOCATION, oldLocation, transactionLocation, STS_JSON.location, transactionLocation);
+                    } else {
+                        var newDepartment = _chooseSegmentation(MANDATORY_DEPARTMENT, oldDeparment, transactionDepartment, STS_JSON.department, "");
+                        var newClass = _chooseSegmentation(MANDATORY_CLASS, oldClass, transactionClass, STS_JSON.class, "");
+                        var newLocation = _chooseSegmentation(MANDATORY_LOCATION, oldLocation, transactionLocation, STS_JSON.location, "");
+                    }
+
+                    var itemUniqueKey = recordObj.getSublistValue({ sublistId: "item", fieldId: "lineuniquekey", line: TR_Position });
+                    // Debit Line
+                    newJournalRecord.selectNewLine({ sublistId: "line" });
+                    newJournalRecord.setCurrentSublistValue({ sublistId: "line", fieldId: "account", value: DebitAccount });
+                    newJournalRecord.setCurrentSublistValue({ sublistId: "line", fieldId: "debit", value: TR_Amount });
+                    newJournalRecord.setCurrentSublistValue({ sublistId: "line", fieldId: "custcol_lmry_br_tax", value: TR_SubTypeID });
+                    newJournalRecord.setCurrentSublistValue({ sublistId: "line", fieldId: "memo", value: TR_SubType + " (LatamTax - " + auxMemo + ")" });
+                    newJournalRecord.setCurrentSublistValue({ sublistId: "line", fieldId: "custcol_lmry_item_posicion", value: itemUniqueKey });
+                    if (FEATURE_DEPARTMENT && newDepartment) {
+                        newJournalRecord.setCurrentSublistValue({ sublistId: "line", fieldId: "department", value: newDepartment });
+                    }
+                    if (FEATURE_CLASS && newClass) {
+                        newJournalRecord.setCurrentSublistValue({ sublistId: "line", fieldId: "class", value: newClass });
+                    }
+                    if (FEATURE_LOCATION && newLocation {
+                        newJournalRecord.setCurrentSublistValue({ sublistId: "line", fieldId: "location", value: newLocation });
+                    }
+                    newJournalRecord.commitLine({ sublistId: "line" });
+
+                    // Credit Line
+                    newJournalRecord.selectNewLine({ sublistId: "line" });
+                    newJournalRecord.setCurrentSublistValue({ sublistId: "line", fieldId: "account", value: CreditAccount });
+                    newJournalRecord.setCurrentSublistValue({ sublistId: "line", fieldId: "credit", value: TR_Amount });
+                    newJournalRecord.setCurrentSublistValue({ sublistId: "line", fieldId: "custcol_lmry_br_tax", value: TR_SubTypeID });
+                    newJournalRecord.setCurrentSublistValue({ sublistId: "line", fieldId: "memo", value: TR_SubType + " (LatamTax - " + auxMemo + ")" });
+                    newJournalRecord.setCurrentSublistValue({ sublistId: "line", fieldId: "custcol_lmry_item_posicion", value: itemUniqueKey });
+                    if (FEATURE_DEPARTMENT && newDepartment) {
+                        newJournalRecord.setCurrentSublistValue({ sublistId: "line", fieldId: "department", value: newDepartment });
+                    }
+                    if (FEATURE_CLASS && newClass) {
+                        newJournalRecord.setCurrentSublistValue({ sublistId: "line", fieldId: "class", value: newClass });
+                    }
+                    if (FEATURE_LOCATION && newLocation {
+                        newJournalRecord.setCurrentSublistValue({ sublistId: "line", fieldId: "location", value: newLocation });
+                    }
+                    newJournalRecord.commitLine({ sublistId: "line" });
+
+                }
+            }
+
+            newJournalRecord.save({
+                ignoreMandatoryFields: true,
+                disableTriggers: true
+            });
 
         } catch (e) {
             Library_Mail.sendemail('[ createJournalCreditCard ]: ' + e, LMRY_Script);
             Library_Log.doLog({ title: '[ createJournalCreditCard ]', message: e, relatedScript: LMRY_script_Name });
+        }
+
+    }
+
+    function _chooseSegmentation(pref, valor1, valor2, valorSetup, valorDefecto) {
+
+        try {
+
+            if (valor1 != null && valor1 != '') {
+                return valor1;
+            } else {
+                if (pref == 'T' || pref == true) {
+                    if (valor2 == null || valor2 == '') {
+                        return valorSetup;
+                    } else {
+                        return valor2;
+                    }
+                } else {
+                    if (valorDefecto != '' && valorDefecto != null) {
+                        return valorDefecto;
+                    }
+                }
+            }
+
+            return "";
+
+        } catch (e) {
+            Library_Mail.sendemail('[ _chooseSegmentation ]: ' + e, LMRY_Script);
+            Library_Log.doLog({ title: '[ _chooseSegmentation ]', message: e, relatedScript: LMRY_script_Name });
         }
 
     }
