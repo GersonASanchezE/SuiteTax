@@ -117,9 +117,9 @@ function (log, record, search, runtime, library, Library_Log) {
         // log.error("searchResultCC21", searchResultCC)
         // log.error("searchResultNT21", searchResultNT)
         
-        if (operationType != "create") {
+        // if (operationType != "create" ) {
           deleteTaxItemLines(recordObj);
-        }
+        // }
 
         numLines = recordObj.getLineCount('item');
         addItem(searchResultCC, recordObj, tipoRedondeo, arregloSegmentacion);
