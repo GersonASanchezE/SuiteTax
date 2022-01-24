@@ -190,7 +190,7 @@ define(['N/record', 'N/search', 'N/runtime', 'N/log', 'N/format',
                 }
                 if (!isWtax) {
                     if (ST_FEATURE === true || ST_FEATURE === "T") {
-                        BR_ST_TaxLibrary.updateItemLine(Jsonresult, recordObj, i, taxCalculationForm);
+                        BR_ST_TaxLibrary.updateItemLine(Jsonresult, recordObj, i, setupTax, licenses);
                     } else {
                         libraryTaxPurchase.updateLine(Jsonresult, recordObj, i, taxCalculationForm);
                     }

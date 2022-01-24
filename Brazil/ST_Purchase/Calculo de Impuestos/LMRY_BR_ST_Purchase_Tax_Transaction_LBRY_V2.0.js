@@ -1546,7 +1546,9 @@ define([
                 search.createColumn({ name: "custrecord_lmry_setuptax_br_province", label: "Latam - BR Province" }),
                 search.createColumn({ name: "custrecord_lmry_setuptax_br_difal_acct", label: "Latam - BR Difal Account" }),
                 search.createColumn({ name: "custrecord_lmry_setuptax_br_difal_obs", label: "Latam - BR Difal Observation" }),
-                search.createColumn({ name: "custrecord_lmry_setuptax_br_minimum_purc", label: "Latam - BR Minimum Tax Purchase" })
+                search.createColumn({ name: "custrecord_lmry_setuptax_br_minimum_purc", label: "Latam - BR Minimum Tax Purchase" }),
+                search.createColumn({ name: "custrecord_lmry_setuptax_br_tax_code", label: "Latam - BR Tax Code" }),
+                search.createColumn({ name: "custrecord_lmry_ste_setup_tax_type", join: "custrecord_lmry_setuptax_br_tax_code" })
 
             ];
 
@@ -1581,6 +1583,8 @@ define([
                 STS_JSON["difalAccount"] = STS_SearchResult[0].getValue({ name: "custrecord_lmry_setuptax_br_difal_acct" });
                 STS_JSON["fiscalobs"] = STS_SearchResult[0].getValue({ name: "custrecord_lmry_setuptax_br_difal_obs" });
                 STS_JSON["minimumTax"] = STS_SearchResult[0].getValue({ name: "custrecord_lmry_setuptax_br_minimum_purc" });
+                STS_JSON["taxCode"] = STS_SearchResult[0].getValue({ name: "custrecord_lmry_setuptax_br_tax_code" });
+                STS_JSON["taxType"] = STS_SearchResult[0].getValue({ name: "custrecord_lmry_ste_setup_tax_type", join: "custrecord_lmry_setuptax_br_tax_code" });
             }
             log.debug('[ getSetupTaxSubsidiary ]', STS_JSON);
             return STS_JSON;
@@ -1599,9 +1603,10 @@ define([
      *      - taxResults: JSON con datos de los impuestos y transaccion
      *      - recordObj: Record al cual se le aplicarán los impuestos
      *      - position: Posicion de la linea del item
-     *      - taxFlow: Flujo de la transaccion (Flujo 0, 1, 2 o 3)
+     *      - STS_JSON: Datos del Setupt Tax Subsidiary
+     *      - licenses: Feature activos por subsidiaria
      ***************************************************************************/
-    function updateItemLine(taxResults, recordObj, position, taxFlow) {
+    function updateItemLine(taxResults, recordObj, position, STS_JSON, licenses) {
 
         try {
 
@@ -1617,7 +1622,7 @@ define([
                 }
             }
 
-            _setTaxDetails(taxResults, recordObj, position, taxFlow);
+            _setTaxDetails(taxResults, recordObj, position, STS_JSON, licenses);
 
             recordObj.setCurrentSublistValue({ sublistId: "item", fieldId: "custcol_lmry_br_total_impuestos", value: itemTotalTaxAmount });
 
@@ -1629,7 +1634,7 @@ define([
                 var itemNetAmount = recordObj.getCurrentSublistValue({ sublistId: "item", fieldId: "amount" });
                 var itemQuantity = recordObj.getCurrentSublistValue({ sublistId: "item", fieldId: "quantity" });
 
-                switch (taxFlow) {
+                switch (STS_JSON.taxFlow) {
 
                     case "1": // Flujo 0
                         var itemGrossAmount = itemNetAmount + taxAmount;
@@ -1688,57 +1693,95 @@ define([
 
     }
 
-    function _setTaxDetails(taxResults, recordObj, position, taxFlow) {
+    function _setTaxDetails(taxResults, recordObj, position, STS_JSON, licenses) {
 
         try {
 
-            for (var i = 0; i < taxResults[position].length; i++) {
+            // var taxLineCount = recordObj.getLineCount({ sublistId: "taxdetails" });
+            // if (taxLineCount != null && taxLineCount > 0) {
+            //     for (var i = taxLineCount - 1; i >= 0; i--) {
+            //         recordObj.removeLine({ sublistId: "taxdetails", line: i });
+            //     }
+            // }
 
-                switch (taxFlow) {
-                    case "1":  // FLujo 0
-                        recordObj.selectNewLine({ sublistId: "taxdetails" });
-                        recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxdetailsreference", value: taxResults[position][i].taxdetails.detailReference });
-                        recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxtype", value: taxResults[position][i].taxdetails.taxType });
-                        recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxcode", value: taxResults[position][i].taxdetails.taxCode });
-                        recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxbasis", value: _round2(parseFloat(taxResults[position][i].taxdetails.taxBasis)) });
-                        recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxrate", value: parseFloat(taxResults[position][i].taxdetails.taxRate * 100) });
-                        recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxamount", value: _round2(parseFloat(taxResults[position][i].taxdetails.taxAmount)) });
-                        recordObj.commitLine({ sublistId: "taxdetails" });
-                        break;
+            if (Library_Mail.getAuthorization(755, licenses) == true) {
 
-                    case "2": // Flujo 1
-                        recordObj.selectNewLine({ sublistId: "taxdetails" });
-                        recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxdetailsreference", value: taxResults[position][i].taxdetails.detailReference });
-                        recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxtype", value: taxResults[position][i].taxdetails.taxType });
-                        recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxcode", value: taxResults[position][i].taxdetails.taxCode });
-                        recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxbasis", value: _round2(parseFloat(taxResults[position][i].taxdetails.taxBasis)) });
-                        recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxrate", value: parseFloat(taxResults[position][i].taxdetails.taxRate * 100) });
-                        recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxamount", value: _round2(parseFloat(taxResults[position][i].taxdetails.taxAmount)) });
-                        recordObj.commitLine({ sublistId: "taxdetails" });
-                        break;
+                for (var i = 0; i < taxResults[position].length; i++) {
 
-                    case "3": // Flujo 2
-                        recordObj.selectNewLine({ sublistId: "taxdetails" });
-                        recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxdetailsreference", value: taxResults[position][i].taxdetails.detailReference });
-                        recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxtype", value: taxResults[position][i].taxdetails.taxType });
-                        recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxcode", value: taxResults[position][i].taxdetails.taxCode });
-                        recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxbasis", value: _round2(parseFloat(taxResults[position][i].taxdetails.taxBasis)) });
-                        recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxrate", value: parseFloat(taxResults[position][i].taxdetails.taxRate * 100) });
-                        recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxamount", value: 0.00 });
-                        recordObj.commitLine({ sublistId: "taxdetails" });
-                        break;
+                    switch (STS_JSON.taxFlow) {
+                        case "1":  // FLujo 0
+                            recordObj.selectNewLine({ sublistId: "taxdetails" });
+                            recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxdetailsreference", value: taxResults[position][i].taxdetails.detailReference });
+                            recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxtype", value: taxResults[position][i].taxdetails.taxType });
+                            recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxcode", value: taxResults[position][i].taxdetails.taxCode });
+                            recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxbasis", value: _round2(parseFloat(taxResults[position][i].taxdetails.taxBasis)) });
+                            recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxrate", value: parseFloat(taxResults[position][i].taxdetails.taxRate * 100) });
+                            recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxamount", value: _round2(parseFloat(taxResults[position][i].taxdetails.taxAmount)) });
+                            recordObj.commitLine({ sublistId: "taxdetails" });
+                            break;
 
-                    case "4": // Flujo 3
-                        recordObj.selectNewLine({ sublistId: "taxdetails" });
-                        recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxdetailsreference", value: taxResults[position][i].taxdetails.detailReference });
-                        recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxtype", value: taxResults[position][i].taxdetails.taxType });
-                        recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxcode", value: taxResults[position][i].taxdetails.taxCode });
-                        recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxbasis", value: _round2(parseFloat(taxResults[position][i].taxdetails.taxBasis)) });
-                        recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxrate", value: parseFloat(taxResults[position][i].taxdetails.taxRate * 100) });
-                        recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxamount", value: 0.00 });
-                        recordObj.commitLine({ sublistId: "taxdetails" });
-                        break;
+                        case "2": // Flujo 1
+                            recordObj.selectNewLine({ sublistId: "taxdetails" });
+                            recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxdetailsreference", value: taxResults[position][i].taxdetails.detailReference });
+                            recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxtype", value: taxResults[position][i].taxdetails.taxType });
+                            recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxcode", value: taxResults[position][i].taxdetails.taxCode });
+                            recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxbasis", value: _round2(parseFloat(taxResults[position][i].taxdetails.taxBasis)) });
+                            recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxrate", value: parseFloat(taxResults[position][i].taxdetails.taxRate * 100) });
+                            recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxamount", value: _round2(parseFloat(taxResults[position][i].taxdetails.taxAmount)) });
+                            recordObj.commitLine({ sublistId: "taxdetails" });
+                            break;
+
+                        case "3": // Flujo 2
+                            recordObj.selectNewLine({ sublistId: "taxdetails" });
+                            recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxdetailsreference", value: taxResults[position][i].taxdetails.detailReference });
+                            recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxtype", value: taxResults[position][i].taxdetails.taxType });
+                            recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxcode", value: taxResults[position][i].taxdetails.taxCode });
+                            recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxbasis", value: _round2(parseFloat(taxResults[position][i].taxdetails.taxBasis)) });
+                            recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxrate", value: parseFloat(taxResults[position][i].taxdetails.taxRate * 100) });
+                            recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxamount", value: 0.00 });
+                            recordObj.commitLine({ sublistId: "taxdetails" });
+                            break;
+
+                        case "4": // Flujo 3
+                            recordObj.selectNewLine({ sublistId: "taxdetails" });
+                            recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxdetailsreference", value: taxResults[position][i].taxdetails.detailReference });
+                            recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxtype", value: taxResults[position][i].taxdetails.taxType });
+                            recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxcode", value: taxResults[position][i].taxdetails.taxCode });
+                            recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxbasis", value: _round2(parseFloat(taxResults[position][i].taxdetails.taxBasis)) });
+                            recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxrate", value: parseFloat(taxResults[position][i].taxdetails.taxRate * 100) });
+                            recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxamount", value: 0.00 });
+                            recordObj.commitLine({ sublistId: "taxdetails" });
+                            break;
+                    }
+
                 }
+
+            } else {
+
+                var itemTotalTaxAmount = 0;
+                var itemBaseAmount = 0;
+                var itemTaxRate = 0;
+                if (taxResults[position]) {
+                    for (var i = 0; i < taxResults[position].length; i++) {
+                        var isExempt = taxResults[position][i].isExempt;
+                        if (isExempt == false || isExempt == "F") {
+                            itemTotalTaxAmount += _round2(parseFloat(taxResults[position][i].retencion));
+                            itemBaseAmount = _round2(parseFloat(taxResults[position][i].taxdetails.taxBasis));
+                            itemTaxRate += _round2(parseFloat(taxResults[position][i].taxdetails.taxRate) * 100)
+                        }
+                    }
+                }
+
+                var itemDetailReference = taxResults[position][0].taxdetails.detailReference;
+
+                recordObj.selectNewLine({ sublistId: "taxdetails" });
+                recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxdetailsreference", value: itemDetailReference });
+                recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxtype", value: STS_JSON.taxType });
+                recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxcode", value: STS_JSON.taxCode });
+                recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxbasis", value: itemBaseAmount });
+                recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxrate", value: itemTaxRate });
+                recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxamount", value: itemTotalTaxAmount});
+                recordObj.commitLine({ sublistId: "taxdetails" });
 
             }
 
@@ -2142,8 +2185,9 @@ define([
                     }
 
                     if(Number(STS_JSON.taxFlow) == 4) {
-                        if ((TR_IsImportTax == true || TR_IsImportTax == "T") || (TR_IsTaxNotIncluded == true || TR_IsTaxNotIncluded == "T")) ´
-                        continue;
+                        if ((TR_IsImportTax == true || TR_IsImportTax == "T") || (TR_IsTaxNotIncluded == true || TR_IsTaxNotIncluded == "T")) {
+                            continue;
+                        }
                     }
 
                     var TR_ImportTaxLevel = (TR_ContributoryClass) ?
@@ -2233,7 +2277,7 @@ define([
                     if (FEATURE_CLASS && newClass) {
                         newJournalRecord.setCurrentSublistValue({ sublistId: "line", fieldId: "class", value: newClass });
                     }
-                    if (FEATURE_LOCATION && newLocation {
+                    if (FEATURE_LOCATION && newLocation) {
                         newJournalRecord.setCurrentSublistValue({ sublistId: "line", fieldId: "location", value: newLocation });
                     }
                     newJournalRecord.commitLine({ sublistId: "line" });
@@ -2251,7 +2295,7 @@ define([
                     if (FEATURE_CLASS && newClass) {
                         newJournalRecord.setCurrentSublistValue({ sublistId: "line", fieldId: "class", value: newClass });
                     }
-                    if (FEATURE_LOCATION && newLocation {
+                    if (FEATURE_LOCATION && newLocation) {
                         newJournalRecord.setCurrentSublistValue({ sublistId: "line", fieldId: "location", value: newLocation });
                     }
                     newJournalRecord.commitLine({ sublistId: "line" });
