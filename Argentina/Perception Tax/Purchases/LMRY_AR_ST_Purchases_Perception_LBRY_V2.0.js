@@ -579,24 +579,27 @@ function (log, record, search, runtime, library, Library_Log) {
 
   function deleteTaxItemLines(recordObj) {
     try {
-      
-      // var itemLineCount = recordObj.getLineCount({ sublistId:"item"}); 
-      // log.error("itemLineCount11111", itemLineCount);
 
-      for (var i = 0; i < itemLineCount; i++) {
-        var isItemTax = recordObj.getSublistValue({ sublistId: "item", fieldId: "custcol_lmry_ar_item_tributo", line: i });
-        if (isItemTax == true || isItemTax == "T") {
-          recordObj.removeLine({ sublistId: "item", line: i });
+      while (true) {
+        
+        var itemLineCount = recordObj.getLineCount({ sublistId:"item"});
 
-          // var itemLineCount = recordObj.getLineCount({ sublistId:"item"}); 
-          // log.error("itemLineCount2", itemLineCount);
-          // var itemDetailsCount = recordObj.getLineCount({ sublistId:"taxdetails"}); 
-          // log.error("itemDetailsCount", itemDetailsCount);
-          
+        for (var i = 0; i < itemLineCount; i++) {
+          var isItemTax = recordObj.getSublistValue({ sublistId: "item", fieldId: "custcol_lmry_ar_item_tributo", line: i });
+
+          if (isItemTax == true || isItemTax == "T") {
+            recordObj.removeLine({ sublistId: "item", line: i });
+            break;
+          }
+
+        }
+
+        if ( i == itemLineCount) {
+          break;
         }
 
       }
-      
+
     }
     catch(e){
       log.error("[ deleteTaxItemLines ]", e);
