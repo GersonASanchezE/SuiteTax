@@ -45,7 +45,8 @@ function (log, record, search, runtime, library, Library_Log) {
    ********************************************************************************************************/
   function applyPerception(context){
     try {
-
+      
+      var operationType = context.type;
       var id = context.newRecord.id;
       var type = context.newRecord.type;
 
@@ -68,7 +69,8 @@ function (log, record, search, runtime, library, Library_Log) {
       // var recordObj = scriptContext.newRecord;
 
 
-      numLines = recordObj.getLineCount('item');
+
+      // numLines = recordObj.getLineCount('item');
       // var auto_wht = recordObj.getValue('custbody_lmry_apply_wht_code');
       var legalDocType = recordObj.getValue("custbody_lmry_document_type");
       var fieldStatus = recordObj.getField({fieldId: 'custbody_psg_ei_status'});
@@ -82,48 +84,49 @@ function (log, record, search, runtime, library, Library_Log) {
       }
 
       if (validarTipoDoc(legalDocType) && (eDocStatus != "Sent" && eDocStatus != "Enviado")) {
-        var hayTributo = contieneTributo(recordObj, numLines);
-        if (!hayTributo) {
-          var transactionDate = recordObj.getText("trandate");
-          // transactionDate = format.format({value: transactionDate, type: format.Type.DATE});
-          var entity = recordObj.getValue("entity");
+        var transactionDate = recordObj.getText("trandate");
+        var entity = recordObj.getValue("entity");
 
-          // Verifica si esta activo el Feature Proyectos
-          var featjobs = runtime.isFeatureInEffect({feature: "JOBS"});
-          if (featjobs == true) {
-              var ajobs = search.lookupFields({ type: search.Type.JOB, id: entity, columns: ['customer'] });
-                  if (ajobs.customer) {
-                      entity = ajobs.customer[0].value;
-                  }
-          }
-          var subsidiary = recordObj.getValue("subsidiary");
-          var responsableType = search.lookupFields({ type: search.Type.VENDOR, id: entity, columns: ['custentity_lmry_ar_tiporespons'] });
-          // Se valida que el campo no este vacio
-          if (responsableType.custentity_lmry_ar_tiporespons.length == 0 || responsableType == '' || responsableType == null) {
-            return true;
-          }
-          var RespType = responsableType.custentity_lmry_ar_tiporespons[0].value;
-
-          var setupSubsidiary = getSetupTaxSubsidiary(subsidiary);
-          var tipoRedondeo = setupSubsidiary["rounding"];
-          var apply_line = setupSubsidiary["applyLine"];
-          var setup_department = setupSubsidiary["dapartment"];
-          var setup_class = setupSubsidiary["class"];
-          var setup_location = setupSubsidiary["location"];
-          var arregloSegmentacion = [setup_department, setup_class, setup_location];
-          exchange_global = getExchangeRate(recordObj, subsidiary, setupSubsidiary);
-
-          var searchResultCC = getContributoryClasses(subsidiary, transactionDate, filtroTransactionType, entity, legalDocType, RespType);
-          var searchResultNT = getNationalTaxes(subsidiary, transactionDate, filtroTransactionType, legalDocType, RespType);
-          // log.error("searchResultCC21", searchResultCC)
-          // log.error("searchResultNT21", searchResultNT)
-
-          addItem(searchResultCC, recordObj, tipoRedondeo, arregloSegmentacion);
-          addItem(searchResultNT, recordObj, tipoRedondeo, arregloSegmentacion);
-
-          recordObj.save({ ignoreMandatoryFields: true, disableTriggers: true, enableSourcing: true });
-
+        // Verifica si esta activo el Feature Proyectos
+        var featjobs = runtime.isFeatureInEffect({feature: "JOBS"});
+        if (featjobs == true) {
+            var ajobs = search.lookupFields({ type: search.Type.JOB, id: entity, columns: ['customer'] });
+                if (ajobs.customer) {
+                    entity = ajobs.customer[0].value;
+                }
         }
+        var subsidiary = recordObj.getValue("subsidiary");
+        var responsableType = search.lookupFields({ type: search.Type.VENDOR, id: entity, columns: ['custentity_lmry_ar_tiporespons'] }); 
+        // Se valida que el campo no este vacio
+        if (responsableType.custentity_lmry_ar_tiporespons.length == 0 || responsableType == '' || responsableType == null) {
+          return true;
+        }
+        var RespType = responsableType.custentity_lmry_ar_tiporespons[0].value;
+
+        var setupSubsidiary = getSetupTaxSubsidiary(subsidiary);
+        var tipoRedondeo = setupSubsidiary["rounding"];
+        var apply_line = setupSubsidiary["applyLine"];
+        var setup_department = setupSubsidiary["dapartment"];
+        var setup_class = setupSubsidiary["class"];
+        var setup_location = setupSubsidiary["location"];
+        var arregloSegmentacion = [setup_department, setup_class, setup_location];
+        exchange_global = getExchangeRate(recordObj, subsidiary, setupSubsidiary);
+
+        var searchResultCC = getContributoryClasses(subsidiary, transactionDate, filtroTransactionType, entity, legalDocType, RespType);
+        var searchResultNT = getNationalTaxes(subsidiary, transactionDate, filtroTransactionType, legalDocType, RespType);
+        // log.error("searchResultCC21", searchResultCC)
+        // log.error("searchResultNT21", searchResultNT)
+        
+        if (operationType != "create") {
+          deleteTaxItemLines(recordObj);
+        }
+
+        numLines = recordObj.getLineCount('item');
+        addItem(searchResultCC, recordObj, tipoRedondeo, arregloSegmentacion);
+        addItem(searchResultNT, recordObj, tipoRedondeo, arregloSegmentacion);
+
+        recordObj.save({ ignoreMandatoryFields: true, disableTriggers: true, enableSourcing: true });
+       
       }
     }
     catch (err) {
@@ -413,9 +416,15 @@ function (log, record, search, runtime, library, Library_Log) {
 
   function addItem(result_CCNT, recordObj, tipoRedondeo, segmentacion) {
     try {
-
-      var amount_base = parseFloat(recordObj.getValue("total")) - parseFloat(recordObj.getValue("taxtotal"));
-      log.debug("amount_base", amount_base)
+      
+      var taxTotal = recordObj.getValue("taxtotal");
+      if (taxTotal == "" || taxTotal == undefined) {
+        taxTotal = 0;
+      } 
+      
+      var amount_base = parseFloat(recordObj.getValue("total")) - parseFloat(taxTotal);
+      log.debug("total", recordObj.getValue("total"));
+      log.debug("taxTotal", taxTotal);
 
       var department_setup = segmentacion[0];
       var class_setup = segmentacion[1];
@@ -459,29 +468,29 @@ function (log, record, search, runtime, library, Library_Log) {
             continue;
           }
 
-          //RETENCION
-          var retencion = 0;
-          retencion = parseFloat(amount_base) * parseFloat(tax_rate);
-          var aux_cadena = retencion + ";";
-
+          // PERCEPCION
+          var percepcion = 0;
+          percepcion = parseFloat(amount_base) * parseFloat(tax_rate);
+          var aux_cadena = percepcion + ";";
+  
           if (tipoRedondeo == '1') {
-            if (parseFloat(retencion) - parseInt(retencion) < 0.5) {
-              retencion = parseInt(retencion);
+            if (parseFloat(percepcion) - parseInt(percepcion) < 0.5) {
+              percepcion = parseInt(percepcion);
             }
             else {
-              retencion = parseInt(retencion) + 1;
+              percepcion = parseInt(percepcion) + 1;
             }
           }
           if (tipoRedondeo == '2') {
-            retencion = parseInt(retencion);
+            percepcion = parseInt(percepcion);
           }
 
           if (applies_account != '' && applies_account != null) {
             aux_cadena += applies_account;
           }
-
-          retencion = parseFloat(Math.round(parseFloat(retencion) * 100) / 100);
-
+  
+          percepcion = parseFloat(Math.round(parseFloat(percepcion) * 100) / 100);
+  
           recordObj.selectNewLine('item');
 
           recordObj.setCurrentSublistValue('item', 'item', tax_item);
@@ -533,27 +542,24 @@ function (log, record, search, runtime, library, Library_Log) {
           }
 
           recordObj.commitLine({sublistId: 'item'});
-
-          var itemid = recordObj.getSublistValue('item', 'item',numLines)
-
-
+          
           var itemDetailReference = recordObj.getSublistValue({ sublistId: 'item', fieldId: 'taxdetailsreference', line: numLines });
 
           recordObj.selectNewLine('taxdetails');
-          // log.error("retencion", retencion)
+          // log.error("percepcion", percepcion)
           recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxdetailsreference", value: itemDetailReference });
           recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxtype", value: taxType });
           recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxcode",  value: taxCode });
           recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxbasis",  value: amount_base });
           recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxrate",  value: parseFloat(tax_rate) * 100 });
-          recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxamount", value: parseFloat(retencion) });
-
+          recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxamount", value: parseFloat(percepcion) });
+          
           // log.error("itemDetailReference", itemDetailReference)
           // log.error("taxtype", taxType)
           // log.error("taxcode", taxCode)
           // log.error("taxbasis", amount_base)
           // log.error("taxrate", tax_rate)
-          // log.error("taxamount", retencion)
+          // log.error("taxamount", percepcion)
           recordObj.commitLine({sublistId: 'taxdetails'});
 
 
@@ -571,8 +577,36 @@ function (log, record, search, runtime, library, Library_Log) {
 
   }
 
+  function deleteTaxItemLines(recordObj) {
+    try {
+      
+      // var itemLineCount = recordObj.getLineCount({ sublistId:"item"}); 
+      // log.error("itemLineCount11111", itemLineCount);
+
+      for (var i = 0; i < itemLineCount; i++) {
+        var isItemTax = recordObj.getSublistValue({ sublistId: "item", fieldId: "custcol_lmry_ar_item_tributo", line: i });
+        if (isItemTax == true || isItemTax == "T") {
+          recordObj.removeLine({ sublistId: "item", line: i });
+
+          // var itemLineCount = recordObj.getLineCount({ sublistId:"item"}); 
+          // log.error("itemLineCount2", itemLineCount);
+          // var itemDetailsCount = recordObj.getLineCount({ sublistId:"taxdetails"}); 
+          // log.error("itemDetailsCount", itemDetailsCount);
+          
+        }
+
+      }
+      
+    }
+    catch(e){
+      log.error("[ deleteTaxItemLines ]", e);
+      library.sendemail('[ deleteTaxItemLines ]: ' + e, LMRY_script);
+      Library_Log.doLog({title: '[ deleteTaxItemLines ]', message: e, relatedScript: LMRY_SCRIPT_NAME});
+    }
+  }
+  
   return {
-    applyPerception: applyPerception
+    applyPerception: applyPerception,
   };
 
 });
