@@ -236,7 +236,7 @@ define(['N/log', 'N/search', 'N/runtime', 'N/record', 'N/ui/message','./LMRY_lib
 
             var CC_SubType = ST_RecordObj.getText({ fieldId: "custrecord_lmry_sub_type" });
             if (CC_SubType != null || CC_SubType != "") {
-
+                log.error('[ CC_SubType ]', CC_SubType);
                 var TaxCode_Search = search.create({
                     type: "salestaxitem",
                     columns: [
@@ -247,7 +247,7 @@ define(['N/log', 'N/search', 'N/runtime', 'N/record', 'N/ui/message','./LMRY_lib
                         search.createFilter({ name: "name", operator: "IS", values: CC_SubType })
                     ]
                 }).run().getRange(0, 10);
-
+                log.error('[ TaxCode_Search ]', TaxCode_Search);
                 if (TaxCode_Search != null && TaxCode_Search.length > 0) {
 
                     record.submitFields({

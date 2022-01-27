@@ -83,9 +83,7 @@ define([
                 return true;
             }
 
-            if (actionType != "create") {
-                deleteTaxDetailLines(recordObj);
-            }
+            deleteTaxDetailLines(recordObj);
 
             FEATURE_SUBSIDIARY = runtime.isFeatureInEffect({ feature: 'SUBSIDIARIES' });
             FEATURE_MULTIBOOK = runtime.isFeatureInEffect({ feature: 'MULTIBOOK' });

@@ -45,7 +45,7 @@ function (log, record, search, runtime, library, Library_Log) {
    ********************************************************************************************************/
   function applyPerception(context){
     try {
-      
+
       var operationType = context.type;
       var id = context.newRecord.id;
       var type = context.newRecord.type;
@@ -96,7 +96,7 @@ function (log, record, search, runtime, library, Library_Log) {
                 }
         }
         var subsidiary = recordObj.getValue("subsidiary");
-        var responsableType = search.lookupFields({ type: search.Type.VENDOR, id: entity, columns: ['custentity_lmry_ar_tiporespons'] }); 
+        var responsableType = search.lookupFields({ type: search.Type.VENDOR, id: entity, columns: ['custentity_lmry_ar_tiporespons'] });
         // Se valida que el campo no este vacio
         if (responsableType.custentity_lmry_ar_tiporespons.length == 0 || responsableType == '' || responsableType == null) {
           return true;
@@ -116,7 +116,7 @@ function (log, record, search, runtime, library, Library_Log) {
         var searchResultNT = getNationalTaxes(subsidiary, transactionDate, filtroTransactionType, legalDocType, RespType);
         // log.error("searchResultCC21", searchResultCC)
         // log.error("searchResultNT21", searchResultNT)
-        
+
         // if (operationType != "create" || ) {
           deleteTaxItemLines(recordObj);
         // }
@@ -126,7 +126,7 @@ function (log, record, search, runtime, library, Library_Log) {
         addItem(searchResultNT, recordObj, tipoRedondeo, arregloSegmentacion);
 
         recordObj.save({ ignoreMandatoryFields: true, disableTriggers: true, enableSourcing: true });
-       
+
       }
     }
     catch (err) {
@@ -416,12 +416,12 @@ function (log, record, search, runtime, library, Library_Log) {
 
   function addItem(result_CCNT, recordObj, tipoRedondeo, segmentacion) {
     try {
-      
+
       var taxTotal = recordObj.getValue("taxtotal");
       if (taxTotal == "" || taxTotal == undefined) {
         taxTotal = 0;
-      } 
-      
+      }
+
       var amount_base = parseFloat(recordObj.getValue("total")) - parseFloat(taxTotal);
       log.debug("total", recordObj.getValue("total"));
       log.debug("taxTotal", taxTotal);
@@ -472,7 +472,7 @@ function (log, record, search, runtime, library, Library_Log) {
           var percepcion = 0;
           percepcion = parseFloat(amount_base) * parseFloat(tax_rate);
           var aux_cadena = percepcion + ";";
-  
+
           if (tipoRedondeo == '1') {
             if (parseFloat(percepcion) - parseInt(percepcion) < 0.5) {
               percepcion = parseInt(percepcion);
@@ -488,9 +488,9 @@ function (log, record, search, runtime, library, Library_Log) {
           if (applies_account != '' && applies_account != null) {
             aux_cadena += applies_account;
           }
-  
+
           percepcion = parseFloat(Math.round(parseFloat(percepcion) * 100) / 100);
-  
+
           recordObj.selectNewLine('item');
 
           recordObj.setCurrentSublistValue('item', 'item', tax_item);
@@ -542,7 +542,7 @@ function (log, record, search, runtime, library, Library_Log) {
           }
 
           recordObj.commitLine({sublistId: 'item'});
-          
+
           var itemDetailReference = recordObj.getSublistValue({ sublistId: 'item', fieldId: 'taxdetailsreference', line: numLines });
 
           recordObj.selectNewLine('taxdetails');
@@ -553,7 +553,7 @@ function (log, record, search, runtime, library, Library_Log) {
           recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxbasis",  value: amount_base });
           recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxrate",  value: parseFloat(tax_rate) * 100 });
           recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxamount", value: parseFloat(percepcion) });
-          
+
           // log.error("itemDetailReference", itemDetailReference)
           // log.error("taxtype", taxType)
           // log.error("taxcode", taxCode)
@@ -581,7 +581,7 @@ function (log, record, search, runtime, library, Library_Log) {
     try {
 
       while (true) {
-        
+
         var itemLineCount = recordObj.getLineCount({ sublistId:"item"});
 
         for (var i = 0; i < itemLineCount; i++) {
@@ -607,7 +607,7 @@ function (log, record, search, runtime, library, Library_Log) {
       Library_Log.doLog({title: '[ deleteTaxItemLines ]', message: e, relatedScript: LMRY_SCRIPT_NAME});
     }
   }
-  
+
   return {
     applyPerception: applyPerception,
   };

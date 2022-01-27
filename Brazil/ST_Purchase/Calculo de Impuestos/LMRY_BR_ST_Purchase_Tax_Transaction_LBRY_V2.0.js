@@ -626,15 +626,66 @@ define([
 
                     }
 
-                } else { // Fin IF CC_SearchResult
+                } // Fin IF CC_SearchResult
 
-                    if (NT_SearchResult != null && NT_SearchResult.length > 0) {
+                if (NT_SearchResult != null && NT_SearchResult.length > 0) {
 
+                    for (var i = 0; i < NT_SearchResult.length; i++) {
 
+                        var NT_InternalID = NT_SearchResult[i].getValue({ name: "internalid" });
+                        var NT_GeneratedTransaction = NT_SearchResult[i].getText({ name: "custrecord_lmry_ntax_gen_transaction" });
+                        var NT_GeneratedTransactionID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_gen_transaction" });
+                        var NT_Description = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_description" });
+                        var NT_TaxType = NT_SearchResult[i].getText({ name: "custrecord_lmry_ntax_taxtype" });
+                        var NT_TaxTypeID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_taxtype" });
+                        var NT_SubType = NT_SearchResult[i].getText({ name: "custrecord_lmry_ntax_sub_type" });
+                        var NT_SubTypeID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_sub_type" });
+                        var NT_TaxByLocation = NT_SearchResult[i].getValue({ join: "custrecord_lmry_ntax_sub_type", name: "custrecord_lmry_tax_by_location" });
+                        var NT_IsImportTax = NT_SearchResult[i].getValue({ join: "custrecord_lmry_ntax_sub_type", name: "custrecord_lmry_br_is_import_tax" });
+                        var NT_IsTaxNotIncluded = NT_SearchResult[i].getValue({ join: "custrecord_lmry_ntax_sub_type", name: "custrecord_lmry_is_tax_not_included" });
+                        var NT_STE_TaxType = NT_SearchResult[i].getText({ name: "custrecord_lmry_cc_ste_tax_type" });
+                        var NT_STE_TaxTypeID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_cc_ste_tax_type" });
+                        var NT_STE_TaxCode = NT_SearchResult[i].getText({ name: "custrecord_lmry_cc_ste_tax_code" });
+                        var NT_STE_TaxCodeID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_cc_ste_tax_code" });
+                        var NT_TaxRule = NT_SearchResult[i].getText({ name: "custrecord_lmry_ccl_tax_rule" });
+                        var NT_TaxRuleID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_tax_rule" });
+                        var NT_TaxRate = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ar_ccl_taxrate" });
+                        var NT_AmountTo = NT_SearchResult[i].getValue({ name: "custrecord_lmry_amount" });
+                        var NT_AdditionalRatio = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_addratio" });
+                        var NT_MinAmount = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_minamount" }) || 0.00;
+                        var NT_MaxAmount = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_maxamount" }) || 0.00;
+                        var NT_BaseRetention = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_set_baseretention" });
+                        var NT_IsExempt = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ar_ccl_isexempt" });
+                        var NT_BaseAmount = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_base_amount" });
+                        var NT_NotTaxableMin = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_not_taxable_minimum" });
+                        var NT_GlImpact = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_gl_impact" });
+                        var NT_IsReduction = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_is_reduction" });
+                        var NT_IsSubstitutionTax = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_is_substitution" });
+                        var NT_TaxItem = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ar_ccl_taxitem" });
+                        var NT_TaxCode = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ar_ccl_taxcode" });
+                        var NT_Department = NT_SearchResult[i].getText({ name: "custrecord_lmry_ar_ccl_department" });
+                        var NT_DepartmentID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ar_ccl_department" });
+                        var NT_Class = NT_SearchResult[i].getText({ name: "custrecord_lmry_ar_ccl_class" });
+                        var NT_ClassID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ar_ccl_class" });
+                        var NT_Location = NT_SearchResult[i].getText({ name: "custrecord_lmry_ar_ccl_location" });
+                        var NT_LocationID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ar_ccl_location" });
+                        var NT_CreditAccount = NT_SearchResult[i].getText({ name: "custrecord_lmry_br_ccl_account2" });
+                        var NT_CreditAccountID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_br_ccl_account2" });
+                        var NT_DebitAccount = NT_SearchResult[i].getText({ name: "custrecord_lmry_br_ccl_account1" });
+                        var NT_DebitAccountID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_br_ccl_account1" });
+                        var NT_TelecomunicationTax = NT_SearchResult[i].getValue({ name: "custrecord_lmry_br_exclusive" });
+                        var NT_BR_Receita = NT_SearchResult[i].getValue({ name: "custrecord_lmry_br_receita" });
+                        var NT_BR_TaxSituation = NT_SearchResult[i].getValue({ name: "custrecord_lmry_br_taxsituation" });
+                        var NT_BR_Revenue = NT_SearchResult[i].getValue({ name: "custrecord_lmry_br_nature_revenue" });
+                        var NT_BR_RegimenCatalog = NT_SearchResult[i].getValue({ name: "custrecord_lmry_br_ccl_regimen_catalog" });
+                        var NT_TaxDifal = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_difal" }) || 0.00;
+                        var NT_ApplyReport = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_br_apply_report" });
+                        var NT_BR_TaxRateFA = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_fa_tax_rate" }) || 0.00;
+                        var NT_ReductionRatio = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_reduction_ratio" }) || 1;
 
-                    } // Fin IF NT_SearchResult
+                    } // Fin FOR NT_SearchResult
 
-                }
+                } // Fin IF NT_SearchResult
 
             }
 
@@ -1067,6 +1118,9 @@ define([
             var transactionProvince = recordObj.getValue({ fieldId: "custbody_lmry_province" });
             var transactionCity = recordObj.getValue({ fieldId: "custbody_lmry_city" });
             var transactionDistrict = recordObj.getValue({ fieldId: "custbody_lmry_district" });
+            var transactionEntity = recordObj.getValue({ fieldId: "entity" });
+
+            var filterExemptBR = _exemptTaxBR(transactionEntity);
 
             var NT_Columns = [
                 search.createColumn({ name: "internalid", label: "INTERNAL ID" }),
@@ -1091,6 +1145,7 @@ define([
                 search.createColumn({ name: "custrecord_lmry_ntax_not_taxable_minimum", label: "LATAM - NOT TAXABLE MINIMUM" }),
                 search.createColumn({ name: "custrecord_lmry_ntax_gl_impact", label: "LATAM BR - GL IMPACT?" }),
                 search.createColumn({ name: "custrecord_lmry_nt_is_reduction", label: "LATAM - IS REDUCTION?" }),
+                search.createColumn({ name: "custrecord_lmry_nt_reduction_ratio", label: "LATAM BR - REDUCTION RATIO" }),
                 search.createColumn({ name: "custrecord_lmry_nt_is_substitution", label: "LATAM BR - ES SUSTITUCIÓN TRIBUTARIA?" }),
                 search.createColumn({ name: "custrecord_lmry_ntax_taxitem", label: "LATAM - TAX ITEM" }),
                 search.createColumn({ name: "custrecord_lmry_ntax_taxcode", label: "LATAM - TAX CODE" }),
@@ -1127,6 +1182,10 @@ define([
 
             if (FEATURE_SUBSIDIARY) {
                 NT_Filters.push("AND", [ "custrecord_lmry_ntax_subsidiary", "ANYOF", transactionSubsidiary ]);
+            }
+
+            if (filterExemptBR) {
+                NT_Filters.push("AND", [ "custrecord_lmry_ntax_sub_type", "NONEOF", filterExemptBR ]);
             }
 
             var provinces = ["@NONE@"];
@@ -1168,6 +1227,32 @@ define([
         } catch (e) {
             Library_Mail.sendemail('[ _getNationalTaxes ]: ' + e, LMRY_Script);
             Library_Log.doLog({ title: '[ _getNationalTaxes ]', message: e, relatedScript: LMRY_script_Name });
+        }
+
+    }
+
+    function _exemptTaxBR(transactionEntity) {
+
+        try {
+
+            var exempts = [];
+            var exemptTax = search.lookupFields({
+                type: search.Type.CUSTOMER,
+                id: transactionEntity,
+                columns: [ "custentity_lmry_br_exempt_tax" ]
+            }).custentity_lmry_br_exempt_tax;
+
+            if (exemptTax) {
+                for (var i = 0; i < exemptTax.length; i++) {
+                    exempts.push(exemptTax[i].value);
+                }
+            }
+
+            return (exempts.length) ? exempts : "";
+
+        } catch (e) {
+            Library_Mail.sendemail('[ _exemptTaxBR ]: ' + e, LMRY_Script);
+            Library_Log.doLog({ title: '[ _exemptTaxBR ]', message: e, relatedScript: LMRY_script_Name });
         }
 
     }
@@ -1215,6 +1300,7 @@ define([
                 search.createColumn({ name: "custrecord_lmry_ccl_not_taxable_minimum", label: "LATAM - NOT TAXABLE MINIMUM" }),
                 search.createColumn({ name: "custrecord_lmry_ccl_gl_impact", label: "LATAM BR - GL IMPACT?" }),
                 search.createColumn({ name: "custrecord_lmry_ccl_is_reduction", label: "LATAM - IS REDUCTION?" }),
+                search.createColumn({ name: "custrecord_lmry_ccl_reduction_ratio", label: "LATAM BR - REDUCTION RATIO" }),
                 search.createColumn({ name: "custrecord_lmry_ccl_is_substitution", label: "LATAM BR - ES SUSTITUCIÓN TRIBUTARIA?" }),
                 search.createColumn({ name: "custrecord_lmry_ar_ccl_taxitem", label: "LATAM - TAX ITEM" }),
                 search.createColumn({ name: "custrecord_lmry_ar_ccl_taxcode", label: "LATAM - TAX CODE" }),
