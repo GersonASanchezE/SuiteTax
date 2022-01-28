@@ -161,6 +161,8 @@ define([
 
                 var taxResults = [];
                 var taxDetailLines = 0;
+                var sumaBaseCalculoI = 0;
+
                 if (CC_SearchResult != null && CC_SearchResult.length > 0) {
 
                     for (var i = 0; i < CC_SearchResult.length; i++) {
@@ -193,6 +195,7 @@ define([
                         var CC_NotTaxableMin = CC_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_not_taxable_minimum" });
                         var CC_GlImpact = CC_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_gl_impact" });
                         var CC_IsReduction = CC_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_is_reduction" });
+                        var CC_ReductionRatio = CC_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_reduction_ratio" }) || 1;
                         var CC_IsSubstitutionTax = CC_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_is_substitution" });
                         var CC_TaxItem = CC_SearchResult[i].getValue({ name: "custrecord_lmry_ar_ccl_taxitem" });
                         var CC_TaxCode = CC_SearchResult[i].getValue({ name: "custrecord_lmry_ar_ccl_taxcode" });
@@ -214,7 +217,6 @@ define([
                         var CC_TaxDifal = CC_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_difal" }) || 0.00;
                         var CC_ApplyReport = CC_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_br_apply_report" });
                         var CC_BR_TaxRateFA = CC_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_fa_tax_rate" }) || 0.00;
-                        var CC_ReductionRatio = CC_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_reduction_ratio" }) || 1;
 
                         CC_TaxRate = parseFloat(CC_TaxRate);
                         CC_TaxDifal = parseFloat(CC_TaxDifal);
@@ -364,7 +366,9 @@ define([
                                                     regime: itemRegimen,
                                                     taxItem: CC_TaxItem,
                                                     taxCode: CC_TaxCode,
-                                                    faTaxRate: CC_BR_TaxRateFA
+                                                    faTaxRate: CC_BR_TaxRateFA,
+                                                    ste_taxcode: CC_STE_TaxCodeID,
+                                                    ste_taxtype: CC_STE_TaxTypeID
                                                 });
                                             }
                                         }
@@ -628,6 +632,11 @@ define([
 
                 } // Fin IF CC_SearchResult
 
+                // Inicializa las variables para Brasil
+                sumaBaseCalculoI = 0;
+                arreglo_SumaBaseBR = new Array();
+                arreglo_IndiceBaseBR = new Array();
+
                 if (NT_SearchResult != null && NT_SearchResult.length > 0) {
 
                     for (var i = 0; i < NT_SearchResult.length; i++) {
@@ -643,45 +652,455 @@ define([
                         var NT_TaxByLocation = NT_SearchResult[i].getValue({ join: "custrecord_lmry_ntax_sub_type", name: "custrecord_lmry_tax_by_location" });
                         var NT_IsImportTax = NT_SearchResult[i].getValue({ join: "custrecord_lmry_ntax_sub_type", name: "custrecord_lmry_br_is_import_tax" });
                         var NT_IsTaxNotIncluded = NT_SearchResult[i].getValue({ join: "custrecord_lmry_ntax_sub_type", name: "custrecord_lmry_is_tax_not_included" });
-                        var NT_STE_TaxType = NT_SearchResult[i].getText({ name: "custrecord_lmry_cc_ste_tax_type" });
-                        var NT_STE_TaxTypeID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_cc_ste_tax_type" });
-                        var NT_STE_TaxCode = NT_SearchResult[i].getText({ name: "custrecord_lmry_cc_ste_tax_code" });
-                        var NT_STE_TaxCodeID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_cc_ste_tax_code" });
-                        var NT_TaxRule = NT_SearchResult[i].getText({ name: "custrecord_lmry_ccl_tax_rule" });
-                        var NT_TaxRuleID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_tax_rule" });
-                        var NT_TaxRate = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ar_ccl_taxrate" });
-                        var NT_AmountTo = NT_SearchResult[i].getValue({ name: "custrecord_lmry_amount" });
-                        var NT_AdditionalRatio = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_addratio" });
-                        var NT_MinAmount = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_minamount" }) || 0.00;
-                        var NT_MaxAmount = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_maxamount" }) || 0.00;
-                        var NT_BaseRetention = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_set_baseretention" });
-                        var NT_IsExempt = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ar_ccl_isexempt" });
-                        var NT_BaseAmount = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_base_amount" });
-                        var NT_NotTaxableMin = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_not_taxable_minimum" });
-                        var NT_GlImpact = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_gl_impact" });
-                        var NT_IsReduction = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_is_reduction" });
-                        var NT_IsSubstitutionTax = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_is_substitution" });
-                        var NT_TaxItem = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ar_ccl_taxitem" });
-                        var NT_TaxCode = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ar_ccl_taxcode" });
-                        var NT_Department = NT_SearchResult[i].getText({ name: "custrecord_lmry_ar_ccl_department" });
-                        var NT_DepartmentID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ar_ccl_department" });
-                        var NT_Class = NT_SearchResult[i].getText({ name: "custrecord_lmry_ar_ccl_class" });
-                        var NT_ClassID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ar_ccl_class" });
-                        var NT_Location = NT_SearchResult[i].getText({ name: "custrecord_lmry_ar_ccl_location" });
-                        var NT_LocationID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ar_ccl_location" });
-                        var NT_CreditAccount = NT_SearchResult[i].getText({ name: "custrecord_lmry_br_ccl_account2" });
-                        var NT_CreditAccountID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_br_ccl_account2" });
-                        var NT_DebitAccount = NT_SearchResult[i].getText({ name: "custrecord_lmry_br_ccl_account1" });
-                        var NT_DebitAccountID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_br_ccl_account1" });
-                        var NT_TelecomunicationTax = NT_SearchResult[i].getValue({ name: "custrecord_lmry_br_exclusive" });
-                        var NT_BR_Receita = NT_SearchResult[i].getValue({ name: "custrecord_lmry_br_receita" });
-                        var NT_BR_TaxSituation = NT_SearchResult[i].getValue({ name: "custrecord_lmry_br_taxsituation" });
-                        var NT_BR_Revenue = NT_SearchResult[i].getValue({ name: "custrecord_lmry_br_nature_revenue" });
-                        var NT_BR_RegimenCatalog = NT_SearchResult[i].getValue({ name: "custrecord_lmry_br_ccl_regimen_catalog" });
-                        var NT_TaxDifal = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_difal" }) || 0.00;
-                        var NT_ApplyReport = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_br_apply_report" });
-                        var NT_BR_TaxRateFA = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_fa_tax_rate" }) || 0.00;
-                        var NT_ReductionRatio = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ccl_reduction_ratio" }) || 1;
+                        var NT_STE_TaxType = NT_SearchResult[i].getText({ name: "custrecord_lmry_nt_ste_tax_type" });
+                        var NT_STE_TaxTypeID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_nt_ste_tax_type" });
+                        var NT_STE_TaxCode = NT_SearchResult[i].getText({ name: "custrecord_lmry_nt_ste_tax_code" });
+                        var NT_STE_TaxCodeID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_nt_ste_tax_code" });
+                        var NT_TaxRule = NT_SearchResult[i].getText({ name: "custrecord_lmry_ntax_tax_rule" });
+                        var NT_TaxRuleID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_tax_rule" });
+                        var NT_TaxRate = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_taxrate" });
+                        var NT_AmountTo = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_amount" });
+                        var NT_AdditionalRatio = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_addratio" });
+                        var NT_MinAmount = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_minamount" }) || 0.00;
+                        var NT_MaxAmount = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_maxamount" }) || 0.00;
+                        var NT_BaseRetention = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_set_baseretention" });
+                        var NT_IsExempt = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_isexempt" });
+                        var NT_BaseAmount = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_base_amount" });
+                        var NT_NotTaxableMin = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_not_taxable_minimum" });
+                        var NT_GlImpact = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_gl_impact" });
+                        var NT_IsReduction = NT_SearchResult[i].getValue({ name: "custrecord_lmry_nt_is_reduction" });
+                        var NT_ReductionRatio = NT_SearchResult[i].getValue({ name: "custrecord_lmry_nt_reduction_ratio" }) || 1;
+                        var NT_IsSubstitutionTax = NT_SearchResult[i].getValue({ name: "custrecord_lmry_nt_is_substitution" });
+                        var NT_TaxItem = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_taxitem" });
+                        var NT_TaxCode = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_taxcode" });
+                        var NT_Department = NT_SearchResult[i].getText({ name: "custrecord_lmry_ntax_department" });
+                        var NT_DepartmentID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_department" });
+                        var NT_Class = NT_SearchResult[i].getText({ name: "custrecord_lmry_ntax_class" });
+                        var NT_ClassID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_class" });
+                        var NT_Location = NT_SearchResult[i].getText({ name: "custrecord_lmry_ntax_location" });
+                        var NT_LocationID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_location" });
+                        var NT_CreditAccount = NT_SearchResult[i].getText({ name: "custrecord_lmry_ntax_credit_account" });
+                        var NT_CreditAccountID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_credit_account" });
+                        var NT_DebitAccount = NT_SearchResult[i].getText({ name: "custrecord_lmry_ntax_debit_account" });
+                        var NT_DebitAccountID = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_debit_account" });
+                        var NT_TelecomunicationTax = NT_SearchResult[i].getValue({ name: "custrecord_lmry_br_ntax_exclusive" });
+                        var NT_BR_Receita = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_br_receita" });
+                        var NT_BR_TaxSituation = NT_SearchResult[i].getValue({ name: "custrecord_lmry_br_ntax_tax_situation" });
+                        var NT_BR_Revenue = NT_SearchResult[i].getValue({ name: "custrecord_lmry_br_ntax_nature_revenue" });
+                        var NT_BR_RegimenCatalog = NT_SearchResult[i].getValue({ name: "custrecord_lmry_br_ntax_regimen_catalog" });
+                        var NT_TaxDifal = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_difal" }) || 0.00;
+                        var NT_ApplyReport = NT_SearchResult[i].getValue({ name: "custrecord_lmry_nt_br_apply_report" });
+                        var NT_BR_TaxRateFA = NT_SearchResult[i].getValue({ name: "custrecord_lmry_ntax_fa_tax_rate" }) || 0.00;
+
+                        NT_TaxRate = parseFloat(NT_TaxRate);
+                        NT_TaxDifal = parseFloat(NT_TaxDifal);
+                        NT_BR_TaxRateFA = parseFloat(NT_BR_TaxRateFA);
+
+                        if (Number(STS_JSON.taxFlow) != 4) {
+                            CC_ReductionRatio = 1;
+                        }
+
+                        // CONVERSION DE LOS MONTON DEL NT_SearchResult A MONEDA DE LA TRANSACCION
+                        if (NT_MinAmount == null || NT_MinAmount == "") {
+                            NT_MinAmount = 0;
+                        }
+                        NT_MinAmount = parseFloat(parseFloat(NT_MinAmount) / exchangeRate);
+
+                        if (NT_MaxAmount == null || NT_MaxAmount == "") {
+                            NT_MaxAmount = 0;
+                        }
+                        NT_MaxAmount = parseFloat(parseFloat(NT_MaxAmount) / exchangeRate);
+
+                        if (NT_BaseRetention == null || NT_BaseRetention == "") {
+                            NT_BaseRetention = 0;
+                        }
+                        NT_BaseRetention = parseFloat(parseFloat(NT_BaseRetention) / exchangeRate);
+
+                        if (NT_NotTaxableMin == null || NT_NotTaxableMin == "") {
+                            NT_NotTaxableMin = 0;
+                        }
+                        NT_NotTaxableMin = parseFloat(parseFloat(NT_NotTaxableMin) / exchangeRate);
+
+                        if (NT_AdditionalRatio == null || NT_AdditionalRatio == "") {
+                            NT_AdditionalRatio = 1;
+                        }
+
+                        if (NT_GlImpact && transactionType != "itemfulfillment") {
+                            if ((NT_CreditAccountID == null || NT_CreditAccountID == "") || (NT_DebitAccountID == null || NT_DebitAccountID == "")) {
+                                continue;
+                            }
+                        }
+
+                        if ((applyWHT == true || applyWHT == "T") && (NT_TaxByLocation == true || NT_TaxByLocation == "T")) {
+                            continue;
+                        }
+
+                        if ((NT_IsImportTax == true || NT_IsImportTax == "T") && (transactionType != "itemfulfillment")) {
+
+                            // Solo aplica para el flujo 3
+                            if (Number(STS_JSON.taxFlow) != 4) {
+                                continue;
+                            }
+
+                            // Se verifica si extranjero
+                            var Entity_Country = search.lookupFields({
+                                type: "vendor",
+                                id: transactionEntity,
+                                columns: [ "custentity_lmry_country.custrecord_lmry_mx_country" ]
+                            }).custentity_lmry_country.custrecord_lmry_mx_country;
+
+                            if (!Entity_Country || !Entity_Country.length || Number(Entity_Country[0].value) == 30) {
+                                continue;
+                            }
+
+                        }
+
+                        if (NT_TaxRuleID == null || NT_TaxRuleID == "") {
+                            continue;
+                        }
+
+                        if (itemLineCount != null && itemLineCount != "") {
+
+                            for (var j = 0; j < itemLineCount; j++) {
+
+                                var itemName = recordObj.getSublistText({ sublistId: "item", fieldId: "item", line: j });
+                                var itemID = recordObj.getSublistValue({ sublistId: "item", fieldId: "item", line: j });
+                                var itemUniqueKey = recordObj.getSublistValue({ sublistId: "item", fieldId: "lineuniquekey", line: j });
+                                var itemDetailReference = recordObj.getSublistValue({ sublistId: 'item', fieldId: 'taxdetailsreference', line: j });
+                                var itemTaxRule = recordObj.getSublistValue({ sublistId: "item", fieldId: "custcol_lmry_br_tax_rule", line: j });
+                                var itemRegimen = recordObj.getSublistValue({ sublistId: "item", fieldId: "custcol_lmry_br_regimen", line: j });
+                                var itemMcnCode = recordObj.getSublistValue({ sublistId: "item", fieldId: "custcol_lmry_br_tran_mcn", line: j });
+                                var itemIsTax = recordObj.getSublistValue({ sublistId: "item", fieldId: "custcol_lmry_ar_item_tributo", line: j });
+
+                                var retencion = 0;
+                                var baseAmount = 0;
+                                var compareAmount = 0;
+
+                                if (itemIsTax == true || itemIsTax == "T") {
+                                    continue;
+                                }
+
+                                var itemFixedAsset = "";
+                                if (NS_FA_ACTIVE == true || NS_FA_ACTIVE == "T") {
+                                    var itemFixedAssetField = recordObj.getSublistField({ sublistId: "item", fieldId: "custcol_far_trn_relatedasset", line: j });
+                                    if (itemFixedAssetField) {
+                                        itemFixedAsset = recordObj.getSublistValue({ sublistId: "item", fieldId: "custcol_far_trn_relatedasset", line: j }) || "";
+                                    }
+                                } else {
+                                    itemFixedAsset = recordObj.getSublistValue({ sublistId: "item", fieldId: "custcol_lmry_br_fixed_assets", line: j }) || "";
+                                }
+
+                                var itemTaxSituation = 0;
+                                switch (NT_SubTypeID) {
+                                    case "10": // PIS
+                                        itemTaxSituation = recordObj.getSublistValue({ sublistId: "item", fieldId: "custcol_lmry_br_cst_pis", line: j });
+                                        break;
+                                    case "11": // COFINS
+                                        itemTaxSituation = recordObj.getSublistValue({ sublistId: "item", fieldId: "custcol_lmry_br_cst_cofins", line: j });
+                                        break;
+                                    case "24": // ICMS
+                                        itemTaxSituation = recordObj.getSublistValue({ sublistId: "item", fieldId: "custcol_lmry_br_cst_icms", line: j });
+                                        break;
+                                    case "36": // IPI
+                                        itemTaxSituation = recordObj.getSublistValue({ sublistId: "item", fieldId: "custcol_lmry_br_cst_ipi", line: j });
+                                        break;
+                                }
+
+                                if (NT_TaxRuleID != itemTaxRule) {
+                                    continue;
+                                }
+
+                                if (itemRegimen == null || itemRegimen == "" || itemRegimen == 0) {
+                                    itemRegimen = NT_BR_RegimenCatalog;
+                                }
+
+                                if (itemTaxSituation == null || itemTaxSituation == "" || itemTaxSituation == 0) {
+                                    itemTaxSituation = NT_BR_TaxSituation;
+                                }
+
+                                if (Number(STS_JSON.taxFlow) == 4 && transactionType != "itemfulfillment") {
+                                    if (NT_IsSubstitutionTax == true || NT_IsSubstitutionTax == "T") {
+                                        var MVA_List = _getMVAByValues(MVARecords, itemMcnCode, "", "", NT_SubTypeID, NT_TaxRate);
+                                        if (MVA_List != null && MVA_List.length > 0) {
+                                            for (var x = 0; x < MVA_List.length; x > 0) {
+                                                var MVA_Id = MVA_List[x].mva_id;
+                                                var MVA_Rate = MVA_List[x].mva_rate;
+                                                SubstitutionTaxes[j] = SubstitutionTaxes[j] || {};
+                                                SubstitutionTaxes[j][MVA_Id] = SubstitutionTaxes[j][MVA_Id] || [];
+                                                SubstitutionTaxes[j][MVA_Id].push({
+                                                    subType: NT_SubType,
+                                                    subTypeId: NT_SubTypeID,
+                                                    taxRate: parseFloat(NT_TaxRate),
+                                                    mvaRate: MVA_Rate,
+                                                    taxRecordId: NT_InternalID,
+                                                    case: "4I",
+                                                    receita: NT_BR_Receita,
+                                                    taxSituation: itemTaxSituation,
+                                                    natureRevenue: NT_BR_Revenue,
+                                                    regime: itemRegimen,
+                                                    taxItem: NT_TaxItem,
+                                                    taxCode: NT_TaxCode,
+                                                    faTaxRate: NT_BR_TaxRateFA,
+                                                    ste_taxcode: NT_STE_TaxCodeID,
+                                                    ste_taxtype: NT_STE_TaxTypeID
+                                                });
+                                            }
+                                        }
+                                        continue;
+                                    }
+                                }
+
+                                if (transactionType != "itemfulfillment") {
+                                    var itemGrossAmount = recordObj.getSublistValue({ sublistId: "item", fieldId: "grossamt", line: j }) || 0.00;
+                                    var itemTaxAmount = recordObj.getSublistValue({ sublistId: "item", fieldId: "taxamount", line: j }) || 0.00;
+                                    var itemNetAmount = recordObj.getSublistValue({ sublistId: "item", fieldId: "amount", line: j }) || 0.00;
+                                } else {
+                                    var itemQuantity = recordObj.getSublistValue({ sublistId: "item", fieldId: "quantity", line: j });
+                                    var itemRate = recordObj.getSublistValue({ sublistId: "item", fieldId: "rate", line: j });
+                                    var itemGrossAmount = _round2(parseFloat(itemQuantity) * parseFloat(itemRate));
+                                    var itemNetAmount = itemGrossAmount;
+                                    var itemTaxAmount = 0.00;
+                                 }
+
+                                 if (itemTaxAmount == 0 && NT_AmountTo == 2) {      //taxamount es 0 y aplica al Tax Amount
+                                     continue;
+                                 }
+
+                                 var baseDifal = 0;
+                                 var baseFixedAsset = 0;
+                                 if (STS_JSON.taxFlow == 1 || STS_JSON.taxFlow == 3) { // Para los flujos 0 y 2
+                                     NT_AmountTo = 3 // Trabaja siempre con el Net Amount
+                                     var sumOfTaxes = parseFloat(_getSumOfTaxes(NT_SearchResult, "custrecord_lmry_ar_ccl_taxrate", "custrecord_lmry_br_ccl_rate_suma", "custrecord_lmry_ccl_tax_rule", itemTaxRule, "custrecord_lmry_sub_type"));
+                                     itemNetAmount = parseFloat(itemNetAmount / parseFloat(1 - sumOfTaxes));
+                                     itemTaxAmount = parseFloat(itemTaxAmount / parseFloat(1 - sumOfTaxes));
+                                     itemGrossAmount = parseFloat(itemGrossAmount / parseFloat(1 - sumOfTaxes));
+
+                                     if (NT_TelecomunicationTax == true || NT_TelecomunicationTax == "T") { // En el caso de un impuesto de Telecomunicación (FUST o FUNTTEL)
+                                         var sumaBaseCalculoI = _baseCalculationBR(0, j, false);
+                                         // Realiza la formula del Monto Base para excluyentes siguiendo la formula "Monto Base Excluyentes = Monto Base No Excluyentes - Suma Impuestos No Exluyentes"
+                                         itemNetAmount = parseFloat(itemNetAmount) - parseFloat(sumaBaseCalculoI);
+                                         itemTaxAmount = parseFloat(itemTaxAmount) - parseFloat(sumaBaseCalculoI);
+                                         itemGrossAmount = parseFloat(itemGrossAmount) - parseFloat(sumaBaseCalculoI);
+                                     }
+                                 } else { // Para los flujos 1 y 3
+                                     NT_AmountTo = 1; // Trabaja siempre con el Gross Amount
+                                     if (STS_JSON.taxFlow == 4) {
+                                         baseDifal = itemGrossAmount;
+                                         baseFixedAsset = itemGrossAmount;
+                                         if (NT_TelecomunicationTax == true || NT_TelecomunicationTax == "T") { // En el caso de un impuesto de Telecomunicación (FUST o FUNTTEL)
+                                             var sumaBaseCalculoI = _baseCalculationBR(0, j, false);
+                                             // Si es un impuesto de telecomunicaciones se resta al gross(monto base), la suma de los otros impuestos(PIS, COFINS..)
+                                             itemGrossAmount = parseFloat(itemGrossAmount) - parseFloat(sumaBaseCalculoI);
+                                         }
+                                     }
+                                 }
+
+                                 // Cálculo del monto base
+                                 switch (NT_AmountTo) {
+                                     case 1:
+                                        baseAmount = parseFloat(itemGrossAmount) - parseFloat(NT_NotTaxableMin);
+                                        break;
+                                     case 2:
+                                        baseAmount = parseFloat(itemTaxAmount) - parseFloat(NT_NotTaxableMin);
+                                        break;
+                                    case 3:
+                                        baseAmount = parseFloat(itemNetAmount) - parseFloat(NT_NotTaxableMin);
+                                        break;
+                                 }
+
+                                 compareAmount = parseFloat(baseAmount);
+                                 if (NT_BaseAmount != null && NT_BaseAmount != "") {
+                                     switch (NT_BaseAmount) {
+                                         case "2": // Substrac Minimun
+                                            baseAmount = parseFloat(baseAmount) - parseFloat(NT_MinAmount);
+                                            break;
+                                         case "3": // Minimum
+                                            baseAmount = parseFloat(NT_MinAmount);
+                                            break;
+                                        case "4": // Maximum
+                                            baseAmount = parseFloat(NT_MaxAmount);
+                                            break;
+                                        case "5": // Always Substrac Minimum
+                                            baseAmount = parseFloat(baseAmount) - parseFloat(NT_MinAmount);
+                                            break;
+                                     }
+                                 }
+
+                                 var originBaseAmount = parseFloat(baseAmount);
+                                 if ((NT_TelecomunicationTax == false || NT_TelecomunicationTax == "F") && (NT_ReductionRatio != 1)) {
+                                     baseAmount = baseAmount * NT_ReductionRatio;
+                                     baseAmount = _round2(baseAmount);
+                                 }
+
+                                 if (baseAmount <= 0) {
+                                     continue;
+                                 }
+
+                                 // Calculo de retencion
+                                 if (NT_MaxAmount != 0) {
+                                     if ((NT_MinAmount <= parseFloat(compareAmount)) && (parseFloat(compareAmount) <= NT_MaxAmount)) {
+                                         retencion = (parseFloat(NT_TaxRate) * parseFloat(baseAmount) * parseFloat(NT_AdditionalRatio)) + parseFloat(NT_BaseRetention);
+                                     }
+                                 } else {
+                                     if (NT_MinAmount <= parseFloat(compareAmount)) {
+                                         retencion = (parseFloat(NT_TaxRate) * parseFloat(baseAmount) * parseFloat(NT_AdditionalRatio)) + parseFloat(NT_BaseRetention);
+                                     }
+                                 }
+
+                                 if (parseFloat(retencion) > 0 || NT_IsExempt == true || parseFloat(NT_TaxRate) == 0) {
+
+                                     var auxRetencion = _round2(retencion);
+                                     if (parseFloat(retencion) > 0 || NT_IsExempt == true || parseFloat(NT_TaxRate) == 0) {
+
+                                         var telecommTaxesFlows = [1, 3, 4]; // Flujos con impuestos de telecomunicaciones (FUST y FUNTEL)
+                                         // Para Brasil se consideran los impuestos de telecomunicacion (campo is_exclusive) solo para el Flujo 0, 2, 3
+                                         if ((NT_TelecomunicationTax == false || NT_TelecomunicationTax == "F") && (telecommTaxesFlows.indexOf(STS_JSON.taxflow) != -1)) {
+                                             _baseCalculationBR(parseFloat(retencion), j, true);
+                                         }
+
+                                         var baseNoTributada = 0;
+                                         var baseNoTributadaLC = 0;
+                                         if ((NT_TelecomunicationTax == false || NT_TelecomunicationTax == "F") && (NT_IsReduction == true || NT_IsReduction == "T")) {
+                                             baseNoTributada = _round2(originBaseAmount - baseAmount);
+                                             if (exchangeRate == 1) {
+                                                 baseNoTributadaLC = baseNoTributada;
+                                             } else {
+                                                 baseNoTributadaLC = (_round2(originBaseAmount) * exchRate) - (_round2(baseAmount) * exchangeRate)
+                                             }
+                                         }
+
+                                         var difalAmount = 0.00, difalFxAmount = 0.00, faTaxAmount = 0.00;
+                                         var difalOrigenRate = "", difalDestinationRate = "", difalAmountAuto = 0.00;
+                                         if (Number(STS_JSON.taxFlow) == 4) {
+                                             if (difalActive) {
+                                                 if (hasProvince && arrayDifalSubType.indexOf(NT_SubTypeID) != -1 && matchDifal && STS_JSON.difalAccount) {
+                                                     difalOrigenRate = transactionProvince ? provinceRateJSON[transactionProvince]: provinceRateJSON[br_tf_province];
+                                                     difalDestinationRate = provinceRateJSON[STS_JSON.province];
+                                                     var oriAmt = (baseDifal * difalOrigenRate) / 100;
+                                                     oriAmt = Math.round(oriAmt * 100) / 100;
+                                                     var desAmt = (baseDifal * difalDestinationRate) / 100;
+                                                     desAmt = Math.round(desAmt * 100) / 100;
+                                                     difalAmountAuto = Math.abs(oriAmt - desAmt);
+                                                     if (exchangeRate != 1) {
+                                                         difalAmountAuto = _round2(difalAmountAuto) * exchangeRate;
+                                                     }
+                                                     log.debug('[ Difal Data ]', [difalOrigenRate, difalDestinationRate, oriAmt, desAmt, difalAmountAuto].join('|'));
+                                                     var originAmt = (baseDifal * difalOrigenRate) / 100;
+                                                     var destinationAmt = (baseDifal * difalDestinationRate) / 100;
+                                                     if (!isPreview) {
+                                                         _createDifalJournal(originAmt, destinationAmt, STS_JSON, recordObj, NT_SubTypeID, j);
+                                                     }
+                                                 }
+                                             } else {
+                                                 if (NT_TaxDifal) {
+                                                     difalFxAmount = parseFloat(baseDifal) * NT_TaxDifal;
+                                                     difalAmount = difalFxAmount;
+                                                     if (exchangeRate != 1) {
+                                                         difalAmount = _round2(difalAmount) * exchangeRate;
+                                                     }
+                                                 }
+                                             }
+
+                                             if (NT_BR_TaxRateFA && itemFixedAsset) {
+                                                 faTaxAmount = parseFloat(baseFixedAsset) * NT_BR_TaxRateFA;
+                                                 if (exchangeRate != 1) {
+                                                     faTaxAmount = _round2(faTaxAmount) * exchangeRate;
+                                                 }
+                                             }
+
+                                             if (NT_IsSubstitutionTax == false || NT_IsSubstitutionTax == "F") {
+                                                 var mvaList = _getMVAByValues(MVARecords, itemMcnCode, NT_SubTypeID, NT_TaxRate);
+                                                 if (mvaList.length) {
+                                                     TaxesToSubstitutionTax[j] = TaxesToSubstitutionTax[j] || {};
+                                                     for (var m = 0; m < mvaList.length; m++) {
+                                                         var mvaID = mvaList[m].mva_id;
+                                                         var mvaRate = mvaList[m].mva_rate;
+                                                         TaxesToSubstitutionTax[j][mvaID] = TaxesToSubstitutionTax[j][mvaID] || [];
+                                                         TaxesToSubstitutionTax[j][mvaID].push({
+                                                             mvaRate: mvaRate,
+                                                             subType: NT_SubTypeID,
+                                                             taxRate: parseFloat(NT_TaxRate),
+                                                             taxRecordId: NT_InternalID
+                                                         });
+                                                     }
+                                                 }
+                                             }
+
+                                             if (NT_IsTaxNotIncluded == true || NT_IsTaxNotIncluded == "T") {
+                                                 TaxNotIncluded[j] = TaxNotIncluded[j] || {};
+                                                 if (!TaxNotIncluded[j][NT_SubTypeID]) {
+                                                     TaxNotIncluded[j][NT_SubTypeID] = {
+                                                         amount: 0.00,
+                                                         subType: NT_SubType,
+                                                         subTypeId: NT_SubTypeID
+                                                     };
+                                                 }
+                                                 TaxNotIncluded[j][NT_SubTypeID].amount += retencion;
+                                             }
+                                         }
+
+                                         taxResults[j] = taxResults[j] || [];
+                                         taxResults[j].push({
+                                            subType: NT_SubType,
+                                            subTypeID: NT_SubTypeID,
+                                            lineUniqueKey: itemUniqueKey,
+                                            baseAmount: parseFloat(baseAmount),
+                                            retencion: parseFloat(retencion),
+                                            idCCNT: NT_InternalID,
+                                            taxRate: parseFloat(NT_TaxRate),
+                                            caso: "4I",
+                                            account1: NT_DebitAccountID,
+                                            accoun2: NT_CreditAccountID,
+                                            items: itemID,
+                                            itemsName: itemName,
+                                            posicionItem: j,
+                                            description: NT_Description,
+                                            receita: NT_BR_Receita,
+                                            taxSituation: itemTaxSituation,
+                                            natureRevenue: NT_BR_Revenue,
+                                            regimen: itemRegimen,
+                                            isExempt: NT_IsExempt,
+                                            localCurrBaseAmt: exchangeRate == 1 ? parseFloat(baseAmount) : _round2(parseFloat(baseAmount)) * exchangeRate,
+                                            localCurrAmt: exchangeRate == 1 ? retencion : _round2(retencion) * exchangeRate,
+                                            localCurrGrossAmt: exchangeRate == 1 ? itemGrossAmount : _round2(itemGrossAmount) * exchangeRate,
+                                            difalAmount: difalAmount,
+                                            difalTaxRate: NT_TaxDifal,
+                                            difalFxAmount: _round4(difalFxAmount),
+                                            isApplyReport: NT_ApplyReport,
+                                            isImportTax: NT_IsImportTax,
+                                            baseNoTributada: baseNoTributada,
+                                            baseNoTributadaLocCurr: baseNoTributadaLC,
+                                            isSubstitutionTax: false,
+                                            isTaxNotIncluded: NT_IsTaxNotIncluded,
+                                            taxItem: NT_TaxItem,
+                                            taxCode: NT_TaxCode,
+                                            difalOrigen: difalOrigenRate,
+                                            difalDestination: difalDestinationRate,
+                                            difalAmountauto: difalAmountAuto,
+                                            faTaxRate: NT_BR_TaxRateFA,
+                                            faTaxAmount: faTaxAmount,
+                                            fixedAsset: (NT_BR_TaxRateFA && !NS_FA_ACTIVE) ? fixedAsset : "",
+                                            fixedAssetNS: (NT_BR_TaxRateFA && NS_FA_ACTIVE) ? fixedAsset : "",
+                                            taxdetails: {
+                                                detailReference: itemDetailReference,
+                                                taxType: NT_STE_TaxTypeID,
+                                                taxCode: NT_STE_TaxCodeID,
+                                                taxBasis: baseAmount,
+                                                taxRate: parseFloat(NT_TaxRate),
+                                                taxAmount: Math.round((parseFloat(baseAmount) * parseFloat(NT_TaxRate)) * 100) / 100
+                                            }
+                                         });
+
+                                         taxDetailLines += 1;
+                                         blnTaxCalculate = true;
+
+                                     }
+
+                                 } // Fin retencion > 0
+
+                            } // Fin FOR itemLineCount
+
+                        } // Fin IF itemLineCount
 
                     } // Fin FOR NT_SearchResult
 
@@ -689,12 +1108,12 @@ define([
 
             }
 
-            // if (STS_JSON.taxFlow == 4 && transactionType != "itemfulfillment") {
-            //     log.debub('[ TaxesToSubstitutionTax ]', TaxesToSubstitutionTax);
-            //     log.debug('[ SubstitutionTaxes ]', SubstitutionTaxes);
-            //     log.debug('[ taxesNotIncluded ]', taxesNotIncluded);
-            //     _calculateSubstitutionTaxes(recordObj, TaxesToSubstitutionTax, SubstitutionTaxes, TaxNotIncluded, taxResults, exchangeRate);
-            // }
+            if (STS_JSON.taxFlow == 4 && transactionType != "itemfulfillment") {
+                log.debug('[ TaxesToSubstitutionTax ]', TaxesToSubstitutionTax);
+                log.debug('[ SubstitutionTaxes ]', SubstitutionTaxes);
+                log.debug('[ TaxNotIncluded ]', TaxNotIncluded);
+                _calculateSubstitutionTaxes(recordObj, TaxesToSubstitutionTax, SubstitutionTaxes, TaxNotIncluded, taxResults, exchangeRate);
+            }
 
             return taxResults;
 
@@ -732,7 +1151,7 @@ define([
                     }
 
                     if (taxesToST[i]) {
-
+                        // log.debug('[ _calculateSubstitutionTaxes ]', 'Entra');
                         var totalTaxesNotIncluded = 0.00;
                         if (taxesNotIncluded[i]) {
                             for (var taxNotIncluded in taxesNotIncluded[i]) {
@@ -744,7 +1163,70 @@ define([
                             for (var j = 0; i < taxesToST[i][mvaID].length; j++) {
 
                                 var mvaTax = taxesToST[i][mvaID][j];
-                                var mvaTaxRate = mvaTax.mva_taxrate;
+                                var taxRate = parseFloat(mvaTax.taxRate);
+                                var mvaRate = parseFloat(mvaTax.mvaRate);
+                                var baseST = _round2((itemGrossAmount + totalTaxesNotIncluded) * (1 + mvaRate));
+
+                                if (baseST) {
+                                    if (stTaxes[i] && stTaxes[i][mvaID]) {
+                                        for (var k = 0; k < stTaxes[i][mvaID].length; k++) {
+
+                                            var stTax = stTaxes[i][mvaID][k];
+                                            var stTaxRate = stTax.taxRate;
+                                            var faTaxRate = stTax.faTaxRate;
+                                            var stTaxAmount = (baseST * stTaxRate) - (itemGrossAmount * taxRate);
+
+                                            var localCurrBaseAmt = (exchangeRate != 1) ? _round2(baseST) * exchangeRate : baseST;
+                                            var localCurrAmt = (exchangeRate != 1) ? _round2(stTaxAmount) * exchangeRate : stTaxAmount;;
+                                            var localCurrGrossAmt = (exchangeRate != 1) ? _round2(itemGrossAmount) * exchangeRate : itemGrossAmount;;
+
+                                            var faTaxAmount = 0.00;
+                                            if (faTaxRate && fixedAsset) {
+                                                faTaxAmount = (exchangerate != 1) ? (parseFloat(itemGrossAmount) * faTaxRate) * exchangeRate : parseFloat(itemGrossAmount) * faTaxRate;
+                                            }
+
+                                            if (stTaxAmount && stTaxAmount > 0) {
+                                                taxResults[i].push({
+                                                    subType: stTax["subType"],
+                                                    subTypeID: stTax["subTypeId"],
+                                                    lineUniqueKey: lineUniqueKey,
+                                                    baseAmount: baseSt,
+                                                    retencion: round4(stTaxAmount),
+                                                    idCCNT: stTax["taxRecordId"],
+                                                    taxRate: stTaxRate,
+                                                    caso: stTax["case"],
+                                                    items: item,
+                                                    itemsName: itemName,
+                                                    posicionItem: i,
+                                                    receita: stTax["receita"],
+                                                    taxSituation: stTax["taxSituation"],
+                                                    natureRevenue: stTax["natureRevenue"],
+                                                    regimen: stTax["regimen"],
+                                                    localCurrBaseAmt: localCurrBaseAmt,
+                                                    localCurrAmt: localCurrAmt,
+                                                    localCurrGrossAmt: localCurrGrossAmt,
+                                                    isSubstitutionTax: true,
+                                                    isTaxNotIncluded: true,
+                                                    taxItem: stTax["taxItem"],
+                                                    taxCode: stTax["taxCode"],
+                                                    faTaxRate: faTaxRate,
+                                                    faTaxAmount: faTaxAmount,
+                                                    fixedAsset: (faTaxRate && !NS_FA_ACTIVE) ? fixedAsset : "",
+                                                    fixedAssetNS: (faTaxRate && NS_FA_ACTIVE) ? fixedAsset : "",
+                                                    taxdetails: {
+                                                        detailReference: itemDetailReference,
+                                                        taxType: stTax.ste_taxtype,
+                                                        taxCode: stTax.ste_taxcode,
+                                                        taxBasis: baseST,
+                                                        taxRate: stTaxRate * 100,
+                                                        taxAmount: stTaxAmount
+                                                    }
+                                                })
+                                            }
+
+                                        }
+                                    }
+                                }
 
                             }
                         }
@@ -1019,7 +1501,7 @@ define([
                     }
                 }
             }
-            log.debug('[ _getMVAByValues ]', mvaList);
+
             return mvaList;
 
         } catch (e) {
@@ -1134,7 +1616,7 @@ define([
                 search.createColumn({ name: 'custrecord_lmry_nt_ste_tax_type', label: 'Latam - STE TAX TYPE' }),
                 search.createColumn({ name: 'custrecord_lmry_nt_ste_tax_code', label: 'Latam - STE TAX CODE' }),
                 search.createColumn({ name: "custrecord_lmry_ntax_tax_rule", label: "LATAM BR - TAX RULE" }),
-                search.createColumn({ name: "custrecord_lmry_ntax_taxrate_pctge", label: "LATAM - TAX RATE" }),
+                search.createColumn({ name: "custrecord_lmry_ntax_taxrate", label: "LATAM - TAX RATE" }),
                 search.createColumn({ name: "custrecord_lmry_ntax_amount", label: "LATAM - AMOUNT TO" }),
                 search.createColumn({ name: "custrecord_lmry_ntax_addratio", label: "LATAM - ADDITIONAL RATIO" }),
                 search.createColumn({ name: "custrecord_lmry_ntax_minamount", label: "LATAM - MINIMUN AMOUNT" }),
@@ -1794,50 +2276,54 @@ define([
 
                 for (var i = 0; i < taxResults[position].length; i++) {
 
-                    switch (STS_JSON.taxFlow) {
-                        case "1":  // FLujo 0
-                            recordObj.selectNewLine({ sublistId: "taxdetails" });
-                            recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxdetailsreference", value: taxResults[position][i].taxdetails.detailReference });
-                            recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxtype", value: taxResults[position][i].taxdetails.taxType });
-                            recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxcode", value: taxResults[position][i].taxdetails.taxCode });
-                            recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxbasis", value: _round2(parseFloat(taxResults[position][i].taxdetails.taxBasis)) });
-                            recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxrate", value: parseFloat(taxResults[position][i].taxdetails.taxRate * 100) });
-                            recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxamount", value: _round2(parseFloat(taxResults[position][i].taxdetails.taxAmount)) });
-                            recordObj.commitLine({ sublistId: "taxdetails" });
-                            break;
+                    if (taxResults[position][i].isTaxNotIncluded == true || taxResults[position][i].isTaxNotIncluded == "T") {
 
-                        case "2": // Flujo 1
-                            recordObj.selectNewLine({ sublistId: "taxdetails" });
-                            recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxdetailsreference", value: taxResults[position][i].taxdetails.detailReference });
-                            recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxtype", value: taxResults[position][i].taxdetails.taxType });
-                            recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxcode", value: taxResults[position][i].taxdetails.taxCode });
-                            recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxbasis", value: _round2(parseFloat(taxResults[position][i].taxdetails.taxBasis)) });
-                            recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxrate", value: parseFloat(taxResults[position][i].taxdetails.taxRate * 100) });
-                            recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxamount", value: _round2(parseFloat(taxResults[position][i].taxdetails.taxAmount)) });
-                            recordObj.commitLine({ sublistId: "taxdetails" });
-                            break;
+                        switch (STS_JSON.taxFlow) {
+                            case "1":  // FLujo 0
+                                recordObj.selectNewLine({ sublistId: "taxdetails" });
+                                recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxdetailsreference", value: taxResults[position][i].taxdetails.detailReference });
+                                recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxtype", value: taxResults[position][i].taxdetails.taxType });
+                                recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxcode", value: taxResults[position][i].taxdetails.taxCode });
+                                recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxbasis", value: _round2(parseFloat(taxResults[position][i].taxdetails.taxBasis)) });
+                                recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxrate", value: parseFloat(taxResults[position][i].taxdetails.taxRate * 100) });
+                                recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxamount", value: _round2(parseFloat(taxResults[position][i].taxdetails.taxAmount)) });
+                                recordObj.commitLine({ sublistId: "taxdetails" });
+                                break;
 
-                        case "3": // Flujo 2
-                            recordObj.selectNewLine({ sublistId: "taxdetails" });
-                            recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxdetailsreference", value: taxResults[position][i].taxdetails.detailReference });
-                            recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxtype", value: taxResults[position][i].taxdetails.taxType });
-                            recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxcode", value: taxResults[position][i].taxdetails.taxCode });
-                            recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxbasis", value: _round2(parseFloat(taxResults[position][i].taxdetails.taxBasis)) });
-                            recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxrate", value: parseFloat(taxResults[position][i].taxdetails.taxRate * 100) });
-                            recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxamount", value: 0.00 });
-                            recordObj.commitLine({ sublistId: "taxdetails" });
-                            break;
+                            case "2": // Flujo 1
+                                recordObj.selectNewLine({ sublistId: "taxdetails" });
+                                recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxdetailsreference", value: taxResults[position][i].taxdetails.detailReference });
+                                recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxtype", value: taxResults[position][i].taxdetails.taxType });
+                                recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxcode", value: taxResults[position][i].taxdetails.taxCode });
+                                recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxbasis", value: _round2(parseFloat(taxResults[position][i].taxdetails.taxBasis)) });
+                                recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxrate", value: parseFloat(taxResults[position][i].taxdetails.taxRate * 100) });
+                                recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxamount", value: _round2(parseFloat(taxResults[position][i].taxdetails.taxAmount)) });
+                                recordObj.commitLine({ sublistId: "taxdetails" });
+                                break;
 
-                        case "4": // Flujo 3
-                            recordObj.selectNewLine({ sublistId: "taxdetails" });
-                            recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxdetailsreference", value: taxResults[position][i].taxdetails.detailReference });
-                            recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxtype", value: taxResults[position][i].taxdetails.taxType });
-                            recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxcode", value: taxResults[position][i].taxdetails.taxCode });
-                            recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxbasis", value: _round2(parseFloat(taxResults[position][i].taxdetails.taxBasis)) });
-                            recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxrate", value: parseFloat(taxResults[position][i].taxdetails.taxRate * 100) });
-                            recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxamount", value: 0.00 });
-                            recordObj.commitLine({ sublistId: "taxdetails" });
-                            break;
+                            case "3": // Flujo 2
+                                recordObj.selectNewLine({ sublistId: "taxdetails" });
+                                recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxdetailsreference", value: taxResults[position][i].taxdetails.detailReference });
+                                recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxtype", value: taxResults[position][i].taxdetails.taxType });
+                                recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxcode", value: taxResults[position][i].taxdetails.taxCode });
+                                recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxbasis", value: _round2(parseFloat(taxResults[position][i].taxdetails.taxBasis)) });
+                                recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxrate", value: parseFloat(taxResults[position][i].taxdetails.taxRate * 100) });
+                                recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxamount", value: 0.00 });
+                                recordObj.commitLine({ sublistId: "taxdetails" });
+                                break;
+
+                            case "4": // Flujo 3
+                                recordObj.selectNewLine({ sublistId: "taxdetails" });
+                                recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxdetailsreference", value: taxResults[position][i].taxdetails.detailReference });
+                                recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxtype", value: taxResults[position][i].taxdetails.taxType });
+                                recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxcode", value: taxResults[position][i].taxdetails.taxCode });
+                                recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxbasis", value: _round2(parseFloat(taxResults[position][i].taxdetails.taxBasis)) });
+                                recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxrate", value: parseFloat(taxResults[position][i].taxdetails.taxRate * 100) });
+                                recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxamount", value: 0.00 });
+                                recordObj.commitLine({ sublistId: "taxdetails" });
+                                break;
+                        }
+
                     }
 
                 }
@@ -2062,13 +2548,13 @@ define([
             log.debug('[ taxItemsJSON ]', taxItemsJSON);
             for (var k in taxItemsJSON) {
 
-                // var itemLineCount = recordObj.getLineCount({ sublistId: "item" })
+                var itemLineCount = recordObj.getLineCount({ sublistId: "item" })
                 var tax = taxItemsJSON[k];
                 var subType = tax.subType;
                 var item = tax.item;
                 var amount = _round2(tax.amount);
                 var taxCode = tax.taxCode || "";
-                // var taxType = _getTaxTypeByTaxCode(taxCode) || "";
+                var taxType = _getTaxTypeByTaxCode(taxCode) || "";
 
                 if (amount > 0) {
 
@@ -2100,17 +2586,17 @@ define([
                     }
                     recordObj.commitLine({ sublistId: "item" });
 
-                    // var itemDetailReference = recordObj.getSublistValue({ sublistId: "item", fieldId: "taxdetailsreference", line: itemLineCount });
-                    //
+                    var itemDetailReference = recordObj.getSublistValue({ sublistId: "item", fieldId: "taxdetailsreference", line: itemLineCount });
+
                     // New tax detail line
-                    // recordObj.selectLine({ sublistId: "taxdetails" });
-                    // recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxdetailsreference", value: itemDetailReference });
-                    // recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxtype", value: taxType });
-                    // recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxcode", value: taxCode });
-                    // recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxbasis", value: amount });
-                    // recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxrate", value: 0.00 });
-                    // recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxamount", value: 0.00 });
-                    // recordObj.commitLine({ sublistId: "taxdetails" });
+                    recordObj.selectNewLine({ sublistId: "taxdetails" });
+                    recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxdetailsreference", value: itemDetailReference });
+                    recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxtype", value: taxType });
+                    recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxcode", value: taxCode });
+                    recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxbasis", value: amount });
+                    recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxrate", value: 0.00 });
+                    recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxamount", value: 0.00 });
+                    recordObj.commitLine({ sublistId: "taxdetails" });
 
                 }
 
