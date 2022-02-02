@@ -168,31 +168,6 @@ function (log, record, search, runtime, library, Library_Log) {
     }
   }
 
-  /**************************************************************
-   * Verifica si en la lineas (item) esta marcado el campo
-   * personalizado.
-   *    - recordObj: Objeto record
-   *    - numLines: Numero de lineas de item
-   *************************************************************/
-  function contieneTributo(recordObj, numLines) {
-    try {
-      var tributo = false;
-      for (var i = 0; i < numLines; i++) {
-        var tiene_tributo = recordObj.getSublistValue('item', 'custcol_lmry_ar_item_tributo', i);
-        var perception_percentage = recordObj.getSublistValue('item', 'custcol_lmry_ar_perception_percentage', i);
-        if (tiene_tributo == true && (perception_percentage != null && perception_percentage != '')) {
-          tributo = true;
-        }
-      }
-      return tributo;
-    }
-    catch (e) {
-      log.error("[ applyPerception - contieneTributo ]", e);
-      LibraryMail.sendemail('[ applyPerception - contieneTributo ] ' + e, Name_script);
-      Library_Log.doLog({ title: '[ applyPerception - contieneTributo ]', message: e, relatedScript: LMRY_SCRIPT_NAME });
-    }
-  }
-
   /**********************************************************
   * Busqueda en el record: LatamReady - Setup Tax Subsidiary
   *    - subsidiary: Subsidiaria
