@@ -26,7 +26,13 @@ define([
         try {
 
             var recordID = context.newRecord.id;
+            var recordType = context.newRecord.type;
             var type = context.type;
+
+            var recordObj = record.load({
+                id: recordID,
+                type: recordType
+            });
 
             if (type != "create") {
                 // Elimina registros del record: LatamReady - Transaction Fields
