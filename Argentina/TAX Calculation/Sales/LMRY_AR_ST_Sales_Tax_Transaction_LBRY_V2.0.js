@@ -57,7 +57,7 @@ define([
 
             var transactionID = scriptContext.newRecord.id;
             var transactionType = scriptContext.newRecord.type
-            var actionType = context.type;
+            var actionType = scriptContext.type;
 
             var recordObj = record.load({
                 type: transactionType,
@@ -303,12 +303,12 @@ define([
                                     });
 
                                     recordObj.selectNewLine({ sublistId: "taxdetails" });
-                                    recordObj.setSublistValue({ sublistId: "taxdetails", fieldId: "taxdetailsreference", value: itemDetailReference });
-                                    recordObj.setSublistValue({ sublistId: "taxdetails", fieldId: "taxtype", value: NT_STE_taxTypeID });
-                                    recordObj.setSublistValue({ sublistId: "taxdetails", fieldId: "taxcode", value: NT_STE_taxCodeID });
-                                    recordObj.setSublistValue({ sublistId: "taxdetails", fieldId: "taxbasis", value: parseFloat(itemNetAmount) });
-                                    recordObj.setSublistValue({ sublistId: "taxdetails", fieldId: "taxrate", value: parseFloat(NT_taxRate) * 100 });
-                                    recordObj.setSublistValue({ sublistId: "taxdetails", fieldId: "taxamount", value: itemTaxAmountByNT });
+                                    recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxdetailsreference", value: itemDetailReference });
+                                    recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxtype", value: NT_STE_taxTypeID });
+                                    recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxcode", value: NT_STE_taxCodeID });
+                                    recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxbasis", value: parseFloat(itemNetAmount) });
+                                    recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxrate", value: parseFloat(NT_taxRate) * 100 });
+                                    recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxamount", value: itemTaxAmountByNT });
                                     recordObj.commitLine({ sublistId: "taxdetails" });
 
                                 }
