@@ -58,7 +58,7 @@ define(['N/ui/serverWidget', 'N/search', 'N/record', 'N/log', 'N/url', 'N/format
     var restante_map = [];
     var aux_suma = 0;
 
-    // SUITETAX
+    // SuiteTax Feature
     var ST_FEATURE = false;
 
     function banderas() {
@@ -87,11 +87,54 @@ define(['N/ui/serverWidget', 'N/search', 'N/record', 'N/log', 'N/url', 'N/format
       lista_bills_pagar = [];
     }
 
+    function reseteo_completo() {
+      aux_separa = '';
+      subsidiary = '';
+      result_setuptax = [];
+      exchange_global = 1;
+      exchange_global_certificado = 1;
+      currencies = [];
+      suma = 0;
+      acumulados_taxgroup = [0, 0, 0, 0, 0, 0];
+      suma_taxgroup = [0, 0, 0, 0, 0, 0]; //GRAVADO, NO GRAVADO, EXENTO E IVA, SUMA, IMPORTE
+      Result_national_taxes;
+      suma_pagos = 0;
+      lista_bills_pagar = [];
+      json_prueba = {
+        total_gravado: [],
+        total_no_gravado: [],
+        total_iva: [],
+        total_exento: [],
+        total_importe: [],
+        total_netogng: [],
+        total_id: []
+      };
+      //ARREGLOS RESTA DE RETENCIONES anteriores
+      ccl_retencion = [];
+      retencion_ccl = [];
+      nt_retencion = [];
+      retencion_nt = [];
+      tran_number = [];
+      tipoRenta = [];
+      //ARREGLOS DOC FISCAL
+      docfiscal_bill = [];
+      docfiscal_id = [];
+      //ARREGLOS TODA LA INFO
+      arregloAuxiliar = [];
+      contadorAuxiliar = 0;
+      //BANDERAS
+      arregloBanderas = [false, false, false, false, false, false, false, false, false]; //MINIMOS, ACUMULADO, MAXIMO, DOBASEAMOUNT, NOIMPONIBLE, SETBASE, 6 SUMARETANTERIORES, ADDACCUMULATEDAMOUNT, MINIMUM RETENTION
+      //PARA EL BILL PAYMENT
+      bill_map = [];
+      retenciones_map = [];
+      pagobill_map = [];
+      restante_map = [];
+      //  aux_suma = 0;
+    }
+
     function payment_log(script, idLog, accountingPeriod, vendor, fechaIngresada, currencies, result_setuptax, subsidiary, docfiscal_id, docfiscal_bill, exchange_global, noretention, manual) {
 
-      ST_FEATURE = runtime.isFeatureInEffect({
-        feature: "tax_overhauling"
-      });
+      ST_FEATURE = runtime.isFeatureInEffect({ feature: "tax_overhauling" });
 
       var filtros_log = [];
       filtros_log[0] = search.createFilter({
@@ -123,10 +166,7 @@ define(['N/ui/serverWidget', 'N/search', 'N/record', 'N/log', 'N/url', 'N/format
       var search_log = search.create({
         type: 'customrecord_lmry_wht_payments_log',
         filters: filtros_log,
-        columns: ['internalid', 'custrecord_lmry_wht_bil', 'custrecord_lmry_wht_exc',
-          'custrecord_lmry_wht_cur', 'custrecord_lmry_wht_mul', 'custrecord_lmry_wht_bas',
-          'custrecord_lmry_wht_ven'
-        ]
+        columns: ['internalid', 'custrecord_lmry_wht_bil', 'custrecord_lmry_wht_exc', 'custrecord_lmry_wht_cur', 'custrecord_lmry_wht_mul', 'custrecord_lmry_wht_bas', 'custrecord_lmry_wht_ven']
       });
 
       var result_log = search_log.run().getRange({
@@ -255,8 +295,7 @@ define(['N/ui/serverWidget', 'N/search', 'N/record', 'N/log', 'N/url', 'N/format
         start: 0,
         end: 1000
       });
-      log.error('[ lista_bills_pagar ]', lista_bills_pagar);
-      log.error('[ result_bill ]', result_bill);
+
       for (var j = 0; j < lista_bills_pagar.length; j++) {
         for (var k = 0; k < result_bill.length; k++) {
           var colFields_bill = result_bill[0].columns;
@@ -265,6 +304,7 @@ define(['N/ui/serverWidget', 'N/search', 'N/record', 'N/log', 'N/url', 'N/format
           } else {
             var transactionID = result_bill[k].getValue(colFields_bill[16]);
           }
+
           if (transactionID == lista_bills_pagar[j]) {
 
             if (result_bill[k].getValue(colFields_bill[4]) == null || result_bill[k].getValue(colFields_bill[4]) == '') {
@@ -285,6 +325,7 @@ define(['N/ui/serverWidget', 'N/search', 'N/record', 'N/log', 'N/url', 'N/format
             }
 
             //amon_gross_pa.push(result_bill[k].getValue(colFields_bill[15]))
+
             if (ST_FEATURE == true || ST_FEATURE == "T") {
               var aux_exento = result_bill[k].getValue(colFields_bill[15]);
             } else {
@@ -375,7 +416,7 @@ define(['N/ui/serverWidget', 'N/search', 'N/record', 'N/log', 'N/url', 'N/format
         suma_taxgroup[4] = Math.round(suma_taxgroup[4] * 1000000) / 1000000;
         suma_taxgroup[5] = parseFloat(suma_taxgroup[5]) + parseFloat(json_prueba.total_importe[i]) * parseFloat(porcet_pagos[i]);
       }
-      log.error('[ suma_taxgroup ]', suma_taxgroup);
+
       //BUSQUEDA PAGO ANTERIOR: DETAILS
       var search_details = search.create({
         type: 'customrecord_lmry_wht_details',
@@ -541,7 +582,7 @@ define(['N/ui/serverWidget', 'N/search', 'N/record', 'N/log', 'N/url', 'N/format
         start: 0,
         end: 1000
       });
-      log.error('[ Result_contri_clas ]', Result_contri_clas);
+
       var columnas_national = ['custrecord_lmry_ntax_taxitem', 'custrecord_lmry_ntax_taxrate', 'internalid', 'custrecord_lmry_ntax_addratio', 'custrecord_lmry_ntax_jurisdib',
         'custrecord_lmry_ntax_appliesto', 'custrecord_lmry_ntax_amount', 'custrecord_lmry_ntax_sub_type', 'custrecord_lmry_ntax_minamount', 'custrecord_lmry_ntax_montaccum',
         'custrecord_lmry_ntax_taxrate_pctge', 'custrecord_lmry_ntax_fiscal_doctype', 'custrecord_lmry_ntax_accandmin_with', 'custrecord_lmry_ntax_maxamount',
@@ -659,9 +700,7 @@ define(['N/ui/serverWidget', 'N/search', 'N/record', 'N/log', 'N/url', 'N/format
 
     function creadoTransacciones(id_log, result_setuptax, subsidiary, date, accountingPeriod, paymentMethod, currency, memo, ap, bank, department, clase, location, rate, accountingbook, cForm, country, vendor, exchangeGlobalCertificado, exchangeGlobal, eft, check, proceso) {
 
-      ST_FEATURE = runtime.isFeatureInEffect({
-        feature: "tax_overhauling"
-      });
+      ST_FEATURE = runtime.isFeatureInEffect({ feature: "tax_overhauling" });
 
       var base_retenciones = '';
       for (var i = 0; i < suma_taxgroup.length; i++) {
@@ -817,8 +856,6 @@ define(['N/ui/serverWidget', 'N/search', 'N/record', 'N/log', 'N/url', 'N/format
       var cant_pay = obj_payment.getLineCount({
         sublistId: 'apply'
       });
-      log.error('[ cant_pay ]', cant_pay);
-      log.error('[ retenciones_map ]', retenciones_map);
       for (var indpay = 0; indpay < cant_pay; indpay++) {
         obj_payment.selectLine({
           sublistId: 'apply',
@@ -900,10 +937,9 @@ define(['N/ui/serverWidget', 'N/search', 'N/record', 'N/log', 'N/url', 'N/format
       log.error('recordpay', recorpay);
 
       //DETAILS
-      log.error('[ arregloAuxiliar ]', arregloAuxiliar);
       for (var e = 0; e < arregloAuxiliar.length; e++) {
         var arregloContenidoSplit = arregloAuxiliar[e].split('|');
-        log.error('[ arregloContenidoSplit ]', arregloContenidoSplit);
+
         if (arregloContenidoSplit[40] != vendor) {
           continue;
         }
@@ -1417,7 +1453,7 @@ define(['N/ui/serverWidget', 'N/search', 'N/record', 'N/log', 'N/url', 'N/format
             disableTriggers: true
           });
 
-          // SuiteTax
+          // Set Tax Details to SuiteTax
           if (ST_FEATURE == true || ST_FEATURE == "T") {
             setSuiteTaxTransactionFieds(arregloContenidoSplit, recordId);
           }
@@ -1782,17 +1818,17 @@ define(['N/ui/serverWidget', 'N/search', 'N/record', 'N/log', 'N/url', 'N/format
           } else {
             bySubsidiary_text = "False";
           }
-          log.error('[ Document Type ]', [type_fiscal_document, docFiscal]);
+
           if (type_fiscal_document != null && type_fiscal_document != '') {
             if (docFiscal != type_fiscal_document) {
               continue;
             }
           }
-          log.error('[ taxcode_group ]', taxcode_group);
+
           if (taxcode_group == null || taxcode_group == '') {
             continue;
           }
-          log.error('[ tipo_renta ]', [tipo_renta, tipoRenta[posicion]]);
+
           //INCOME TYPE: tipo de honorario
           if (tipo_renta != null && tipo_renta != '') {
             if (tipo_renta != tipoRenta[posicion]) {
@@ -1852,7 +1888,6 @@ define(['N/ui/serverWidget', 'N/search', 'N/record', 'N/log', 'N/url', 'N/format
               suma_global = acumulados_taxgroup[3];
               tra_total_global = suma_taxgroup[3];
               amon_global = json_prueba.total_iva[posicion];
-              log.error('[ suma_global, tra_total_global, amon_global ]', [suma_global, tra_total_global, amon_global]);
               break;
             case '5':
               suma_global = acumulados_taxgroup[4];
@@ -1868,18 +1903,17 @@ define(['N/ui/serverWidget', 'N/search', 'N/record', 'N/log', 'N/url', 'N/format
 
           //PORCET DEL BILL QUE ESTA PAGANDO
           var aux_amount_remaining = parseFloat(amon_global) * parseFloat(porcet);
-          log.error('[ aux_amount_remaining ]', aux_amount_remaining);
+
           var tra_total_global_before_resta = tra_total_global;
-          log.error('[ tra_total_global_before_resta ]', tra_total_global_before_resta);
+
           tra_total_global = parseFloat(tra_total_global) - parseFloat(minimonoimponible);
           var bandera = false,
             casoActual = '',
             new_base = '',
             caso_nueva_logica = '';
-          log.error('[ new_logic, if_monthly ]', [new_logic, if_monthly]);
+
           if (new_logic) {
             if (if_monthly) {
-
               if (parseFloat(suma_global) + parseFloat(tra_total_global) > ccl_mini) {
                 new_base = parseFloat(suma_global) + parseFloat(tra_total_global);
                 caso_nueva_logica = 1;
@@ -1925,7 +1959,7 @@ define(['N/ui/serverWidget', 'N/search', 'N/record', 'N/log', 'N/url', 'N/format
           }
 
           //log.error('casoActual',casoActual + "-" + internalid + "-" + caso_nueva_logica);
-          log.error('[ casoActual ]', casoActual);
+
           if (bandera) {
             continue;
           }
@@ -2217,7 +2251,7 @@ define(['N/ui/serverWidget', 'N/search', 'N/record', 'N/log', 'N/url', 'N/format
                 }
 
                 if (casoActual == 5 || casoActual == 7) {
-                  log.error('[ maximo - tra_total_global ]', [maximo, tra_total_global]);
+
                   if (maximo < parseFloat(tra_total_global)) {
                     continue;
                   } else {
@@ -3285,7 +3319,8 @@ define(['N/ui/serverWidget', 'N/search', 'N/record', 'N/log', 'N/url', 'N/format
       llenadoSubTabla: llenadoSubTabla,
       banderas: banderas,
       creadoTransacciones: creadoTransacciones,
-      reseteo: reseteo
+      reseteo: reseteo,
+      reseteo_completo: reseteo_completo
     };
 
   });
