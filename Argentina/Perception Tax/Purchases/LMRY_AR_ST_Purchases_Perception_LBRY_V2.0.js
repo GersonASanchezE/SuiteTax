@@ -37,7 +37,6 @@ function (log, record, search, runtime, library, Library_Log) {
   var exchange_global = 1;
   var numLines = 1;
   var filtroTransactionType = "";
-  // var cantidad = 0;
 
   /*********************************************************************************************************
    * Funcion que realiza el calculo de los impuestos.
@@ -62,16 +61,10 @@ function (log, record, search, runtime, library, Library_Log) {
       });
 
       var override = recordObj.getValue('taxdetailsoverride');
-      if (override == false || override == 'F'){
+      if ( override == false || override == 'F' ) {
         return true;
       }
-      // log.error("recordObj", recordObj);
-      // var recordObj = scriptContext.newRecord;
-
-
-
-      // numLines = recordObj.getLineCount('item');
-      // var auto_wht = recordObj.getValue('custbody_lmry_apply_wht_code');
+      
       var legalDocType = recordObj.getValue("custbody_lmry_document_type");
       var fieldStatus = recordObj.getField({fieldId: 'custbody_psg_ei_status'});
       var eDocStatus = '';
@@ -83,7 +76,8 @@ function (log, record, search, runtime, library, Library_Log) {
         }
       }
 
-      if (validarTipoDoc(legalDocType) && (eDocStatus != "Sent" && eDocStatus != "Enviado")) {
+      if ( validarTipoDoc (legalDocType) && (eDocStatus != "Sent" && eDocStatus != "Enviado" ) ) {
+
         var transactionDate = recordObj.getText("trandate");
         var entity = recordObj.getValue("entity");
 
@@ -117,9 +111,7 @@ function (log, record, search, runtime, library, Library_Log) {
         // log.error("searchResultCC21", searchResultCC)
         // log.error("searchResultNT21", searchResultNT)
 
-        // if (operationType != "create" || ) {
-          deleteTaxItemLines(recordObj);
-        // }
+        deleteTaxItemLines(recordObj);
 
         numLines = recordObj.getLineCount('item');
         addItem(searchResultCC, recordObj, tipoRedondeo, arregloSegmentacion);
@@ -128,7 +120,9 @@ function (log, record, search, runtime, library, Library_Log) {
         recordObj.save({ ignoreMandatoryFields: true, disableTriggers: true, enableSourcing: true });
 
       }
+
     }
+
     catch (err) {
       log.error("Error applyPerception", err);
       library.sendemail(' [ After Submit - applyPerception] ' + err, LMRY_script);
@@ -433,12 +427,6 @@ function (log, record, search, runtime, library, Library_Log) {
             description = '';
           }
 
-          // log.error("itmsubtype", itmsubtype)
-          // Valida si es articulo para las ventas
-          // if (itmsubtype != 'Para la venta' && itmsubtype != 'For Purchase' && itmsubtype != 'Para reventa' && itmsubtype != 'For Resale') {
-          //   continue;
-          // }
-
           if (amount_base <= 0) {
             continue;
           }
@@ -466,13 +454,14 @@ function (log, record, search, runtime, library, Library_Log) {
 
           percepcion = parseFloat(Math.round(parseFloat(percepcion) * 100) / 100);
 
+          // Agregar Items
           recordObj.selectNewLine('item');
 
           recordObj.setCurrentSublistValue('item', 'item', tax_item);
           recordObj.setCurrentSublistValue('item', 'description', description);
           recordObj.setCurrentSublistValue('item', 'quantity', 1);
-          recordObj.setCurrentSublistValue('item', 'rate', 0);
-          recordObj.setCurrentSublistValue('item', 'custcol_lmry_ar_perception_percentage', parseFloat(tax_rate)*100);
+          recordObj.setCurrentSublistValue('item', 'rate', parseFloat(percepcion));
+          recordObj.setCurrentSublistValue('item', 'custcol_lmry_ar_perception_percentage', parseFloat(tax_rate) * 100);
           recordObj.setCurrentSublistValue('item', 'custcol_lmry_ar_item_tributo', true);
           recordObj.setCurrentSublistValue('item', 'custcol_lmry_base_amount', amount_base);
 
@@ -518,25 +507,19 @@ function (log, record, search, runtime, library, Library_Log) {
 
           recordObj.commitLine({sublistId: 'item'});
 
+          // Agregar Tax details
           var itemDetailReference = recordObj.getSublistValue({ sublistId: 'item', fieldId: 'taxdetailsreference', line: numLines });
 
           recordObj.selectNewLine('taxdetails');
-          // log.error("percepcion", percepcion)
+          
           recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxdetailsreference", value: itemDetailReference });
           recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxtype", value: taxType });
           recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxcode",  value: taxCode });
           recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxbasis",  value: amount_base });
           recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxrate",  value: parseFloat(tax_rate) * 100 });
-          recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxamount", value: parseFloat(percepcion) });
+          recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxamount", value: 0 });
 
-          // log.error("itemDetailReference", itemDetailReference)
-          // log.error("taxtype", taxType)
-          // log.error("taxcode", taxCode)
-          // log.error("taxbasis", amount_base)
-          // log.error("taxrate", tax_rate)
-          // log.error("taxamount", percepcion)
           recordObj.commitLine({sublistId: 'taxdetails'});
-
 
           // Incrementa las lineas
           lastDetailLine++;

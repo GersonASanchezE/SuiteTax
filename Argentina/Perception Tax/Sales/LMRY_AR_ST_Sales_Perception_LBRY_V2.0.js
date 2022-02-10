@@ -596,52 +596,48 @@ function (log, record, search, runtime, library, Library_Log) {
           }
   
           //RETENCION
-          var retencion = parseFloat(setbaseretention) + parseFloat(amount_base) * parseFloat(ratio) * parseFloat(tax_rate);
-          retencion = parseFloat(Math.round(parseFloat(retencion) * 1000000) / 1000000);
-          retencion = parseFloat(Math.round(parseFloat(retencion) * 10000) / 10000);
-          var retencion_peso = retencion;
+          var percepcion = parseFloat(setbaseretention) + parseFloat(amount_base) * parseFloat(ratio) * parseFloat(tax_rate);
+          percepcion = parseFloat(Math.round(parseFloat(percepcion) * 1000000) / 1000000);
+          percepcion = parseFloat(Math.round(parseFloat(percepcion) * 10000) / 10000);
+          var percepcion_peso = percepcion;
   
-          var aux_cadena = retencion + ";";
-          retencion = parseFloat(retencion) / parseFloat(exchange_global);
+          var aux_cadena = percepcion + ";";
+          percepcion = parseFloat(percepcion) / parseFloat(exchange_global);
           amount_base = parseFloat(amount_base) / parseFloat(exchange_global);
   
           if (tipoRedondeo == '1') {
-            if (parseFloat(retencion) - parseInt(retencion) < 0.5) {
-              retencion = parseInt(retencion);
+            if (parseFloat(percepcion) - parseInt(percepcion) < 0.5) {
+              percepcion = parseInt(percepcion);
             }
             else {
-              retencion = parseInt(retencion) + 1;
+              percepcion = parseInt(percepcion) + 1;
             }
           }
           if (tipoRedondeo == '2') {
-            retencion = parseInt(retencion);
+            percepcion = parseInt(percepcion);
           }
   
           if (applies_account != '' && applies_account != null) {
             aux_cadena += applies_account;
           }
   
-          retencion = parseFloat(Math.round(parseFloat(retencion) * 100) / 100);
+          percepcion = parseFloat(Math.round(parseFloat(percepcion) * 100) / 100);
   
-          var retencion_transaccion = parseFloat(retencion) * parseFloat(exchange_global);
-          retencion_transaccion = Math.round(parseFloat(retencion_transaccion) * 10000) / 10000;
+          var percepcion_transaccion = parseFloat(percepcion) * parseFloat(exchange_global);
+          percepcion_transaccion = Math.round(parseFloat(percepcion_transaccion) * 10000) / 10000;
   
-          var adjustment = parseFloat(retencion_peso) - parseFloat(retencion_transaccion);
+          var adjustment = parseFloat(percepcion_peso) - parseFloat(percepcion_transaccion);
   
           adjustment = adjustment.toFixed(4);
   
-          // Agrega una linea en blanco
-          // recordObj.insertLine('item', numLines);
+          
           recordObj.selectNewLine('item');
 
-          // log.error("INSERTANDO lINEA");
-          
           recordObj.setCurrentSublistValue('item', 'item', tax_item);
-  
           recordObj.setCurrentSublistValue('item', 'description',  description);
           recordObj.setCurrentSublistValue('item', 'quantity',  1);
-          recordObj.setCurrentSublistValue('item', 'rate', parseFloat(retencion));
-          recordObj.setCurrentSublistValue('item', 'custcol_lmry_ar_perception_percentage',  parseFloat(tax_rate));
+          recordObj.setCurrentSublistValue('item', 'rate', parseFloat(percepcion));
+          recordObj.setCurrentSublistValue('item', 'custcol_lmry_ar_perception_percentage',  parseFloat(tax_rate) * 100);
           recordObj.setCurrentSublistValue('item', 'custcol_lmry_ar_item_tributo',  true);
           recordObj.setCurrentSublistValue('item', 'custcol_lmry_base_amount',  amount_base);
           recordObj.setCurrentSublistValue('item', 'custcol_lmry_ar_perception_account',  aux_cadena);
@@ -693,8 +689,25 @@ function (log, record, search, runtime, library, Library_Log) {
               }
             }
           }
+
           recordObj.commitLine({sublistId: 'item'});
+
+
+          var itemDetailReference = recordObj.getSublistValue({ sublistId: 'item', fieldId: 'taxdetailsreference', line: numLines });
+
+          recordObj.selectNewLine('taxdetails');
+
+          recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxdetailsreference", value: itemDetailReference });
+          recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxtype", value: taxType });
+          recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxcode",  value: taxCode });
+          recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxbasis",  value: amount_base });
+          recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxrate",  value: parseFloat(tax_rate) * 100 });
+          recordObj.setCurrentSublistValue({ sublistId: "taxdetails", fieldId: "taxamount", value: 0 });
+
+          recordObj.commitLine({sublistId: 'taxdetails'});
+
           // Incrementa las lineas
+          lastDetailLine++;
           numLines++;
           // log.error("LINEA INSERTADA");
 
